@@ -6,7 +6,7 @@ import { Database } from '@/lib/supabase/types'
 
 // Transporter will be created dynamically based on config
 
-export async function sendCustomOtp(email: string, fullName: string, phone: string) {
+export async function sendCustomOtp(email: string, fullName: string = '', phone: string = '') {
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes
 
@@ -70,7 +70,7 @@ export async function sendCustomOtp(email: string, fullName: string, phone: stri
           </div>
           
           <div style="color: #1a1f36; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-            Сәлеметсіз бе, <b>${fullName}</b>!<br>
+            ${fullName ? `Сәлеметсіз бе, <b>${fullName}</b>!<br>` : 'Сәлеметсіз бе!<br>'}
             Жүйеге кіру үшін төмендегі растау кодын қолданыңыз:
           </div>
           

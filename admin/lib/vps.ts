@@ -20,12 +20,18 @@ export async function authenticateVPS() {
     
     const email = process.env.VPS_ADMIN_EMAIL;
     const password = process.env.VPS_ADMIN_PASSWORD;
-    if (email && password) {
-        try {
-            await pb.admins.authWithPassword(email, password);
-        } catch (err) {
-            console.error('[VPS] Admin authentication failed', err);
+
+    if (!email || !password) {
+        if (typeof window === 'undefined') {
+            console.error('[VPS] Error: VPS_ADMIN_EMAIL or VPS_ADMIN_PASSWORD is not set in environment variables.');
         }
+        return pb;
+    }
+
+    try {
+        await pb.admins.authWithPassword(email, password);
+    } catch (err: any) {
+        console.error('[VPS] Admin authentication failed. Check your VPS_ADMIN_EMAIL and VPS_ADMIN_PASSWORD.', err.message);
     }
     return pb;
 }

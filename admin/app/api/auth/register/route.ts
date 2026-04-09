@@ -39,13 +39,20 @@ export async function POST(request: Request) {
 
         const userId = userData.user.id
 
-        // 1b. Save PII to VPS (PocketBase)
-        const vpsProfileId = await savePII('profiles', {
-            full_name: cafeName,
-            phone: whatsapp,
-            email: email,
-            supabase_id: userId
-        });
+        let vpsProfileId;
+        try {
+            vpsProfileId = await savePII('profiles', {
+                full_name: cafeName,
+                phone: whatsapp,
+                email: email,
+                supabase_id: userId
+            });
+        } catch (vpsError: any) {
+            console.error('Registration Error (VPS savePII):', vpsError.message || vpsError);
+            return NextResponse.json({ 
+                error: 'VPS Error: Could not save profile information. ' + (vpsError.message || '')
+            }, { status: 500 });
+        }
 
         // 1c. Create Staff Profile in Supabase (Reference only)
         const { error: profileError } = await supabaseAdmin.from('staff_profiles').insert({
@@ -81,7 +88,12 @@ export async function POST(request: Request) {
 
         // Initialize Operational Status on VPS
         if (cafeData) {
-            await updateRestaurantStatus(cafeData.id, 'open');
+            try {
+                await updateRestaurantStatus(cafeData.id, 'open');
+            } catch (statusError: any) {
+                console.error('Registration Warning (VPS Status):', statusError.message || statusError);
+                // Non-blocking but logged
+            }
         }
 
         // 3. Create Default Working Hours
@@ -104,7 +116,9 @@ export async function POST(request: Request) {
         })
 
     } catch (error: any) {
-        console.error('API Error:', error)
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+        console.error('API Registration Full Error:', error);
+        return NextResponse.json({ 
+            error: 'Internal Server Error: ' + (error.message || 'Unknown error occurred')
+        }, { status: 500 })
     }
 }

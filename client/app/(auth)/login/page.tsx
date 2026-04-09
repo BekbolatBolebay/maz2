@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Phone, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-context'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const { signInWithEmail, verifyEmailOtp, signInAnonymous, loading: authLoading } = useAuth()
+    const { signInWithCustomOtp, verifyCustomOtp, signInAnonymous, loading: authLoading } = useAuth()
+    const { locale } = useI18n()
     const [email, setEmail] = useState('')
     const [otp, setOtp] = useState('')
     const [step, setStep] = useState<'email' | 'otp'>('email')
@@ -23,9 +25,9 @@ export default function LoginPage() {
         if (!email) return
         setLoading(true)
         try {
-            await signInWithEmail(email)
+            await signInWithCustomOtp(email)
             setStep('otp')
-            toast.success('Код почтаңызға жіберілді')
+            toast.success(locale === 'kk' ? 'Код почтаңызға жіберілді' : 'Код отправлен на почту')
         } catch (error: any) {
             toast.error(error.message)
         } finally {
@@ -38,10 +40,10 @@ export default function LoginPage() {
         if (!otp) return
         setLoading(true)
         try {
-            await verifyEmailOtp(email, otp)
+            await verifyCustomOtp(email, otp)
             const next = searchParams.get('next') || '/'
             router.push(next)
-            toast.success('Қош келдіңіз!')
+            toast.success(locale === 'kk' ? 'Қош келдіңіз!' : 'Добро пожаловать!')
         } catch (error: any) {
             toast.error('Код қате')
         } finally {
@@ -105,9 +107,9 @@ export default function LoginPage() {
                                     required
                                 />
                             </div>
-                            <Button type="submit" className="w-full" disabled={loading}>
+                            <Button type="submit" className="w-full h-12 rounded-xl font-bold" disabled={loading}>
                                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                Растау
+                                {locale === 'kk' ? 'Растау' : 'Подтвердить'}
                             </Button>
                             <Button
                                 variant="link"

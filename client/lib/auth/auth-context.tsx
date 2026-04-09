@@ -25,7 +25,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<void>
   signInWithEmail: (email: string) => Promise<void>
-  signInWithCustomOtp: (email: string, fullName: string, phone: string) => Promise<void>
+  signInWithCustomOtp: (email: string, fullName?: string, phone?: string) => Promise<void>
   verifyCustomOtp: (email: string, code: string) => Promise<void>
   verifyEmailOtp: (email: string, token: string) => Promise<void>
   signInAnonymous: () => Promise<void>
@@ -199,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.refresh()
   }
 
-  const signInWithCustomOtp = async (email: string, fullName: string, phone: string) => {
+  const signInWithCustomOtp = async (email: string, fullName: string = '', phone: string = '') => {
     const { sendCustomOtp } = await import('./auth-actions')
     await sendCustomOtp(email, fullName, phone)
   }
