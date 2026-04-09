@@ -194,6 +194,31 @@ export const translations = {
     selectLocation: 'Орынды таңдау',
     confirmLocation: 'Орынды растау',
     detectLocation: 'Орынды анықтау',
+    // New
+    updateSuccess: 'Деректер сәтті жаңартылды',
+    updateError: 'Жаңарту кезінде қате кетті',
+    orderUpdateSuccess: 'Тапсырыс күйі жаңартылды',
+    reservationUpdateSuccess: 'Бронь күйі жаңартылды',
+    adminBadge: 'Админ',
+    dashboardDesc: 'Басқару панеліне өту',
+    paymentLinkSent: 'Төлемге сілтеме жіберілді',
+    paymentConfirmed: 'Төлем расталды!',
+    enterLink: 'Сілтемені енгізіңіз',
+    waOrderAccepted: 'Сіздің #{{id}} тапсырысыңыз қабылданды! Сәлден соң дайындауды бастаймыз. Тапсырыс күйін мына жерден бақылаңыз: {{url}}',
+    waOrderPreparing: 'Аспаз сіздің #{{id}} тапсырысыңызды дайындап жатыр! Тапсырыс күйін мына жерден бақылаңыз: {{url}}',
+    waOrderOnWay: 'Курьер сіздің #{{id}} тапсырысыңызбен шықты! Тапсырыс күйін мына жерден бақылаңыз: {{url}}',
+    waOrderReady: 'Сіздің #{{id}} тапсырысыңыз дайын! Тапсырыс күйін мына жерден бақылаңыз: {{url}}',
+    waOrderCompleted: 'Асыңыз дәмді болсын! #{{id}} тапсырысы орындалды. Бізді бағалауды ұмытпаңыз: {{url}}',
+    waOrderUpdate: 'Тапсырыс #{{id}} бойынша жаңарту! Мына жерден көріңіз: {{url}}',
+    newOrderAlert: 'Жаңа тапсырыс!',
+    courierAssigned: 'Курьер бекітілді!',
+    copied: 'Көшірілді!',
+    copy: 'Көшіру',
+    waTrackingMsg: 'Тапсырыс #{{num}} жеткізу сілтемесі: {{url}}',
+    tableAdded: 'Үстел сәтті қосылды!',
+    tableDeleted: 'Үстел жойылды',
+    enterNumber: 'Нөмірді енгізіңіз',
+    enterCapacity: 'Сыйымдылықты енгізіңіз',
   },
   ru: {
     // Nav
@@ -388,9 +413,40 @@ export const translations = {
     selectLocation: 'Выберите местоположение',
     confirmLocation: 'Подтвердить местоположение',
     detectLocation: 'Определить местоположение',
+    // New
+    updateSuccess: 'Данные успешно обновлены',
+    updateError: 'Ошибка при обновлении',
+    orderUpdateSuccess: 'Статус заказа обновлен',
+    reservationUpdateSuccess: 'Статус брони обновлен',
+    adminBadge: 'Админ',
+    dashboardDesc: 'Перейти в панель управления',
+    paymentLinkSent: 'Ссылка на оплату отправлена',
+    paymentConfirmed: 'Оплата подтверждена!',
+    enterLink: 'Введите ссылку',
+    waOrderAccepted: 'Ваш заказ #{{id}} принят! Скоро начнем готовить. Отслеживайте статус здесь: {{url}}',
+    waOrderPreparing: 'Шеф-повар уже готовит ваш заказ #{{id}}! Отслеживайте статус здесь: {{url}}',
+    waOrderOnWay: 'Курьер выехал с вашим заказом #{{id}}! Отслеживайте статус здесь: {{url}}',
+    waOrderReady: 'Ваш заказ #{{id}} готов! Отслеживайте статус здесь: {{url}}',
+    waOrderCompleted: 'Приятного аппетита! Заказ #{{id}} выполнен. Не забудьте оценить нас: {{url}}',
+    waOrderUpdate: 'Обновление по заказу #{{id}}! Посмотрите здесь: {{url}}',
+    newOrderAlert: 'Новый заказ!',
+    courierAssigned: 'Курьер назначен!',
+    copied: 'Скопировано!',
+    copy: 'Копировать',
+    waTrackingMsg: 'Ссылка на доставку заказа #{{num}}: {{url}}',
+    tableAdded: 'Стол успешно добавлен!',
+    tableDeleted: 'Стол удален',
+    enterNumber: 'Введите номер',
+    enterCapacity: 'Введите вместимость',
   },
 }
 
-export function t(lang: Lang, key: keyof typeof translations.ru): string {
-  return translations[lang][key] ?? translations.ru[key] ?? key
+export function t(lang: Lang, key: keyof typeof translations.ru, replacements?: Record<string, string>): string {
+  let val = translations[lang][key] ?? translations.ru[key] ?? key
+  if (replacements && typeof val === 'string') {
+    Object.entries(replacements).forEach(([k, v]) => {
+      val = val.replace(new RegExp(`{{${k}}}`, 'g'), v)
+    })
+  }
+  return val
 }

@@ -57,13 +57,13 @@ function BookingCartSection() {
           <div key={item.id} className="bg-card rounded-2xl border border-border p-3 flex gap-3">
             <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0">
               {item.image_url ? (
-                <Image src={item.image_url} alt={locale === 'ru' ? item.name_ru : item.name_kk} fill className="object-cover" unoptimized />
+                <Image src={item.image_url} alt={locale === 'ru' ? item.name_ru : (locale === 'kk' ? item.name_kk : item.name_en || item.name_ru)} fill className="object-cover" unoptimized />
               ) : (
                 <Utensils className="w-6 h-6 text-muted-foreground/30" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold line-clamp-2 mb-1">{locale === 'ru' ? item.name_ru : item.name_kk}</p>
+              <p className="text-sm font-semibold line-clamp-2 mb-1">{locale === 'ru' ? item.name_ru : (locale === 'kk' ? item.name_kk : item.name_en || item.name_ru)}</p>
               <p className="text-sm font-bold text-primary">{(item.price * item.quantity).toLocaleString()}₸</p>
             </div>
             <div className="flex flex-col items-center justify-center gap-1">

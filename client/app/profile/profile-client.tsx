@@ -97,11 +97,11 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
         try {
             await updateProfile({ fullName: editName, phone: editPhone })
             setIsEditModalOpen(false)
-            toast.success(locale === 'ru' ? 'Профиль обновлен' : 'Профиль жаңартылды', {
+            toast.success(t.profile?.updateSuccess || 'Профиль жаңартылды', {
                 icon: <Sparkles className="w-4 h-4 text-primary" />
             })
         } catch (err: any) {
-            toast.error(err.message)
+            toast.error(t.profile?.updateError || err.message)
         } finally {
             setIsUpdating(false)
         }
@@ -134,13 +134,13 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                     <div className="text-center space-y-2 mb-6">
                         <div className="flex flex-col items-center gap-2">
                              <h1 className="text-3xl font-black text-white tracking-tight">
-                                {isGuest ? (locale === 'kk' ? 'Қонақ' : 'Гость') : (profile?.full_name || 'Пользователь')}
+                                {isGuest ? (t.profile?.guest || 'Гость') : (profile?.full_name || (t.common?.user || 'Пользователь'))}
                             </h1>
                             <RoleBadge role={profile?.role || 'user'} />
                         </div>
                         <p className="text-sm text-slate-400 font-medium">
                             {isGuest
-                                ? (locale === 'kk' ? 'Тіркелмеген қолданушы' : 'Неавторизованный пользователь')
+                                ? (t.profile?.unauthorized || 'Неавторизованный пользователь')
                                 : user.email
                             }
                         </p>
@@ -176,11 +176,11 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">
-                                            {locale === 'ru' ? restaurant.name_ru : restaurant.name_kk}
+                                            {locale === 'ru' ? restaurant.name_ru : (locale === 'kk' ? restaurant.name_kk : restaurant.name_en || restaurant.name_ru)}
                                         </h3>
-                                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">Админ</span>
+                                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">{t.admin?.adminBadge || 'Админ'}</span>
                                     </div>
-                                    <p className="text-xs text-slate-500 font-medium mt-1">Перейти в панель управления заведением</p>
+                                    <p className="text-xs text-slate-500 font-medium mt-1">{t.admin?.dashboardDesc || 'Басқару панеліне өту'}</p>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center transition-all group-hover:bg-primary group-hover:text-white">
                                     <ChevronRight className="w-5 h-5" />
@@ -273,18 +273,18 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                     </DialogHeader>
                     <form onSubmit={handleUpdateProfile} className="space-y-6 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name" className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Аты-жөні</Label>
+                            <Label htmlFor="name" className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">{t.profile?.name || 'Аты-жөні'}</Label>
                             <Input
                                 id="name"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
                                 className="rounded-2xl h-14 bg-slate-50 dark:bg-slate-900 border-none px-6 focus-visible:ring-primary"
-                                placeholder="Введите имя"
+                                placeholder={t.profile?.enterName || "Введите имя"}
                                 required
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Телефон</Label>
+                            <Label htmlFor="phone" className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">{t.profile?.phone || 'Телефон'}</Label>
                             <Input
                                 id="phone"
                                 value={editPhone}
@@ -296,10 +296,10 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                         </div>
                         <DialogFooter className="pt-4 flex !flex-col gap-3">
                             <Button type="submit" className="w-full h-14 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20" disabled={isUpdating}>
-                                {isUpdating ? 'Сақталуда...' : 'Сақтау'}
+                                {isUpdating ? (t.profile?.saving || 'Сақталуда...') : (t.profile?.save || 'Сақтау')}
                             </Button>
                             <Button type="button" variant="ghost" className="w-full h-12 rounded-2xl font-black text-slate-400 hover:text-slate-600" onClick={() => setIsEditModalOpen(false)}>
-                                Бас тарту
+                                {t.profile?.cancel || 'Бас тарту'}
                             </Button>
                         </DialogFooter>
                     </form>

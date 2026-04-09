@@ -8,6 +8,7 @@ export interface BookingCartItem {
     quantity: number
     name_kk: string
     name_ru: string
+    name_en?: string
     price: number
     image_url: string
 }

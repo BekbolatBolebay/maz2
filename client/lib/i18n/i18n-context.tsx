@@ -42,6 +42,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('locale') as Locale
     if (saved && (saved === 'en' || saved === 'ru' || saved === 'kk')) {
       setLocaleState(saved)
+    } else {
+      // Browser language detection
+      const browserLang = navigator.language.split('-')[0]
+      if (browserLang === 'kk') setLocaleState('kk')
+      else if (browserLang === 'ru') setLocaleState('ru')
+      else if (browserLang === 'en') setLocaleState('en')
     }
   }, [])
 

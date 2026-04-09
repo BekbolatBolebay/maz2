@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useApp } from '@/lib/app-context'
-import { t } from '@/lib/i18n'
+import { t, translations } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
 import type { Reservation } from '@/lib/db'
 import { cn } from '@/lib/utils'
@@ -29,13 +29,13 @@ const paymentStatusColors: Record<string, string> = {
     paid: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
 }
 
-const statusLabels: Record<string, { kk: string; ru: string }> = {
-    pending: { kk: 'Күтуде', ru: 'Ожидает' },
-    awaiting_payment: { kk: 'Төлем күтілуде', ru: 'Ожидает оплаты' },
-    confirmed: { kk: 'Расталды', ru: 'Подтверждено' },
-    cancelled: { kk: 'Бас тартылды', ru: 'Отменено' },
-    completed: { kk: 'Аяқталды', ru: 'Завершено' },
-    all: { kk: 'Барлығы', ru: 'Все' },
+const statusLabels: Record<string, keyof typeof translations.ru> = {
+    pending: 'statusNew',
+    awaiting_payment: 'statusAwaitingPayment',
+    confirmed: 'statusAccepted',
+    cancelled: 'statusCancelled',
+    completed: 'statusCompleted',
+    all: 'all',
 }
 
 async function updateReservationStatus(id: string, status: string) {
@@ -70,12 +70,12 @@ export default function TablesClient({ initialTables, restaurantId }: { initialT
     async function handleAddTable() {
         if (!newTable.table_number) return
         const { error, data } = await addTable(newTable, restaurantId)
-        if (error) toast.error('Қате кетті')
+        if (error) toast.error(t(lang, 'updateError'))
         else {
             setTables(prev => [...prev, data])
             setShowAddTable(false)
             setNewTable({ table_number: '', capacity: 4 })
-            toast.success('Үстел қосылды')
+            toast.success(t(lang, 'tableAdded'))
         }
     }
 
@@ -94,7 +94,7 @@ export default function TablesClient({ initialTables, restaurantId }: { initialT
             {/* Header */}
             <div className="bg-card px-4 pt-4 md:pt-12 pb-4 border-b border-border">
                 <h1 className="text-2xl font-bold text-foreground">
-                    {lang === 'kk' ? 'Үстелдер' : 'Столы'}
+                    {t(lang, 'tables')}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                     {lang === 'kk' ? `Жалпы: ${tables.length} үстел` : `Всего: ${tables.length} столов`}
@@ -120,8 +120,8 @@ export default function TablesClient({ initialTables, restaurantId }: { initialT
                                     {table.table_number}
                                 </div>
                                 <div>
-                                    <p className="font-bold">№{table.table_number} үстел</p>
-                                    <p className="text-xs text-muted-foreground">{table.capacity} адамдық</p>
+                                    <p className="font-bold">№{table.table_number} {t(lang, 'tables')}</p>
+                                    <p className="text-xs text-muted-foreground">{table.capacity} {lang === 'kk' ? 'адамдық' : 'чел.'}</p>
                                 </div>
                             </div>
                             <button

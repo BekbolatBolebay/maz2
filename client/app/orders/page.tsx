@@ -177,7 +177,7 @@ export default function OrdersPage() {
             </TabsTrigger>
             <TabsTrigger value="completed" className="rounded-xl font-black text-[10px] uppercase tracking-wider text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">{t.orders.completed}</TabsTrigger>
             <TabsTrigger value="bookings" className="rounded-xl font-black text-[10px] uppercase tracking-wider text-zinc-400 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
-              {locale === 'kk' ? 'Бронь' : 'Брони'}
+              {t.orders.bookings}
               {reservations.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-white/20 text-white text-[8px] rounded-full">{reservations.length}</span>}
             </TabsTrigger>
           </TabsList>
@@ -201,7 +201,7 @@ export default function OrdersPage() {
             ) : (
               <EmptyState
                 icon={<Calendar className="w-10 h-10 text-primary/40" />}
-                title={locale === 'kk' ? 'Брондаулар жоқ' : 'Бронирований нет'}
+                title={t.orders.no_bookings}
               />
             )}
           </TabsContent>

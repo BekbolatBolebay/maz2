@@ -407,7 +407,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
               
               if (payload.eventType === 'INSERT') {
                 await playSound('new-order')
-                toast.success(lang === 'kk' ? 'Жаңа тапсырыс!' : 'Новый заказ!')
+                toast.success(t(lang, 'newOrderAlert'))
               }
             } catch (error) {
               console.error('[Admin Orders] Error processing real-time order:', error)
@@ -516,21 +516,14 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
     const trackingUrl = `${window.location.origin}/orders/${item.id}`
 
     let message = ''
-    if (lang === 'kk') {
-      if (item.status === 'accepted') message = `Сіздің #${orderId} тапсырысыңыз қабылданды! Сәлден соң дайындауды бастаймыз. Тапсырыс күйін мына жерден бақылаңыз: ${trackingUrl}`
-      else if (item.status === 'preparing') message = `Аспаз сіздің #${orderId} тапсырысыңызды дайындап жатыр! Тапсырыс күйін мына жерден бақылаңыз: ${trackingUrl}`
-      else if (item.status === 'on_the_way') message = `Курьер сіздің #${orderId} тапсырысыңызбен шықты! Тапсырыс күйін мына жерден бақылаңыз: ${trackingUrl}`
-      else if (item.status === 'ready') message = `Сіздің #${orderId} тапсырысыңыз дайын! Тапсырыс күйін мына жерден бақылаңыз: ${trackingUrl}`
-      else if (item.status === 'completed') message = `Асыңыз дәмді болсын! #${orderId} тапсырысы орындалды. Бізді бағалауды ұмытпаңыз: ${trackingUrl}`
-      else message = `Тапсырыс #${orderId} бойынша жаңарту! Мына жерден көріңіз: ${trackingUrl}`
-    } else {
-      if (item.status === 'accepted') message = `Ваш заказ #${orderId} принят! Скоро начнем готовить. Отслеживайте статус здесь: ${trackingUrl}`
-      else if (item.status === 'preparing') message = `Шеф-повар уже готовит ваш заказ #${orderId}! Отслеживайте статус здесь: ${trackingUrl}`
-      else if (item.status === 'on_the_way') message = `Курьер выехал с вашим заказом #${orderId}! Отслеживайте статус здесь: ${trackingUrl}`
-      else if (item.status === 'ready') message = `Ваш заказ #${orderId} готов! Отслеживайте статус здесь: ${trackingUrl}`
-      else if (item.status === 'completed') message = `Приятного аппетита! Заказ #${orderId} выполнен. Не забудьте оценить нас: ${trackingUrl}`
-      else message = `Обновление по заказу #${orderId}! Посмотрите здесь: ${trackingUrl}`
-    }
+    const replacements = { id: orderId, url: trackingUrl }
+    
+    if (item.status === 'accepted') message = t(lang, 'waOrderAccepted', replacements)
+    else if (item.status === 'preparing') message = t(lang, 'waOrderPreparing', replacements)
+    else if (item.status === 'on_the_way') message = t(lang, 'waOrderOnWay', replacements)
+    else if (item.status === 'ready') message = t(lang, 'waOrderReady', replacements)
+    else if (item.status === 'completed') message = t(lang, 'waOrderCompleted', replacements)
+    else message = t(lang, 'waOrderUpdate', replacements)
 
     const waUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
     window.open(waUrl, '_blank')
@@ -551,9 +544,9 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       .eq('id', item.id)
 
     if (error) {
-      toast.error(t(lang, 'error'))
+      toast.error(t(lang, 'updateError'))
     } else {
-      toast.success(lang === 'kk' ? 'Төлем расталды!' : 'Оплата подтверждена!')
+      toast.success(t(lang, 'paymentConfirmed'))
       const updated = { ...item, payment_status: 'paid', status: updates.status } as ActivityItem
       setItems((prev) => prev.map((o) => o.id === item.id ? updated : o))
       if (selected?.id === item.id) setSelected(updated)
@@ -574,7 +567,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
 
   async function sendPaymentLink(item: ActivityItem, url: string) {
     if (!url) {
-      toast.error(lang === 'kk' ? 'Сілтемені енгізіңіз' : 'Введите ссылку')
+      toast.error(t(lang, 'enterLink'))
       return
     }
     const supabase = createClient()
@@ -596,9 +589,9 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       .eq('id', item.id)
 
     if (error) {
-      toast.error(t(lang, 'error'))
+      toast.error(t(lang, 'updateError'))
     } else {
-      toast.success(lang === 'kk' ? 'Сілтеме жіберілді!' : 'Ссылка отправлена!')
+      toast.success(t(lang, 'paymentLinkSent'))
       setManualPaymentUrl('')
       setActiveModal(null)
       setModalItem(null)
@@ -615,10 +608,10 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
     const supabase = createClient()
     const { error } = await supabase.from('reservations').update({ status }).eq('id', id)
     if (error) {
-        toast.error(lang === 'kk' ? 'Қате кетті' : 'Произошла ошибка')
+        toast.error(t(lang, 'updateError'))
     } else {
         setReservations(prev => prev.map(r => r.id === id ? { ...r, status: status as any } : r))
-        toast.success(lang === 'kk' ? 'Статус жаңартылды' : 'Статус обновлён')
+        toast.success(t(lang, 'updateSuccess'))
 
         // Send Push Notification
         const res = reservations.find(r => r.id === id)
@@ -647,10 +640,10 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
     }
     const { error } = await supabase.from('reservations').update(update).eq('id', id)
     if (error) {
-        toast.error(lang === 'kk' ? 'Қате кетті' : 'Произошла ошибка')
+        toast.error(t(lang, 'updateError'))
     } else {
         setReservations(prev => prev.map(r => r.id === id ? { ...r, payment_status: newStatus as any, status: url ? 'awaiting_payment' as any : r.status, payment_url: url || r.payment_url } : r))
-        toast.success(lang === 'kk' ? 'Төлем статусы жаңартылды' : 'Статус оплаты обновлён')
+        toast.success(t(lang, 'updateSuccess'))
 
         // Send Push Notification if payment requested
         const res = reservations.find(r => r.id === id)
@@ -693,9 +686,9 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       .eq('id', item.id)
 
     if (error) {
-      toast.error(t(lang, 'error'))
+      toast.error(t(lang, 'updateError'))
     } else {
-      toast.success(lang === 'kk' ? 'Курьер бекітілді!' : 'Курьер назначен!')
+      toast.success(t(lang, 'courierAssigned'))
       if (oneTime) {
         // const trackingUrl = `${window.location.origin}/courier/track/${token}`
         // const msg = lang === 'kk'
@@ -1606,19 +1599,17 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/courier/track/${(modalItem as Order).courier_tracking_token || ''}`)
-                      toast.success(lang === 'kk' ? 'Көшірілді!' : 'Скопировано!')
+                      toast.success(t(lang, 'copied'))
                     }}
                     className="flex-1 bg-secondary text-foreground rounded-2xl py-4 text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <Package className="w-4 h-4" />
-                    {lang === 'kk' ? 'Көшіру' : 'Копия'}
+                    {t(lang, 'copy')}
                   </button>
                   <button
                     onClick={() => {
                       const trackingUrl = `${window.location.origin}/courier/track/${(modalItem as Order).courier_tracking_token}`
-                      const msg = lang === 'kk'
-                        ? `Тапсырыс #${modalItem.order_num} жеткізу сілтемесі: ${trackingUrl}`
-                        : `Ссылка на доставку заказа #${modalItem.order_num}: ${trackingUrl}`
+                      const msg = t(lang, 'waTrackingMsg', { num: modalItem.order_num, url: trackingUrl })
                       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
                     }}
                     className="flex-1 bg-emerald-500 text-white rounded-2xl py-4 text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -1634,7 +1625,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
               onClick={() => setActiveModal(null)}
               className="w-full bg-secondary/50 text-muted-foreground rounded-2xl py-4 text-sm font-bold active:scale-95 transition-all"
             >
-              {lang === 'kk' ? 'Жабу' : 'Закрыть'}
+              {t(lang, 'close')}
             </button>
           </div>
         </div>

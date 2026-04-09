@@ -44,7 +44,7 @@ export function OrderCard({ order }: { order: Order }) {
         {/* Header Info */}
         <div className="space-y-1 mb-8">
           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-            {locale === 'ru' ? 'Номер заказа' : 'Тапсырыс номері'}
+            {t.cart.order_number_label || 'Order №'}
           </p>
           <div className="flex items-center justify-between">
             <p className="text-xl font-black tracking-tight text-white">
@@ -57,18 +57,18 @@ export function OrderCard({ order }: { order: Order }) {
         <div className="grid grid-cols-2 gap-6 mb-8">
           <div className="space-y-1">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-              {locale === 'ru' ? 'Адрес' : 'Мекен-жайы'}
+              {t.cart.address || 'Address'}
             </p>
             <p className="text-xs font-bold text-zinc-100 line-clamp-1">
-              {order.delivery_address || (locale === 'ru' ? 'Не указан' : 'Көрсетілмеген')}
+              {order.delivery_address || t.common.notSpecified}
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-              {locale === 'ru' ? 'Телефон' : 'Телефон'}
+              {t.common.phone || 'Phone'}
             </p>
             <p className="text-xs font-bold text-zinc-300">
-              {order.customer_phone || (locale === 'ru' ? 'Не указан' : 'Көрсетілмеген')}
+              {order.customer_phone || t.common.notSpecified}
             </p>
           </div>
         </div>
@@ -76,8 +76,8 @@ export function OrderCard({ order }: { order: Order }) {
         {/* Middle Items Section */}
         <div className="bg-white/5 rounded-[2rem] p-6 mb-8 border border-white/5">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">{locale === 'ru' ? 'Блюдо' : 'Тамақ'}</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">{locale === 'ru' ? 'Кол-во' : 'Саны'}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">{t.common.dish}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">{t.common.quantity}</span>
           </div>
           <div className="space-y-3">
             {(order.order_items || []).slice(0, 3).map((item, idx) => (
@@ -101,7 +101,7 @@ export function OrderCard({ order }: { order: Order }) {
             ))}
             {(order.order_items?.length || 0) > 3 && (
               <p className="text-[10px] text-center font-bold text-zinc-400 mt-2 italic">
-                + {(order.order_items?.length || 0) - 3} {locale === 'ru' ? 'других блюд' : 'басқа тамақ'}
+                + {(order.order_items?.length || 0) - 3} {t.common.otherDishes}
               </p>
             )}
           </div>
@@ -110,12 +110,12 @@ export function OrderCard({ order }: { order: Order }) {
         {/* Footer Prices */}
         <div className="space-y-4 mb-8">
           <div className="flex justify-between items-center px-2">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{locale === 'ru' ? 'Доставка' : 'Жеткізу'}</p>
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{t.cart.delivery}</p>
             <p className="text-sm font-bold text-zinc-100">{order.delivery_fee.toFixed(0)}₸</p>
           </div>
           <div className="pt-4 border-t border-dashed border-white/10 flex justify-between items-end px-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">
-              {locale === 'ru' ? 'Общая сумма' : 'Жалпы сумма'}
+              {t.common.totalAmount}
             </p>
             <p className="text-3xl font-black tracking-tighter text-white">
               {order.total_amount.toFixed(0)}<span className="text-lg ml-0.5 text-zinc-600">₸</span>
