@@ -12,7 +12,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
-import { notifyCustomer } from '@/lib/notifications'
+import { notifyCustomerAction } from '@/lib/actions'
 import { getStatusNotificationDraft, getReservationNotificationDraft } from '@/lib/notification-utils'
 import { playImmediateBeep, resumeAudioContext } from '@/lib/sound-utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -499,7 +499,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       if (item.user_id) {
         const draft = getStatusNotificationDraft(newStatus, item.order_num, lang)
         if (draft) {
-          notifyCustomer(item.user_id!, {
+          notifyCustomerAction(item.user_id!, {
             title: draft.title,
             body: draft.body,
             url: `/orders/${item.id}`
@@ -562,7 +562,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       if (item.user_id) {
         const draft = getStatusNotificationDraft(updates.status, item.order_num, lang)
         if (draft) {
-          notifyCustomer(item.user_id!, {
+          notifyCustomerAction(item.user_id!, {
             title: draft.title,
             body: draft.body,
             url: `/orders/${item.id}`
@@ -625,7 +625,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
         if (res?.customer_id) {
             const draft = getReservationNotificationDraft(status, res.date, res.time.slice(0, 5), lang)
             if (draft) {
-                notifyCustomer(res.customer_id, {
+                notifyCustomerAction(res.customer_id, {
                     title: draft.title,
                     body: draft.body,
                     url: `/orders?tab=bookings`
@@ -657,7 +657,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
         if (res?.customer_id && url) {
             const draft = getReservationNotificationDraft('awaiting_payment', res.date, res.time.slice(0, 5), lang)
             if (draft) {
-                notifyCustomer(res.customer_id, {
+                notifyCustomerAction(res.customer_id, {
                     title: draft.title,
                     body: draft.body,
                     url: `/orders?tab=bookings`

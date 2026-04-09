@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getCurrentRestaurantId } from './db'
 import { DEFAULT_CATEGORIES } from './constants'
-import { sendEmail, sendPushNotification } from './notifications'
+import { sendEmail, sendPushNotification, notifyCustomer } from './notifications'
 
 export async function getDebugInfo() {
     const supabase = await createClient()
@@ -264,4 +264,8 @@ export async function saveMerchantConfigAction(restaurantId: string, data: Recor
 export async function updateRestaurantStatusAction(restaurantId: string, status: string) {
     const { updateRestaurantStatus } = await import('./vps');
     return await updateRestaurantStatus(restaurantId, status);
+}
+
+export async function notifyCustomerAction(userId: string, payload: { title: string; body: string; icon?: string; url?: string }) {
+    return await notifyCustomer(userId, payload);
 }
