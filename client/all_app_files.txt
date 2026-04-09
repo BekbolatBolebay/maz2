@@ -1,0 +1,180 @@
+app:
+total 52
+drwxrwxr-x  9 bekbolat bekbolat 4096 Ақп 27 14:55 .
+drwxrwxr-x 12 bekbolat bekbolat 4096 Нау  1 12:10 ..
+drwxrwxr-x  9 bekbolat bekbolat 4096 Ақп 27 16:03 admin
+drwxrwxr-x  4 bekbolat bekbolat 4096 Ақп 18 13:32 api
+drwxrwxr-x  2 bekbolat bekbolat 4096 Ақп 18 13:32 cart
+drwxrwxr-x  2 bekbolat bekbolat 4096 Ақп 18 13:32 favorites
+-rw-rw-r--  1 bekbolat bekbolat 4261 Ақп 18 13:32 globals.css
+-rw-rw-r--  1 bekbolat bekbolat 1786 Ақп 18 13:32 layout.tsx
+drwxrwxr-x  3 bekbolat bekbolat 4096 Ақп 18 13:32 orders
+-rw-rw-r--  1 bekbolat bekbolat 1967 Ақп 18 13:32 page.tsx
+drwxrwxr-x  3 bekbolat bekbolat 4096 Ақп 18 13:32 restaurant
+drwxrwxr-x  2 bekbolat bekbolat 4096 Ақп 18 13:32 restaurants
+
+app/admin:
+total 52
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+-rw-rw-r-- 1 bekbolat bekbolat 4204 Ақп 28 13:53 layout.tsx
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 14:55 menu
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 14:55 orders
+-rw-rw-r-- 1 bekbolat bekbolat 4642 Ақп 27 14:55 page.tsx
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 15:24 promotions
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 14:55 restaurants
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 16:03 reviews
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 16:03 settings
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 15:24 users
+
+app/admin/menu:
+total 16
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 14:55 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 7582 Ақп 28 16:15 page.tsx
+
+app/admin/orders:
+total 16
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 14:55 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 7619 Ақп 27 16:04 page.tsx
+
+app/admin/promotions:
+total 16
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 15:24 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 6231 Ақп 27 15:24 page.tsx
+
+app/admin/restaurants:
+total 16
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 14:55 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 5592 Ақп 27 14:55 page.tsx
+
+app/admin/reviews:
+total 20
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 16:03 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 8244 Ақп 27 16:03 page.tsx
+
+app/admin/settings:
+total 20
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 27 16:03 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 9738 Ақп 27 16:03 page.tsx
+
+app/admin/users:
+total 20
+drwxrwxr-x 2 bekbolat bekbolat  4096 Ақп 27 15:24 .
+drwxrwxr-x 9 bekbolat bekbolat  4096 Ақп 27 16:03 ..
+-rw-rw-r-- 1 bekbolat bekbolat 11146 Ақп 28 13:53 page.tsx
+
+app/api:
+total 16
+drwxrwxr-x 4 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 admin
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 upload
+
+app/api/admin:
+total 32
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 4 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 menu-items
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 orders
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 promotions
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 restaurants
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 stats
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 28 13:53 users
+
+app/api/admin/menu-items:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 3513 Ақп 28 16:15 route.ts
+
+app/api/admin/orders:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 3311 Ақп 28 16:14 route.ts
+
+app/api/admin/promotions:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 3130 Ақп 18 13:32 route.ts
+
+app/api/admin/restaurants:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 3472 Ақп 28 16:13 route.ts
+
+app/api/admin/stats:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 2734 Ақп 18 13:32 route.ts
+
+app/api/admin/users:
+total 16
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 28 13:53 .
+drwxrwxr-x 8 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 28 13:53 import
+-rw-rw-r-- 1 bekbolat bekbolat 1689 Ақп 18 13:32 route.ts
+
+app/api/admin/users/import:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 28 13:53 .
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 28 13:53 ..
+-rw-rw-r-- 1 bekbolat bekbolat 3080 Ақп 28 13:53 route.ts
+
+app/api/upload:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 4 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 1582 Ақп 18 13:32 route.ts
+
+app/cart:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+-rw-rw-r-- 1 bekbolat bekbolat 1646 Ақп 18 13:32 page.tsx
+
+app/favorites:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+-rw-rw-r-- 1 bekbolat bekbolat 1762 Ақп 18 13:32 page.tsx
+
+app/orders:
+total 20
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 [id]
+-rw-rw-r-- 1 bekbolat bekbolat 4145 Ақп 18 13:32 page.tsx
+
+app/orders/[id]:
+total 20
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 9313 Ақп 18 13:32 page.tsx
+
+app/restaurant:
+total 12
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 [id]
+
+app/restaurant/[id]:
+total 16
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 3 bekbolat bekbolat 4096 Ақп 18 13:32 ..
+-rw-rw-r-- 1 bekbolat bekbolat 6422 Ақп 28 16:13 page.tsx
+
+app/restaurants:
+total 12
+drwxrwxr-x 2 bekbolat bekbolat 4096 Ақп 18 13:32 .
+drwxrwxr-x 9 bekbolat bekbolat 4096 Ақп 27 14:55 ..
+-rw-rw-r-- 1 bekbolat bekbolat 2846 Нау  1 11:49 page.tsx
