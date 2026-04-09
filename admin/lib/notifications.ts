@@ -97,3 +97,33 @@ export async function notifyAdminAllChannels(order: any, restaurant: any) {
     }
   }
 }
+
+/**
+ * Notifies a specific customer.
+ */
+export async function notifyCustomer(userId: string, payload: { title: string; body: string; icon?: string; url?: string }) {
+    const supabase = await createClient();
+    
+    // Try clients table
+    let { data } = await supabase
+        .from('clients')
+        .select('push_subscription')
+        .eq('id', userId)
+        .single();
+        
+    if (!data?.push_subscription) {
+        // Fallback to staff_profiles (if staff is the customer)
+        const { data: staffData } = await supabase
+            .from('staff_profiles')
+            .select('push_subscription')
+            .eq('id', userId)
+            .single();
+        data = staffData;
+    }
+
+    if (data?.push_subscription) {
+        return await sendPushNotification(data.push_subscription, payload);
+    }
+    
+    return { success: false, error: 'No subscription found' };
+}

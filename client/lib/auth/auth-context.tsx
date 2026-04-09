@@ -14,7 +14,7 @@ type Profile = {
   avatar_url: string | null
   phone: string | null
   is_anonymous: boolean
-  role: 'admin' | 'super_admin' | 'user' | null
+  role: 'admin' | 'manager' | 'staff' | 'user' | null
   updated_at: string | null
 }
 
@@ -139,13 +139,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (mergedProfile) {
       // Hydrate from VPS if Name/Phone is a PocketBase ID (15 chars, no spaces)
-      const potentialId = mergedProfile.full_name || mergedProfile.phone
-      if (potentialId && potentialId.length === 15 && !potentialId.includes(' ')) {
+      // Standard IDs are 15 alphanumeric characters. We check both fields.
+      const pbIdRegex = /^[a-z0-9]{15}$/;
+      const potentialId = mergedProfile.full_name || mergedProfile.phone;
+
+      if (potentialId && pbIdRegex.test(potentialId)) {
+        console.log(`[AuthContext] Hydrating PII for user ${userId} using VPS ID: ${potentialId}`);
         const pii = await getPII('profiles', potentialId)
         if (pii) {
           mergedProfile.full_name = pii.full_name
           mergedProfile.phone = pii.phone
-          // You could also hydrate address here if the type Profile supported it
         }
       }
       setProfile(mergedProfile)

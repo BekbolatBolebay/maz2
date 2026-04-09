@@ -12,10 +12,10 @@ import {
     HelpCircle,
     MapPin,
     History,
-    Globe,
-    Moon,
     ShieldCheck as VerifiedIcon,
-    LogIn
+    LogIn,
+    ArrowRight,
+    Sparkles
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -36,7 +36,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { RoleBadge } from '@/components/profile/role-badge'
 
 interface Props {
     user: User
@@ -46,7 +47,7 @@ interface Props {
 
 export default function ProfileClient({ user, profile, restaurant }: Props) {
     const router = useRouter()
-    const { t, locale, setLocale } = useI18n()
+    const { t, locale } = useI18n()
     const { subscribeToPush, updateProfile } = useAuth()
     const supabase = createClient()
 
@@ -61,22 +62,32 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
         router.refresh()
     }
 
-    const menuItems = [
+    const sections = useMemo(() => [
         {
-            label: t.profile.editProfile,
-            icon: UserIcon,
-            onClick: () => {
-                setEditName(profile?.full_name || '')
-                setEditPhone(profile?.phone || '')
-                setIsEditModalOpen(true)
-            }
+            title: t.profile?.settings || 'Аккаунт баптаулары',
+            items: [
+                {
+                    label: t.profile?.editProfile || 'Профильді өңдеу',
+                    icon: UserIcon,
+                    onClick: () => {
+                        setEditName(profile?.full_name || '')
+                        setEditPhone(profile?.phone || '')
+                        setIsEditModalOpen(true)
+                    }
+                },
+                { label: t.profile?.addresses || 'Мекен-жайлар', icon: MapPin, href: '#' },
+                { label: t.profile?.paymentMethods || 'Төлем әдістері', icon: CreditCard, href: '#' },
+                { label: t.profile?.notifications || 'Хабарламалар', icon: Bell, href: '#', badge: 'New' },
+            ]
         },
-        { label: t.profile.addresses, icon: MapPin, href: '#' },
-        { label: t.profile.paymentMethods, icon: CreditCard, href: '#' },
-        { label: t.profile.notifications, icon: Bell, href: '#' },
-        { label: t.profile.helpSupport, icon: HelpCircle, href: '#' },
-        { label: t.profile.about, icon: Settings, href: '#' },
-    ]
+        {
+            title: t.profile?.helpSupport || 'Көмек және Қолдау',
+            items: [
+                { label: t.profile?.helpSupport || 'Көмек орталығы', icon: HelpCircle, href: '#', badge: undefined },
+                { label: t.profile?.about || 'Қолданба туралы', icon: Settings, href: '#', badge: undefined },
+            ]
+        }
+    ], [t, profile, locale])
 
     const isGuest = user.is_anonymous
 
@@ -86,7 +97,9 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
         try {
             await updateProfile({ fullName: editName, phone: editPhone })
             setIsEditModalOpen(false)
-            toast.success(locale === 'ru' ? 'Профиль обновлен' : 'Профиль жаңартылды')
+            toast.success(locale === 'ru' ? 'Профиль обновлен' : 'Профиль жаңартылды', {
+                icon: <Sparkles className="w-4 h-4 text-primary" />
+            })
         } catch (err: any) {
             toast.error(err.message)
         } finally {
@@ -94,39 +107,38 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
         }
     }
 
-    // Filter menu items for guests
-    const filteredMenuItems = isGuest
-        ? menuItems.filter(item => ['Help & Support', 'About', t.profile.helpSupport, t.profile.about].includes(item.label))
-        : menuItems
-
     return (
-        <div className="flex flex-col min-h-screen pb-20 bg-background">
-            {/* Premium Header with Gradient */}
-            <div className="relative overflow-hidden bg-primary px-6 pt-12 pb-16">
-                {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24 blur-2xl" />
+        <div className="flex flex-col min-h-screen pb-24 bg-slate-50/50 dark:bg-slate-950 font-sans">
+            {/* Header with Dynamic Background */}
+            <div className="relative pt-16 pb-32 px-6 overflow-hidden bg-slate-900">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-black/40" />
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute top-1/2 -left-32 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
                 
                 <div className="relative flex flex-col items-center">
-                    <div className="relative mb-4 group">
-                        <Avatar className="w-24 h-24 border-4 border-white/20 shadow-2xl transition-transform duration-500 group-hover:scale-105">
+                    <div className="relative group mb-6">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+                        <Avatar className="w-28 h-28 border-4 border-white shadow-2xl relative transition-transform duration-500 group-hover:scale-105">
                             <AvatarImage src={profile?.avatar_url} />
-                            <AvatarFallback className="bg-white/10 text-white text-3xl font-black backdrop-blur-md">
+                            <AvatarFallback className="bg-slate-800 text-white text-4xl font-black">
                                 {isGuest ? '?' : (profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase())}
                             </AvatarFallback>
                         </Avatar>
                         {!isGuest && (
-                            <div className="absolute bottom-1 right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-primary">
-                                <VerifiedIcon className="w-4 h-4 text-primary" />
+                            <div className="absolute -bottom-1 -right-1 p-1.5 bg-white dark:bg-slate-900 rounded-full shadow-lg border-2 border-primary">
+                                <VerifiedIcon className="w-4 h-4 text-primary fill-primary/10" />
                             </div>
                         )}
                     </div>
                     
-                    <div className="text-center space-y-1">
-                        <h1 className="text-2xl font-black text-white tracking-tight">
-                            {isGuest ? (locale === 'kk' ? 'Қонақ' : 'Гость') : (profile?.full_name || 'User')}
-                        </h1>
-                        <p className="text-sm text-white/70 font-medium">
+                    <div className="text-center space-y-2 mb-6">
+                        <div className="flex flex-col items-center gap-2">
+                             <h1 className="text-3xl font-black text-white tracking-tight">
+                                {isGuest ? (locale === 'kk' ? 'Қонақ' : 'Гость') : (profile?.full_name || 'Пользователь')}
+                            </h1>
+                            <RoleBadge role={profile?.role || 'user'} />
+                        </div>
+                        <p className="text-sm text-slate-400 font-medium">
                             {isGuest
                                 ? (locale === 'kk' ? 'Тіркелмеген қолданушы' : 'Неавторизованный пользователь')
                                 : user.email
@@ -137,197 +149,162 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                     {!isGuest && (
                         <Button
                             variant="secondary"
-                            size="sm"
-                            className="mt-6 rounded-full font-black px-6 h-10 bg-white text-primary hover:bg-white/90 shadow-xl shadow-black/10 transition-all active:scale-95"
+                            className="rounded-2xl font-black px-8 h-12 bg-white text-slate-950 hover:bg-slate-100 shadow-xl transition-all active:scale-95 group"
                             onClick={() => {
                                 setEditName(profile?.full_name || '')
                                 setEditPhone(profile?.phone || '')
                                 setIsEditModalOpen(true)
                             }}
                         >
-                            {t.profile.editProfile}
+                            {t.profile?.editProfile || 'Профильді өңдеу'}
+                            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                         </Button>
                     )}
                 </div>
             </div>
 
-            <div className="px-5 -mt-8 pb-6 relative z-10 space-y-6">
-                {/* Guest Registration Prompt */}
-                {isGuest && (
-                    <div className="px-1">
-                        <Card className="bg-gradient-to-br from-primary to-primary/80 border-none shadow-2xl shadow-primary/20 rounded-[2.5rem] overflow-hidden">
-                            <CardContent className="p-8 relative">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-                                <div className="relative z-10">
-                                    <h3 className="text-xl font-black text-white mb-2 leading-tight">
-                                        {locale === 'kk' ? 'Мүмкіндіктерді ашыңыз' : 'Откройте возможности'}
-                                    </h3>
-                                    <p className="text-sm text-white/80 mb-8 font-medium leading-relaxed max-w-[240px]">
-                                        {locale === 'kk'
-                                            ? 'Тапсырыс тарихын сақтау және жеке ұсыныстар алу үшін тіркеліңіз.'
-                                            : 'Зарегистрируйтесь, чтобы сохранять историю и получать персональные предложения.'}
-                                    </p>
-                                    <Button
-                                        className="w-full bg-white text-primary hover:bg-white/90 rounded-2xl h-14 font-black transition-all active:scale-[0.98] shadow-lg"
-                                        onClick={() => router.push('/login')}
-                                    >
-                                        <LogIn className="w-5 h-5 mr-2" />
-                                        {locale === 'kk' ? 'Кіру немесе Тіркелу' : 'Войти или Создать'}
-                                    </Button>
+            <div className="px-6 -mt-12 space-y-8 relative z-20">
+                {/* Restaurant Ownership Card */}
+                {restaurant && (
+                    <Link href="/manage" className="block transform transition-transform active:scale-[0.98]">
+                        <Card className="border-none shadow-2xl shadow-primary/10 overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary to-blue-600 opacity-5 group-hover:opacity-10 transition-opacity" />
+                            <CardContent className="p-6 flex items-center gap-5">
+                                <div className="w-16 h-16 rounded-[2rem] bg-primary/10 flex items-center justify-center transition-all group-hover:rotate-6">
+                                    <Store className="w-8 h-8 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-black text-lg text-slate-900 dark:text-white leading-tight">
+                                            {locale === 'ru' ? restaurant.name_ru : restaurant.name_kk}
+                                        </h3>
+                                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">Админ</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 font-medium mt-1">Перейти в панель управления заведением</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center transition-all group-hover:bg-primary group-hover:text-white">
+                                    <ChevronRight className="w-5 h-5" />
                                 </div>
                             </CardContent>
                         </Card>
-                    </div>
+                    </Link>
                 )}
 
-                {/* Restaurant Management - Only if restaurant exists */}
-                {restaurant && (
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-2">Management</p>
-                        <Link href="/manage">
-                            <Card className="bg-primary/5 hover:bg-primary/10 transition-colors border-primary/20">
-                                <CardContent className="p-4 flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
-                                        <Store className="w-6 h-6 text-primary" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-primary">{locale === 'ru' ? restaurant.name_ru : restaurant.name_kk}</h3>
-                                        <p className="text-xs text-primary/60">Manage your restaurant, menu and orders</p>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-primary/30" />
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    </div>
-                )}
-
-                {/* Profile Actions */}
-                <div className="space-y-4">
-                    <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.25em] px-2">{t.profile.settings || 'Settings'}</p>
-                    <div className="bg-card rounded-[2rem] border border-muted/50 overflow-hidden shadow-sm">
-                        {filteredMenuItems.map((item, idx) => {
-                            const Component = (item as any).href ? Link : 'button'
-                            return (
-                                <Component
-                                    key={idx}
-                                    href={(item as any).href}
-                                    onClick={(item as any).onClick}
-                                    className={`w-full flex items-center gap-4 p-5 hover:bg-primary/[0.02] transition-colors text-left group ${idx !== filteredMenuItems.length - 1 ? 'border-b border-muted/30' : ''}`}
-                                >
-                                    <div className="w-11 h-11 rounded-2xl bg-muted/30 flex items-center justify-center transition-all group-hover:bg-primary group-hover:text-primary-foreground group-hover:rotate-6">
-                                        <item.icon className="w-5 h-5" />
-                                    </div>
-                                    <span className="flex-1 text-sm font-black tracking-tight">{item.label}</span>
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/20 opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">
-                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                    </div>
-                                </Component>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                {/* Language Selection */}
-                <div className="space-y-4">
-                    <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.25em] px-2">{t.common.language}</p>
-                    <div className="flex gap-2 p-1.5 bg-muted/30 rounded-[1.5rem] border border-muted/50">
-                        {[
-                            { code: 'kk', label: 'Қаз' },
-                            { code: 'ru', label: 'Рус' },
-                            { code: 'en', label: 'Eng' }
-                        ].map((lang) => (
-                            <button
-                                key={lang.code}
-                                className={cn(
-                                    "flex-1 py-3 rounded-2xl text-xs font-black transition-all",
-                                    locale === lang.code 
-                                        ? "bg-white text-primary shadow-md scale-[1.02]" 
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                                onClick={() => setLocale(lang.code as any)}
-                            >
-                                {lang.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Edit Profile Modal */}
-                <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                    <DialogContent className="max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>{t.profile.editProfile}</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Аты-жөні</Label>
-                                <Input
-                                    id="name"
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    placeholder="Атыңызды енгізіңіз"
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Телефон</Label>
-                                <Input
-                                    id="phone"
-                                    value={editPhone}
-                                    onChange={(e) => {
-                                        let val = e.target.value
-                                        if (!val.startsWith('+7')) {
-                                            val = '+7 ' + val.replace(/\D/g, '').slice(0, 10)
-                                        }
-                                        setEditPhone(val)
-                                    }}
-                                    placeholder="+7 (700) 000-00-00"
-                                    required
-                                />
-                            </div>
-                            <DialogFooter className="pt-4">
-                                <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                                    Бас тарту
-                                </Button>
-                                <Button type="submit" disabled={isUpdating}>
-                                    {isUpdating ? 'Сақталуда...' : 'Сақтау'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Push Notifications */}
-                <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600">
-                            <Bell className="w-5 h-5" />
+                {/* Main Menu Sections */}
+                {sections.map((section, sIdx) => (
+                    <div key={sIdx} className="space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{section.title}</h2>
                         </div>
-                        <div>
-                            <p className="text-sm font-bold">Хабарламалар</p>
-                            <p className="text-xs text-muted-foreground">Жаңалықтар мен тапсырыс күйі</p>
+                        <div className="bg-white dark:bg-slate-900/50 rounded-[2.5rem] p-2 border border-slate-200/50 dark:border-slate-800 shadow-sm">
+                            {section.items.map((item, iIdx) => {
+                                const Component = (item as any).href ? Link : 'button'
+                                return (
+                                    <Component
+                                        key={iIdx}
+                                        href={(item as any).href}
+                                        onClick={(item as any).onClick}
+                                        className={cn(
+                                            "w-full flex items-center gap-4 p-4 rounded-[2rem] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group",
+                                            iIdx !== section.items.length - 1 && "mb-1"
+                                        )}
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-primary/10 group-hover:text-primary">
+                                            <item.icon className="w-5 h-5" />
+                                        </div>
+                                        <span className="flex-1 text-sm font-bold text-slate-700 dark:text-slate-200">{item.label}</span>
+                                        <div className="flex items-center gap-3">
+                                            {item.badge && (
+                                                <span className="px-2 py-0.5 rounded-full bg-blue-500 text-white text-[9px] font-black uppercase tracking-widest animate-pulse">
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                            <ChevronRight className="w-5 h-5 text-slate-300 transition-transform group-hover:translate-x-1" />
+                                        </div>
+                                    </Component>
+                                )
+                            })}
                         </div>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={subscribeToPush}
-                        className="rounded-full px-4 h-8 text-[10px] uppercase font-black tracking-widest"
-                    >
-                        Қосу
-                    </Button>
-                </div>
+                ))}
 
-                {/* Sign Out */}
-                <Button
-                    variant="ghost"
-                    className="w-full py-6 rounded-2xl text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2 font-bold"
+                {/* Analytics/History Preview (Example of more premium feel) */}
+                <Card className="bg-slate-950 border-none overflow-hidden text-white">
+                    <CardContent className="p-8">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-xl font-black tracking-tight">{locale === 'kk' ? 'Тапсырыстар' : 'Заказы'}</h3>
+                                <p className="text-xs text-slate-400 mt-1">Соңғы айдағы статистикаңыз</p>
+                            </div>
+                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md">
+                                <History className="w-6 h-6" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white/5 rounded-3xl p-5 border border-white/5">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Саны</p>
+                                <p className="text-2xl font-black mt-2">12</p>
+                            </div>
+                            <div className="bg-white/5 rounded-3xl p-5 border border-white/5">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Үнем</p>
+                                <p className="text-2xl font-black mt-2 text-emerald-400">1.2к ₸</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Sign Out Section with danger style */}
+                <button
                     onClick={handleSignOut}
+                    className="w-full flex items-center justify-center gap-3 p-6 rounded-[2rem] bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-100 transition-all font-black text-sm active:scale-[0.98]"
                 >
                     <LogOut className="w-5 h-5" />
-                    {t.profile.logout}
-                </Button>
+                    {t.profile?.logout || 'Шығу'}
+                </button>
             </div>
+
+            {/* Edit Profile Modal */}
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black tracking-tight">
+                            {t.profile?.editProfile || 'Профильді өңдеу'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleUpdateProfile} className="space-y-6 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name" className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Аты-жөні</Label>
+                            <Input
+                                id="name"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="rounded-2xl h-14 bg-slate-50 dark:bg-slate-900 border-none px-6 focus-visible:ring-primary"
+                                placeholder="Введите имя"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="phone" className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Телефон</Label>
+                            <Input
+                                id="phone"
+                                value={editPhone}
+                                onChange={(e) => setEditPhone(e.target.value)}
+                                className="rounded-2xl h-14 bg-slate-50 dark:bg-slate-900 border-none px-6 focus-visible:ring-primary"
+                                placeholder="+7 (777) 777-77-77"
+                                required
+                            />
+                        </div>
+                        <DialogFooter className="pt-4 flex !flex-col gap-3">
+                            <Button type="submit" className="w-full h-14 rounded-2xl font-black text-lg bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20" disabled={isUpdating}>
+                                {isUpdating ? 'Сақталуда...' : 'Сақтау'}
+                            </Button>
+                            <Button type="button" variant="ghost" className="w-full h-12 rounded-2xl font-black text-slate-400 hover:text-slate-600" onClick={() => setIsEditModalOpen(false)}>
+                                Бас тарту
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

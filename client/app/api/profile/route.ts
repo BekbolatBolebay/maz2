@@ -45,7 +45,9 @@ export async function PUT(req: NextRequest) {
             full_name,
             phone,
             user_id: user.id,
-            type: 'profile'
+            role: body.role || 'user',
+            type: 'customer_profile',
+            updated_at: new Date().toISOString()
         });
 
         // 2. Update public.staff_profiles with VPS ID
