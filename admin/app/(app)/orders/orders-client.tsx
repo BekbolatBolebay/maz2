@@ -5,6 +5,7 @@ import { UtensilsCrossed, Pencil, X, Phone, MapPin, Package, Calendar, Users, Cr
 import { useApp } from '@/lib/app-context'
 import { t } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
+import { getBulkPII } from '@/lib/vps'
 import type { Order, Reservation, RestaurantTable } from '@/lib/db'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow, format } from 'date-fns'
@@ -219,6 +220,51 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
     }
     prevItemsCount.current = newItemsCount
   }, [items])
+
+  // Hydration effect for VPS PII
+  useEffect(() => {
+    async function hydrate() {
+      const orderVpsIds = items.map(o => o.customer_name).filter(id => id && id.length === 15 && !id.includes(' '))
+      const resVpsIds = reservations.map(r => r.customer_name).filter(id => id && id.length === 15 && !id.includes(' '))
+      const allIds = Array.from(new Set([...orderVpsIds, ...resVpsIds]))
+      
+      if (!allIds.length) return
+
+      const piiData = await getBulkPII('profiles', allIds)
+      if (!piiData.length) return
+
+      const piiMap = new Map(piiData.map(p => [p.id, p]))
+
+      setItems(prev => prev.map(o => {
+        const pii = piiMap.get(o.customer_name)
+        if (pii) {
+          return {
+            ...o,
+            customer_name: pii.full_name,
+            customer_phone: pii.phone,
+            delivery_address: pii.address || o.delivery_address
+          }
+        }
+        return o
+      }))
+
+      setReservations(prev => prev.map(r => {
+        const pii = piiMap.get(r.customer_name)
+        if (pii) {
+          return {
+            ...r,
+            customer_name: pii.full_name,
+            customer_phone: pii.phone
+          }
+        }
+        return r
+      }))
+    }
+    
+    if (mounted && (items.length > 0 || reservations.length > 0)) {
+      hydrate()
+    }
+  }, [mounted, items.length, reservations.length])
 
   // Fetch couriers & tables
   useEffect(() => {

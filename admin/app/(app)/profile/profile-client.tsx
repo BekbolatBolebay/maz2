@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { t } from '@/lib/i18n'
 import { useApp } from '@/lib/app-context'
 import type { Restaurant, WorkingHour, UserProfile } from '@/lib/db'
-import { updateCafeSettings, updateWorkingHours } from '@/lib/actions'
+import { updateCafeSettings, updateWorkingHours, sendTestEmailAction, sendTestPushAction, saveMerchantConfigAction, updateRestaurantStatusAction } from '@/lib/actions'
 import { toast } from 'sonner'
 import { 
   Save, 
@@ -44,6 +44,8 @@ const DAYS_RU = ['Понедельник', 'Вторник', 'Среда', 'Че
 export default function ProfileClient({ settings, workingHours, userProfile }: ProfileClientProps) {
   const { lang } = useApp()
   const [isSaving, setIsSaving] = useState(false)
+  const [isTestingEmail, setIsTestingEmail] = useState(false)
+  const [isTestingPush, setIsTestingPush] = useState(false)
   
   // Local state for settings
   const [cafeStatus, setCafeStatus] = useState(settings?.status || 'open')
@@ -72,12 +74,22 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const [isPickupEnabled, setIsPickupEnabled] = useState(settings?.is_pickup_enabled ?? true)
   const [isBookingEnabled, setIsBookingEnabled] = useState(settings?.is_booking_enabled ?? true)
   
-  // Freedom Pay Credentials
   const [freedomMerchantId, setFreedomMerchantId] = useState(settings?.freedom_merchant_id || '')
   const [freedomSecretKey, setFreedomSecretKey] = useState(settings?.freedom_payment_secret_key || '')
   const [freedomReceiptSecretKey, setFreedomReceiptSecretKey] = useState(settings?.freedom_receipt_secret_key || '')
-  const [freedomTestMode, setFreedomTestMode] = useState(settings?.freedom_test_mode ?? true)
   
+  // Sync state when navigating back to the page and receiving fresh props
+  useEffect(() => {
+    if (settings) {
+      setKaspiLink(settings.kaspi_link || '');
+      setFreedomMerchantId(settings.freedom_merchant_id || '');
+      setFreedomSecretKey(settings.freedom_payment_secret_key || '');
+      setFreedomReceiptSecretKey(settings.freedom_receipt_secret_key || '');
+      setAcceptFreedom(settings.accept_freedom ?? false);
+      setAcceptKaspi(settings.accept_kaspi ?? true);
+    }
+  }, [settings]);
+
   // Local state for working hours
   // Ensure we have all 7 days represented
   const [localHours, setLocalHours] = useState<Partial<WorkingHour>[]>(() => {
@@ -119,7 +131,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       setFreedomMerchantId(settings.freedom_merchant_id || '')
       setFreedomSecretKey(settings.freedom_payment_secret_key || '')
       setFreedomReceiptSecretKey(settings.freedom_receipt_secret_key || '')
-      setFreedomTestMode(settings.freedom_test_mode ?? true)
+      setFreedomReceiptSecretKey(settings.freedom_receipt_secret_key || '')
       if (settings.latitude && settings.longitude) {
         setCoords({ lat: settings.latitude, lng: settings.longitude })
       }
@@ -179,9 +191,20 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     // Optimistic update
     setter(newValue)
     
+    // For settings that no longer exist in Supabase, only save to VPS
+    const isVpsOnly = ['freedom_merchant_id', 'freedom_payment_secret_key', 'freedom_receipt_secret_key', 'kaspi_link'].includes(field);
+
     try {
-      const { error } = await updateCafeSettings({ [field]: newValue }, settings?.id)
-      if (error) throw error
+      if (!isVpsOnly) {
+        const { error } = await updateCafeSettings({ [field]: newValue }, settings?.id)
+        if (error) throw error
+      }
+      
+      // Also update VPS if it's a merchant related flag
+      if (['accept_freedom', 'accept_kaspi'].includes(field) && settings?.id) {
+        await saveMerchantConfigAction(settings.id, { [field]: newValue });
+      }
+
       toast.success(lang === 'kk' ? 'Сақталды' : 'Сохранено', { duration: 1000 })
     } catch (err: any) {
       // Revert on error
@@ -197,6 +220,12 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     try {
       const { error } = await updateCafeSettings({ status: newStatus }, settings?.id)
       if (error) throw error
+      
+      // Update VPS for real-time sync
+      if (settings?.id) {
+        await updateRestaurantStatusAction(settings.id, newStatus);
+      }
+
       toast.success(lang === 'kk' ? 'Мәртебе жаңартылды' : 'Статус обновлен', { duration: 1000 })
     } catch (err: any) {
       setCafeStatus(prevStatus)
@@ -207,7 +236,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   async function handleSave() {
     setIsSaving(true)
     try {
-      // 1. Update settings
+      // 1. Update settings in Supabase (Non-sensitive info)
       const { error: settingsError } = await updateCafeSettings({
         status: cafeStatus,
         name_ru: name,
@@ -223,15 +252,25 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
         is_delivery_enabled: isDeliveryEnabled,
         is_pickup_enabled: isPickupEnabled,
         is_booking_enabled: isBookingEnabled,
-        freedom_merchant_id: freedomMerchantId,
-        freedom_payment_secret_key: freedomSecretKey,
-        freedom_receipt_secret_key: freedomReceiptSecretKey,
-        freedom_test_mode: freedomTestMode,
         image_url: imageUrl,
         banner_url: bannerUrl,
-        kaspi_link: kaspiLink
       }, settings?.id)
       if (settingsError) throw settingsError
+
+      // 2. Update Merchant Credentials in VPS (Sensitive info)
+      if (settings?.id) {
+        await saveMerchantConfigAction(settings.id, {
+          freedom_merchant_id: freedomMerchantId,
+          freedom_payment_secret_key: freedomSecretKey,
+          freedom_receipt_secret_key: freedomReceiptSecretKey,
+          kaspi_link: kaspiLink,
+          accept_freedom: acceptFreedom,
+          accept_kaspi: acceptKaspi
+        });
+        
+        // Also ensure status is synced
+        await updateRestaurantStatusAction(settings.id, cafeStatus);
+      }
 
       // 2. Update working hours
       const { error: hoursError } = await updateWorkingHours(localHours, settings?.id)
@@ -299,6 +338,34 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       toast.error(lang === 'kk' ? 'Қате шықты' : 'Ошибка при подписке')
     }
   }
+
+  const handleTestEmail = async () => {
+    setIsTestingEmail(true);
+    try {
+        const result = await sendTestEmailAction();
+        if (result.success) {
+            toast.success(lang === 'kk' ? 'Тест хабарламасы поштаңызға жіберілді!' : 'Тестовое письмо отправлено на вашу почту!');
+        } else {
+            toast.error(result.error);
+        }
+    } finally {
+        setIsTestingEmail(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    setIsTestingPush(true);
+    try {
+        const result = await sendTestPushAction();
+        if (result.success) {
+            toast.success(lang === 'kk' ? 'Push-хабарлама жіберілді!' : 'Push-уведомление отправлено!');
+        } else {
+            toast.error(result.error);
+        }
+    } finally {
+        setIsTestingPush(false);
+    }
+  };
 
   return (
     <div className="container max-w-4xl py-4 sm:py-10 px-4">
@@ -577,28 +644,6 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                       />
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <div>
-                        <p className="text-xs font-bold text-foreground uppercase">
-                          {lang === 'kk' ? 'Тест режимі' : 'Тестовый режим'}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {lang === 'kk' ? 'Нақты ақша шешілмейді' : 'Настоящие деньги не списываются'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleToggle('freedom_test_mode', freedomTestMode, setFreedomTestMode)}
-                        className={cn(
-                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          freedomTestMode ? "bg-amber-500" : "bg-muted"
-                        )}
-                      >
-                        <span className={cn(
-                          "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform",
-                          freedomTestMode ? "translate-x-4" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -760,6 +805,29 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
             >
               <ShieldCheck className="w-4 h-4" />
               {lang === 'kk' ? 'Қосу' : 'Включить'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <button
+                onClick={handleTestEmail}
+                disabled={isTestingEmail}
+                className="flex items-center justify-center gap-2 p-4 rounded-xl border bg-card hover:bg-accent transition-all disabled:opacity-50"
+            >
+                {isTestingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                <span className="text-sm font-bold">
+                    {lang === 'kk' ? 'Email-ді тексеру' : 'Проверить Email'}
+                </span>
+            </button>
+            <button
+                onClick={handleTestPush}
+                disabled={isTestingPush}
+                className="flex items-center justify-center gap-2 p-4 rounded-xl border bg-card hover:bg-accent transition-all disabled:opacity-50"
+            >
+                {isTestingPush ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                <span className="text-sm font-bold">
+                    {lang === 'kk' ? 'Push-ты тексеру' : 'Проверить Push'}
+                </span>
             </button>
           </div>
         </section>

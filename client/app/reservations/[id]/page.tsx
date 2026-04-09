@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Phone, MapPin, Clock, CheckCircle2, XCircle, MessageCircle, CreditCard, Calendar, Users, Loader2, ChevronRight, Utensils, Info } from 'lucide-react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
+import { getPII } from '@/lib/vps'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +50,18 @@ export default function ReservationDetailsPage({ params }: { params: Promise<{ i
                 console.error('Reservation fetch error:', error)
                 router.push('/orders')
                 return
+            }
+
+            if (data) {
+                // Hydrate from VPS if Name/Phone is a PocketBase ID
+                const potentialId = data.customer_name || data.customer_phone
+                if (potentialId && potentialId.length === 15 && !potentialId.includes(' ')) {
+                    const pii = await getPII('profiles', potentialId)
+                    if (pii) {
+                        data.customer_name = pii.full_name
+                        data.customer_phone = pii.phone
+                    }
+                }
             }
 
             setReservation(data)

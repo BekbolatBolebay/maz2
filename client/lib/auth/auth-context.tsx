@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getPII, subscribeToVPS } from '@/lib/vps'
 import { Database } from '@/lib/supabase/types'
 import { getFcmToken } from '@/lib/firebase'
 
@@ -68,6 +69,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Real-time VPS Hydration
+  useEffect(() => {
+    if (!profile) return;
+    
+    const potentialId = profile.full_name || profile.phone;
+    if (potentialId && potentialId.length === 15 && !potentialId.includes(' ')) {
+      console.log('[VPS] Subscribing to profile updates:', potentialId);
+      const unsubscribe = subscribeToVPS('profiles', (e) => {
+        if (e.action === 'update' && e.record.id === potentialId) {
+          console.log('[VPS] Profile update received:', e.record);
+          setProfile(prev => prev ? {
+            ...prev,
+            full_name: e.record.full_name,
+            phone: e.record.phone
+          } : null);
+        }
+      });
+      
+      return () => {
+        console.log('[VPS] Unsubscribing from profile updates');
+        unsubscribe();
+      };
+    }
+  }, [profile?.id, profile?.full_name, profile?.phone]);
+
   const fetchProfile = async (userId: string) => {
     const supabase = createClient()
 
@@ -78,8 +104,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('id', userId)
       .single()
 
+    let mergedProfile: Profile | null = null
+
     if (!error && clientData) {
-      const mergedProfile: Profile = {
+      mergedProfile = {
         id: clientData.id,
         full_name: clientData.full_name || '',
         avatar_url: clientData.avatar_url,
@@ -88,41 +116,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role: 'user',
         updated_at: clientData.updated_at
       }
+    } else {
+      // Fallback to staff_profiles table
+      const { data: userData, error: userError } = await supabase
+        .from('staff_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (!userError && userData) {
+        mergedProfile = {
+          id: userData.id,
+          full_name: userData.full_name || '',
+          avatar_url: userData.avatar_url,
+          phone: userData.phone || '',
+          is_anonymous: (userData as any).is_anonymous || false,
+          role: (userData.role as any) || 'user',
+          updated_at: userData.updated_at
+        }
+      }
+    }
+
+    if (mergedProfile) {
+      // Hydrate from VPS if Name/Phone is a PocketBase ID (15 chars, no spaces)
+      const potentialId = mergedProfile.full_name || mergedProfile.phone
+      if (potentialId && potentialId.length === 15 && !potentialId.includes(' ')) {
+        const pii = await getPII('profiles', potentialId)
+        if (pii) {
+          mergedProfile.full_name = pii.full_name
+          mergedProfile.phone = pii.phone
+          // You could also hydrate address here if the type Profile supported it
+        }
+      }
       setProfile(mergedProfile)
       setLoading(false)
-      return
-    }
-
-    // Fallback anyway to staff_profiles table if not found in clients (experimental or admin in app)
-    const { data: userData, error: userError } = await supabase
-      .from('staff_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-
-    if (userError || !userData) {
-      // Don't log error for anonymous users as they might not have a profile yet
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user?.is_anonymous) {
-        console.error('Error fetching profile from both tables:', userError)
-      }
+    } else {
       setProfile(null)
       setLoading(false)
-      return
     }
-
-    const mergedProfile: Profile = {
-      id: userData.id,
-      full_name: userData.full_name || '',
-      avatar_url: userData.avatar_url,
-      phone: userData.phone || '',
-      is_anonymous: (userData as any).is_anonymous || false,
-      role: (userData.role as any) || 'user',
-      updated_at: userData.updated_at
-    }
-
-    setProfile(mergedProfile)
-    setLoading(false)
   }
 
   const signIn = async (email: string, password: string) => {

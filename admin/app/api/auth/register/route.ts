@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { savePII, updateRestaurantStatus } from '@/lib/vps'
 
 export async function POST(request: Request) {
     try {
@@ -19,14 +20,15 @@ export async function POST(request: Request) {
 
         const supabaseAdmin = createAdminClient()
 
-        // 1. Create User via Admin Auth (bypasses email confirmation if desired, sets metadata)
+        // 1. Create User via Admin Auth
         const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
             email_confirm: true,
             user_metadata: {
                 role: 'admin',
-                full_name: cafeName
+                // Keep minimal info in metadata, real PII goes to VPS
+                full_name: 'Admin' 
             }
         })
 
@@ -37,11 +39,19 @@ export async function POST(request: Request) {
 
         const userId = userData.user.id
 
-        // 1b. Create Staff Profile (just in case trigger fails or for immediate consistency)
+        // 1b. Save PII to VPS (PocketBase)
+        const vpsProfileId = await savePII('profiles', {
+            full_name: cafeName,
+            phone: whatsapp,
+            email: email,
+            supabase_id: userId
+        });
+
+        // 1c. Create Staff Profile in Supabase (Reference only)
         const { error: profileError } = await supabaseAdmin.from('staff_profiles').insert({
             id: userId,
             email: email,
-            full_name: cafeName,
+            full_name: vpsProfileId, // Store VPS ID instead of real name
             role: 'admin'
         })
 
@@ -55,19 +65,23 @@ export async function POST(request: Request) {
             name_ru: cafeName,
             name_en: cafeName,
             address: address,
-            phone: whatsapp,
+            phone: whatsapp, // We store this here for operational use, but PII is primarily in VPS
             owner_id: userId,
             status: 'open',
             is_open: true,
-            city: 'Алматы', // Default city to ensure visibility in filtered lists
+            city: 'Алматы',
             latitude: latitude,
             longitude: longitude,
         }).select().single()
 
         if (cafeError) {
             console.error('Registration Error (Cafe):', cafeError)
-            // Cleanup user if restaurant creation fails? Maybe not necessary for this flow
             return NextResponse.json({ error: cafeError.message }, { status: 400 })
+        }
+
+        // Initialize Operational Status on VPS
+        if (cafeData) {
+            await updateRestaurantStatus(cafeData.id, 'open');
         }
 
         // 3. Create Default Working Hours

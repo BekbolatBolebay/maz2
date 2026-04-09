@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { validateFreedomSignature } from '@/utils/payment-helpers'
+import { getMerchantConfig } from '@/lib/vps'
 
 export async function POST(req: Request) {
     try {
@@ -50,7 +51,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Order or Reservation not found' }, { status: 404 })
         }
 
-        const secretKey = entity.restaurants.freedom_payment_secret_key || entity.restaurants.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
+        // 1b. Fetch Secure Merchant Config from VPS
+        const vpsConfig = await getMerchantConfig(entity.restaurants.id);
+
+        const secretKey = vpsConfig?.freedom_payment_secret_key || entity.restaurants.freedom_payment_secret_key || entity.restaurants.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
         if (!secretKey) {
             console.error('Payment Webhook - Merchant secret not found for entity:', orderId)
             return NextResponse.json({ error: 'Merchant secret not found' }, { status: 500 })

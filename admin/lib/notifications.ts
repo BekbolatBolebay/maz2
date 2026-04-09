@@ -1,127 +1,99 @@
-'use server'
+import nodemailer from 'nodemailer';
+import webpush from 'web-push';
+import { createClient } from './supabase/server';
 
-import webpush from 'web-push'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
+// SMTP Configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ''
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:example@yourdomain.com'
-
-// Configure web push with retry logic
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-    webpush.setVapidDetails(
-        VAPID_SUBJECT,
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-    )
-    console.log('[Notifications] Web push configured successfully')
-} else {
-    console.warn('[Notifications] VAPID keys not configured! Push notifications will not work.')
+// VAPID Configuration
+if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:' + (process.env.SMTP_USER || 'admin@mazir.kz'),
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
 }
 
+/**
+ * Sends an email notification.
+ */
+export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.SMTP_FROM || `"Mazir App" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log('[Email] Sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('[Email] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
 
+/**
+ * Sends a Web Push notification to a specific user subscription.
+ */
+export async function sendPushNotification(subscription: any, payload: { title: string; body: string; icon?: string; url?: string }) {
+  try {
+    const result = await webpush.sendNotification(
+      subscription,
+      JSON.stringify(payload)
+    );
+    console.log('[Push] Sent successfully');
+    return { success: true, result };
+  } catch (error: any) {
+    console.error('[Push] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
 
-export async function notifyCustomer(
-    customerId: string,
-    payload: { title: string; body: string; url?: string },
-    retries = 3
-) {
-    const startTime = Date.now()
-    let lastError: Error | null = null
+/**
+ * Helper to notify admin via all enabled channels.
+ */
+export async function notifyAdminAllChannels(order: any, restaurant: any) {
+  // 1. Email Notification
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const subject = `Новый заказ #${order.id.slice(0, 8)}`;
+    const html = `
+      <h1>Новый заказ!</h1>
+      <p>Клиент: ${order.customer_name}</p>
+      <p>Сумма: ${order.total_amount} ₸</p>
+      <p>Тип: ${order.type}</p>
+    `;
+    await sendEmail({ to: restaurant.email || process.env.SMTP_USER, subject, html });
+  }
 
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const clientSupabase = await createClient()
-            const { data: { user } } = await clientSupabase.auth.getUser()
+  // 2. Push Notifications (for staff in staff_profiles)
+  const supabase = await createClient();
+  const { data: staff } = await supabase
+    .from('staff_profiles')
+    .select('push_subscription')
+    .eq('cafe_id', restaurant.id)
+    .not('push_subscription', 'is', null);
 
-            if (!user) {
-                throw new Error('Unauthorized: No user session')
-            }
-
-            // Verify role (admin or super_admin)
-            const { data: profile } = await clientSupabase
-                .from('staff_profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single()
-
-            if (profile?.role !== 'admin' && profile?.role !== 'super_admin') {
-                throw new Error('Forbidden: User is not an admin')
-            }
-
-            const supabase = createAdminClient()
-
-            // Fetch customer push info
-            let { data: customer } = await supabase
-                .from('clients')
-                .select('push_subscription, fcm_token')
-                .eq('id', customerId)
-                .single()
-
-            if (!customer) {
-                // Try staff_profiles table (in case admin is the customer, e.g. testing)
-                const { data: staff } = await supabase
-                    .from('staff_profiles')
-                    .select('push_subscription, fcm_token')
-                    .eq('id', customerId)
-                    .single()
-                customer = staff as any
-            }
-
-            if (!customer || (!customer.push_subscription && !customer.fcm_token)) {
-                console.log(`[Notifications] Customer ${customerId} has no push subscription/token`)
-                return { success: false, error: 'No subscription found' }
-            }
-
-            const pushPromises: Promise<any>[] = []
-
-            // 1. Web-Push (Legacy)
-            if (customer.push_subscription && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-                const subObj = typeof customer.push_subscription === 'string' 
-                    ? JSON.parse(customer.push_subscription) 
-                    : customer.push_subscription
-                
-                pushPromises.push(
-                    webpush.sendNotification(subObj, JSON.stringify(payload))
-                )
-            }
-
-            // 2. Firebase FCM
-            if (customer.fcm_token) {
-                const { messaging } = await import('./firebase-admin')
-                const message = {
-                    token: customer.fcm_token,
-                    notification: {
-                        title: payload.title,
-                        body: payload.body,
-                    },
-                    data: {
-                        url: payload.url || '/',
-                    },
-                    webpush: {
-                        fcm_options: {
-                            link: payload.url || '/',
-                        },
-                    },
-                }
-                pushPromises.push((messaging as any).send(message))
-            }
-
-            await Promise.all(pushPromises)
-
-            console.log(`[Notifications] Sent to customer ${customerId} on attempt ${attempt}`)
-            return { success: true, attempts: attempt }
-        } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error))
-            if (attempt < retries) {
-                const backoffMs = Math.pow(3, attempt - 1) * 100
-                await new Promise((resolve) => setTimeout(resolve, backoffMs))
-            }
+  if (staff && staff.length > 0) {
+    const pushPayload = {
+      title: 'Жаңа тапсырыс!',
+      body: `${order.customer_name}-дан ${order.total_amount} ₸ сомасына тапсырыс түсті.`,
+      icon: restaurant.image_url || '/icon-192x192.png',
+      url: '/orders'
+    };
+    
+    for (const member of staff) {
+        if (member.push_subscription) {
+            await sendPushNotification(member.push_subscription, pushPayload);
         }
     }
-
-    console.error(`[Notifications] Failed for customer ${customerId}:`, lastError?.message)
-    return { success: false, error: lastError?.message }
+  }
 }
-

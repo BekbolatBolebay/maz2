@@ -8,6 +8,7 @@ import { useLocalCart } from '@/hooks/use-local-cart'
 import { clearLocalCart } from '@/lib/storage/local-storage'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
+import { savePII, getMerchantConfig, getRestaurantStatus, subscribeToVPS } from '@/lib/vps'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -220,7 +221,7 @@ export function CheckoutClient() {
                 `)
                 .eq('id', restaurantId)
                 .single()
-                .then(({ data, error }) => {
+                .then(async ({ data, error }) => {
                     console.log('[Checkout] Fetched settings for ID:', restaurantId, data)
                     if (error) {
                         console.error('[Checkout] Error fetching restaurant settings:', error)
@@ -228,6 +229,19 @@ export function CheckoutClient() {
                     }
 
                     if (data) {
+                        // Hydrate with VPS data
+                        const vpsConfig = await getMerchantConfig(restaurantId);
+                        if (vpsConfig) {
+                          data.kaspi_link = vpsConfig.kaspi_link;
+                          data.accept_freedom = vpsConfig.accept_freedom ?? data.accept_freedom;
+                          data.accept_kaspi = vpsConfig.accept_kaspi ?? data.accept_kaspi;
+                        }
+
+                        const vpsStatus = await getRestaurantStatus(restaurantId);
+                        if (vpsStatus) {
+                          data.status = vpsStatus.status;
+                        }
+
                         setRestaurantSettings(data)
 
                         // Set default payment method if none selected correctly
@@ -255,6 +269,15 @@ export function CheckoutClient() {
         }
 
         fetchSettings()
+
+        // Real-time status from VPS
+        console.log('[VPS] Subscribing to real-time status for:', restaurantId);
+        const unsubscribeVPS = subscribeToVPS('restaurants', (e) => {
+          if (e.action === 'update' && e.record.restaurant_id === restaurantId) {
+            console.log('[VPS] Status update received:', e.record.status);
+            setRestaurantSettings(prev => prev ? { ...prev, status: e.record.status } : null);
+          }
+        });
 
         // Working Hours
         supabase
@@ -319,6 +342,7 @@ export function CheckoutClient() {
 
         return () => {
             supabase.removeChannel(channel)
+            unsubscribeVPS();
         }
     }, [restaurantId])
 
@@ -449,13 +473,25 @@ export function CheckoutClient() {
                     return
                 }
 
-                // 2. Insert Reservation
+                // 2. Save PII to VPS
+                const vpsId = await savePII('profiles', {
+                    full_name: name,
+                    phone: phone,
+                    address: orderType === 'delivery' ? address : '',
+                    type: 'reservation'
+                });
+                
+                // Store VPS ID locally for guest tracking
+                localStorage.setItem('vps_id', vpsId);
+                localStorage.setItem('customer_phone', vpsId); // Compatibility with existing phone-based tracking
+
+                // 3. Insert Reservation
                 const { data: reservation, error: resError } = await supabase
                     .from('reservations')
                     .insert({
                         cafe_id: restaurantId,
-                        customer_name: name,
-                        customer_phone: phone,
+                        customer_name: vpsId, // Storing VPS ID
+                        customer_phone: vpsId, // Storing VPS ID
                         date: bookingDate,
                         time: bookingTime,
                         guests_count: bookingGuests,
@@ -534,6 +570,18 @@ export function CheckoutClient() {
             }
 
 
+            // 0. Save PII to VPS for Order
+            const vpsId = await savePII('profiles', {
+                full_name: name,
+                phone: phone,
+                address: orderType === 'delivery' ? address : '',
+                type: 'order'
+            });
+
+            // Store VPS ID locally for guest tracking
+            localStorage.setItem('vps_id', vpsId);
+            localStorage.setItem('customer_phone', vpsId); // Compatibility with existing phone-based tracking
+
             const { data: order, error: orderError } = await supabase
                 .from('orders')
                 .insert({
@@ -542,14 +590,15 @@ export function CheckoutClient() {
                     status: paymentMethod === 'freedom' ? 'awaiting_payment' : 'new',
                     total_amount: orderType === 'delivery' ? total : subtotal,
                     delivery_fee: orderType === 'delivery' ? calculatedFee : 0,
-                    delivery_address: orderType === 'delivery' ? (address || '') : '',
-                    address: orderType === 'delivery' ? (address || '') : '',
+                    delivery_address: vpsId, // Storing VPS ID
+                    address: vpsId, // Storing VPS ID
                     latitude: coords?.lat,
                     longitude: coords?.lng,
                     payment_method: paymentMethod,
                     payment_status: 'pending',
-                    customer_phone: phone || '',
-                    phone: phone || '',
+                    customer_name: vpsId, // Storing VPS ID
+                    customer_phone: vpsId, // Storing VPS ID
+                    phone: vpsId, // Storing VPS ID
                     notes: notes || '',
                     type: orderType,
                     items_count: cartItems.length

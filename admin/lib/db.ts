@@ -377,9 +377,6 @@ export async function getCafeSettings(restaurantId?: string): Promise<Restaurant
       status, 
       opening_hours, 
       cuisine_types, 
-      kaspi_link, 
-      freedom_merchant_id, 
-      freedom_payment_secret_key,
       accept_cash, 
       accept_kaspi, 
       accept_freedom, 
@@ -398,8 +395,7 @@ export async function getCafeSettings(restaurantId?: string): Promise<Restaurant
       owner_id,
       booking_accept_cash,
       booking_accept_kaspi,
-      booking_accept_freedom,
-      freedom_test_mode
+      booking_accept_freedom
     `)
     .eq('id', id)
     .single()

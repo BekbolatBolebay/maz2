@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { getBulkPII } from '@/lib/vps'
 import { Header } from '@/components/layout/header'
 import { OrderCard } from '@/components/orders/order-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -88,6 +89,50 @@ export default function OrdersPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    async function hydrate() {
+      const orderVpsIds = orders.map(o => o.customer_name).filter(id => id && id.length === 15 && !id.includes(' '))
+      const resVpsIds = reservations.map(r => r.customer_name).filter(id => id && id.length === 15 && !id.includes(' '))
+      const allIds = Array.from(new Set([...orderVpsIds, ...resVpsIds]))
+      
+      if (!allIds.length) return
+
+      const piiData = await getBulkPII('profiles', allIds)
+      if (!piiData.length) return
+
+      const piiMap = new Map(piiData.map(p => [p.id, p]))
+
+      setOrders(prev => prev.map(o => {
+        const pii = piiMap.get(o.customer_name)
+        if (pii) {
+          return {
+            ...o,
+            customer_phone: pii.phone, // Crucial for "My Orders" logic
+            customer_name: pii.full_name,
+            address: pii.address || o.address
+          }
+        }
+        return o
+      }))
+
+      setReservations(prev => prev.map(r => {
+        const pii = piiMap.get(r.customer_name)
+        if (pii) {
+          return {
+            ...r,
+            customer_phone: pii.phone,
+            customer_name: pii.full_name
+          }
+        }
+        return r
+      }))
+    }
+    
+    if (orders.length > 0 || reservations.length > 0) {
+      hydrate()
+    }
+  }, [orders.length, reservations.length])
 
   useEffect(() => {
     fetchAllData()

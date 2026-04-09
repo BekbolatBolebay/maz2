@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { ArrowLeft, Phone, MapPin, Clock, CheckCircle2, XCircle, MessageCircle, CreditCard, PartyPopper, Bike, AlertTriangle, Lock, Loader2, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
+import { getPII } from '@/lib/vps'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -96,6 +97,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         .select('*')
         .eq('order_id', id)
         .maybeSingle()
+
+      if (orderData) {
+        // Hydrate from VPS if Name/Phone is a PocketBase ID
+        const potentialId = orderData.customer_name || orderData.customer_phone
+        if (potentialId && potentialId.length === 15 && !potentialId.includes(' ')) {
+          const pii = await getPII('profiles', potentialId)
+          if (pii) {
+            orderData.customer_name = pii.full_name
+            orderData.customer_phone = pii.phone
+            orderData.delivery_address = pii.address || orderData.delivery_address
+          }
+        }
+      }
 
       setOrder(orderData)
       setExistingReview(reviewData)

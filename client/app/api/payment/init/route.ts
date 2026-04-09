@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateFreedomSignature } from '@/utils/payment-helpers'
+import { getMerchantConfig } from '@/lib/vps'
 
 export async function POST(req: Request) {
     try {
@@ -57,8 +58,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Restaurant details not found' }, { status: 500 })
         }
 
-        const merchantId = restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID
-        const secretKey = restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
+        // 1b. Fetch Secure Merchant Config from VPS
+        const vpsConfig = await getMerchantConfig(restaurant.id);
+        
+        const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID
+        const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
+        const isTestMode = vpsConfig?.freedom_test_mode ?? restaurant.freedom_test_mode;
 
         console.log('Payment Init Debug - Merchant ID:', merchantId ? 'Present' : 'MISSING')
         console.log('Payment Init Debug - Secret Key:', secretKey ? 'Present' : 'MISSING')
@@ -86,7 +91,7 @@ export async function POST(req: Request) {
             pg_description: description || `Payment for #${finalId.slice(0, 8)}`,
             pg_salt: Math.random().toString(36).substring(7),
             pg_language: 'ru',
-            pg_testing_mode: (restaurant.freedom_test_mode === true) ? 1 : 0,
+            pg_testing_mode: 0, // ALWAYS PRODUCTION
             // Webhook and redirect URLs
             pg_result_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
             pg_success_url: orderId
