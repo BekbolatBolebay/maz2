@@ -222,14 +222,6 @@ export default function BookingPage({ restaurantId }: { restaurantId: string }) 
                 .single()
             if (rest) {
                 setRestaurant(rest)
-                // Set default payment method if none selected
-                setPaymentMethod(prev => {
-                    if (prev) return prev
-                    if (rest.booking_accept_kaspi) return 'kaspi'
-                    if (rest.booking_accept_cash) return 'cash'
-                    if (rest.booking_accept_freedom) return 'freedom'
-                    return null
-                })
             }
         }
 
@@ -273,6 +265,26 @@ export default function BookingPage({ restaurantId }: { restaurantId: string }) 
             supabase.removeChannel(channel)
         }
     }, [restaurantId, step])
+
+    // Reactive Payment Method Selection
+    useEffect(() => {
+        if (!restaurant) return;
+        const canKaspi = restaurant.booking_accept_kaspi;
+        const canFreedom = restaurant.booking_accept_freedom;
+        const canCash = restaurant.booking_accept_cash;
+
+        setPaymentMethod(prev => {
+            if (prev === 'kaspi' && canKaspi) return 'kaspi';
+            if (prev === 'freedom' && canFreedom) return 'freedom';
+            if (prev === 'cash' && canCash) return 'cash';
+
+            // Auto-select first available
+            if (canKaspi) return 'kaspi';
+            if (canFreedom) return 'freedom';
+            if (canCash) return 'cash';
+            return null;
+        });
+    }, [restaurant]);
 
     // Fetch tables
     useEffect(() => {

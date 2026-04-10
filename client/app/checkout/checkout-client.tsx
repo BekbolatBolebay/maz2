@@ -279,6 +279,22 @@ export function CheckoutClient() {
           }
         });
 
+        const unsubscribeMerchantConfigs = subscribeToVPS('merchant_configs', (e) => {
+          if ((e.action === 'update' || e.action === 'create') && e.record.restaurant_id === restaurantId) {
+            console.log('[VPS] Merchant config update received:', e.record.config);
+            if (e.record.config) {
+                setRestaurantSettings(prev => {
+                    if (!prev) return null;
+                    const newSettings = { ...prev };
+                    if (e.record.config.accept_kaspi !== undefined) newSettings.accept_kaspi = e.record.config.accept_kaspi;
+                    if (e.record.config.accept_freedom !== undefined) newSettings.accept_freedom = e.record.config.accept_freedom;
+                    if (e.record.config.kaspi_link !== undefined) newSettings.kaspi_link = e.record.config.kaspi_link;
+                    return newSettings;
+                });
+            }
+          }
+        });
+
         // Working Hours
         supabase
             .from('working_hours')
@@ -343,6 +359,7 @@ export function CheckoutClient() {
         return () => {
             supabase.removeChannel(channel)
             unsubscribeVPS();
+            unsubscribeMerchantConfigs();
         }
     }, [restaurantId])
 
