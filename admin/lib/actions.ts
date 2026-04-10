@@ -67,8 +67,9 @@ export async function addMenuItem(payload: any, restaurantId?: string) {
     const { data, error } = await supabase.from('menu_items').insert(finalPayload).select().single()
     if (error) {
         console.error('Add MenuItem Error:', error)
+        return { data: null, error: new Error(error.message || JSON.stringify(error)) }
     }
-    if (!error) revalidatePath('/menu')
+    revalidatePath('/menu')
     return { data, error }
 }
 
@@ -80,7 +81,11 @@ export async function updateMenuItem(id: string, payload: any) {
         .eq('id', id)
         .select()
         .single()
-    if (!error) revalidatePath('/menu')
+    if (error) {
+        console.error('Update MenuItem Error:', error)
+        return { data: null, error: new Error(error.message || JSON.stringify(error)) }
+    }
+    revalidatePath('/menu')
     return { data, error }
 }
 

@@ -85,11 +85,11 @@ export default function MenuClient({ initialItems, initialCategories, restaurant
 
     if (editing.isNew) {
       const { data, error } = await addMenuItem(payload, restaurantId)
-      if (error) { toast.error(t(lang, 'error')); return }
+      if (error) { toast.error(error.message || t(lang, 'error')); console.error(error); return }
       setItems((prev) => [...prev, data as MenuItem])
     } else {
       const { error } = await updateMenuItem(editing.id!, payload)
-      if (error) { toast.error(t(lang, 'error')); return }
+      if (error) { toast.error(error.message || t(lang, 'error')); console.error(error); return }
       setItems((prev) => prev.map((i) => i.id === editing.id ? { ...i, ...payload } : i))
     }
     setEditing(null)
