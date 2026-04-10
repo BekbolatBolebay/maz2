@@ -141,8 +141,9 @@ export default function LoginPage() {
                         Тіркелмей жалғастыру
                     </Button>
                 </CardContent>
-                <CardFooter className="text-center text-xs text-muted-foreground">
-                    Жүйеге кіру арқылы сіз біздің пайдалану шарттарымен келісесіз
+                <CardFooter className="flex flex-col gap-2 text-center text-xs text-muted-foreground">
+                    <p>Жүйеге кіру арқылы сіз біздің пайдалану шарттарымен келісесіз</p>
+                    <p className="opacity-30 pt-2 border-t w-full">V1.0.1 - SMTP_AUTH_REINFORCED</p>
                 </CardFooter>
             </Card>
         </div>

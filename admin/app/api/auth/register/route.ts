@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { savePII, updateRestaurantStatus } from '@/lib/vps'
 
 export async function POST(request: Request) {
+    const headers = { 'X-API-Version': '1.0.1-REINFORCED' };
+    console.log('[RegisterAPI] Start Registration Trace');
     try {
         const body = await request.json()
         const {
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
 
         const userId = userData.user.id
 
+        console.log('[RegisterAPI] 2. Saving PII to VPS for UserId:', userId);
         let vpsProfileId;
         try {
             vpsProfileId = await savePII('profiles', {
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        // 1c. Create Staff Profile in Supabase (Reference only)
+        console.log('[RegisterAPI] 3. Creating Staff Profile in Supabase');
         const { error: profileError } = await supabaseAdmin.from('staff_profiles').insert({
             id: userId,
             email: email,
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
             console.error('Registration Error (Profile):', profileError)
         }
 
-        // 2. Create Restaurant
+        console.log('[RegisterAPI] 4. Creating Restaurant record');
         const { data: cafeData, error: cafeError } = await supabaseAdmin.from('restaurants').insert({
             name_kk: cafeName,
             name_ru: cafeName,
@@ -112,8 +115,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            message: 'Registration successful'
-        })
+            message: 'Registration successful',
+            version: '1.0.1-REINFORCED'
+        }, { headers })
 
     } catch (error: any) {
         console.error('API Registration Full Error:', error);

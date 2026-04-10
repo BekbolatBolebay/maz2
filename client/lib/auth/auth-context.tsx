@@ -24,10 +24,10 @@ type AuthContextType = {
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<void>
-  signInWithEmail: (email: string) => Promise<void>
+  OBSOLETE_signInWithEmail: (email: string) => Promise<void>
   signInWithCustomOtp: (email: string, fullName?: string, phone?: string) => Promise<void>
   verifyCustomOtp: (email: string, code: string) => Promise<void>
-  verifyEmailOtp: (email: string, token: string) => Promise<void>
+  OBSOLETE_verifyEmailOtp: (email: string, token: string) => Promise<void>
   signInAnonymous: () => Promise<void>
   updateProfile: (data: { fullName: string, phone: string }) => Promise<void>
   signOut: () => Promise<void>
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error
   }
 
-  const signInWithEmail = async (email: string) => {
+  const OBSOLETE_signInWithEmail = async (email: string) => {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -188,7 +188,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error
   }
 
-  const verifyEmailOtp = async (email: string, token: string) => {
+  const OBSOLETE_verifyEmailOtp = async (email: string, token: string) => {
     const supabase = createClient()
     const { error } = await supabase.auth.verifyOtp({
       email,
@@ -373,7 +373,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={{
       user, profile, loading, signIn, signUp,
-      signInWithEmail, signInWithCustomOtp, verifyCustomOtp, verifyEmailOtp, signInAnonymous, updateProfile, subscribeToPush, signOut
+      OBSOLETE_signInWithEmail, signInWithCustomOtp, verifyCustomOtp, OBSOLETE_verifyEmailOtp, signInAnonymous, updateProfile, subscribeToPush, signOut
     }}>
       {children}
     </AuthContext.Provider>
