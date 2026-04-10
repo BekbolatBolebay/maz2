@@ -55,7 +55,12 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
                 user: smtpUser,
                 pass: smtpPass,
             },
+            tls: {
+                rejectUnauthorized: false
+            }
         })
+
+        console.log(`[SMTP] Attempting to send OTP to ${email} via ${smtpHost}:${smtpPort}...`);
 
         await transporter.sendMail({
             from: process.env.SMTP_FROM || `Mazir App <${smtpUser}>`,

@@ -23,17 +23,18 @@ export async function authenticateVPS() {
 
     if (!email || !password) {
         if (typeof window === 'undefined') {
-            console.error('[VPS] Error: VPS_ADMIN_EMAIL or VPS_ADMIN_PASSWORD is not set in environment variables.');
+            console.warn('[VPS] Warning: VPS_ADMIN_EMAIL or VPS_ADMIN_PASSWORD is missing. Operating in reduced functionality mode (Read-only for public collections).');
         }
-        return pb;
+        return pb; // Return unauthenticated pb client
     }
 
     try {
         await pb.admins.authWithPassword(email, password);
     } catch (err: any) {
-        console.error('[VPS] Admin authentication failed. Check your VPS_ADMIN_EMAIL and VPS_ADMIN_PASSWORD.', err.message);
-        // Throw it so the caller knows auth failed
-        throw new Error(`VPS Auth Failed: ${err.message}. Please check VPS_ADMIN_EMAIL and VPS_ADMIN_PASSWORD in Vercel settings.`);
+        if (typeof window === 'undefined') {
+            console.error('[VPS] Authentication failed. Using unauthenticated client.', err.message);
+        }
+        // Don't throw, let the caller handle unauthorized errors from specific collections
     }
     return pb;
 }
@@ -104,8 +105,38 @@ export async function getBulkPII(collection: string, ids: string[]) {
 export async function getMerchantConfig(restaurantId: string) {
     try {
         const adminPb = await authenticateVPS();
-        return await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+        const record = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+        return record;
     } catch (error) {
+        // SELF-HEALING: If not in DB, check environment variables (Vercel)
+        const envMerchantId = process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
+        const envSecretKey = process.env.FREEDOM_SECRET_KEY || process.env.FREEDOM_PAYMENT_SECRET_KEY;
+
+        if (envMerchantId && envSecretKey) {
+            console.log(`[VPS] Merchant config not found for ${restaurantId}. Found FREEDOM_* env vars, using them as fallback.`);
+            
+            const fallbackData = {
+                restaurant_id: restaurantId,
+                freedom_merchant_id: envMerchantId,
+                freedom_payment_secret_key: envSecretKey,
+                status: 'active',
+                is_auto_provisioned: true
+            };
+
+            // Attempt to auto-save to VPS if we have admin rights
+            const adminPb = await authenticateVPS();
+            if (adminPb.authStore.isValid && adminPb.authStore.isAdmin) {
+                try {
+                    await adminPb.collection('merchant_configs').create(fallbackData);
+                    console.log(`[VPS] Successfully auto-provisioned merchant config for ${restaurantId}`);
+                } catch (saveErr) {
+                    console.warn(`[VPS] Could not auto-save config to DB:`, saveErr);
+                }
+            }
+
+            return fallbackData;
+        }
+
         return null;
     }
 }
@@ -114,7 +145,7 @@ export async function saveMerchantConfig(restaurantId: string, data: Record<stri
     try {
         const existing = await getMerchantConfig(restaurantId);
         const adminPb = await authenticateVPS();
-        if (existing) {
+        if (existing && 'id' in existing) {
             return await adminPb.collection('merchant_configs').update(existing.id, data);
         } else {
             return await adminPb.collection('merchant_configs').create({ ...data, restaurant_id: restaurantId });

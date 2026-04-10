@@ -75,16 +75,16 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                         setIsEditModalOpen(true)
                     }
                 },
-                { label: t.profile?.addresses || 'Мекен-жайлар', icon: MapPin, href: '#' },
-                { label: t.profile?.paymentMethods || 'Төлем әдістері', icon: CreditCard, href: '#' },
-                { label: t.profile?.notifications || 'Хабарламалар', icon: Bell, href: '#', badge: 'New' },
+                { label: t.profile?.addresses || 'Мекен-жайлар', icon: MapPin, href: '/profile/addresses' },
+                { label: t.profile?.paymentMethods || 'Төлем әдістері', icon: CreditCard, href: '/profile/payments' },
+                { label: t.profile?.notifications || 'Хабарламалар', icon: Bell, href: '/profile/notifications', badge: 'New' },
             ]
         },
         {
             title: t.profile?.helpSupport || 'Көмек және Қолдау',
             items: [
-                { label: t.profile?.helpSupport || 'Көмек орталығы', icon: HelpCircle, href: '#', badge: undefined },
-                { label: t.profile?.about || 'Қолданба туралы', icon: Settings, href: '#', badge: undefined },
+                { label: t.profile?.helpSupport || 'Көмек орталығы', icon: HelpCircle, href: '/profile/help', badge: undefined },
+                { label: t.profile?.about || 'Қолданба туралы', icon: Settings, href: '/profile/about', badge: undefined },
             ]
         }
     ], [t, profile, locale])

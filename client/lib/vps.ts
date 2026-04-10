@@ -61,6 +61,19 @@ export async function getPII(collection: string, id: string) {
 }
 
 /**
+ * Updates existing PII in the VPS.
+ */
+export async function updatePII(collection: string, id: string, data: Record<string, any>) {
+    try {
+        const adminPb = await authenticateVPS();
+        return await adminPb.collection(collection).update(id, data);
+    } catch (error: any) {
+        console.error(`[VPS] Error updating PII in ${collection}:`, error.message || error);
+        throw error;
+    }
+}
+
+/**
  * Bulk retrieves PII for a list of IDs.
  */
 export async function getBulkPII(collection: string, ids: string[]) {

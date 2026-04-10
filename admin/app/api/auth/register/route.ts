@@ -40,6 +40,13 @@ export async function POST(request: Request) {
         }
 
         const userId = userData.user.id
+        console.log('[RegisterAPI] User created in Supabase:', userId);
+
+        // Helper to cleanup user if subsequent steps fail
+        const rollbackUser = async () => {
+            console.log('[RegisterAPI] Rolling back user creation for:', userId);
+            await supabaseAdmin.auth.admin.deleteUser(userId);
+        };
 
         console.log('[RegisterAPI] 2. Saving PII to VPS for UserId:', userId);
         let vpsProfileId;
@@ -52,6 +59,7 @@ export async function POST(request: Request) {
             });
         } catch (vpsError: any) {
             console.error('Registration Error (VPS savePII):', vpsError.message || vpsError);
+            await rollbackUser();
             return NextResponse.json({ 
                 error: 'VPS Error: Could not save profile information. ' + (vpsError.message || '')
             }, { status: 500 });
@@ -86,6 +94,7 @@ export async function POST(request: Request) {
 
         if (cafeError) {
             console.error('Registration Error (Cafe):', cafeError)
+            await rollbackUser();
             return NextResponse.json({ error: cafeError.message }, { status: 400 })
         }
 
@@ -121,6 +130,9 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('API Registration Full Error:', error);
+        // Final attempt to rollback if we have a userId but didn't finish
+        // We can't easily track exactly where it failed here without more state, 
+        // but the individual steps above handle main rollback points.
         return NextResponse.json({ 
             error: 'Internal Server Error: ' + (error.message || 'Unknown error occurred')
         }, { status: 500 })

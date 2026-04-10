@@ -43,6 +43,7 @@ export function PromotionBanner({ promotions }: { promotions: Promotion[] }) {
                   alt={locale === 'ru' && promo.title_ru ? promo.title_ru : promo.title}
                   fill
                   className="object-cover opacity-15"
+                  priority={index === 0}
                 />
               </div>
             )}

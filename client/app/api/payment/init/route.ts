@@ -61,9 +61,14 @@ export async function POST(req: Request) {
         // 1b. Fetch Secure Merchant Config from VPS
         const vpsConfig = await getMerchantConfig(restaurant.id);
         
-        const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID
-        const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
+        const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
+        const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
         const isTestMode = vpsConfig?.freedom_test_mode ?? restaurant.freedom_test_mode;
+
+        console.log(`Payment Init - Credential Sources for Restaurant [${restaurant.id}]:`, {
+            vps: vpsConfig ? 'Config Found in VPS' : 'No VPS Config',
+            merchantSource: vpsConfig?.freedom_merchant_id ? 'VPS' : (restaurant.id ? 'Restaurant ID present' : 'N/A')
+        });
 
         console.log('Payment Init Debug - Merchant ID:', merchantId ? 'Present' : 'MISSING')
         console.log('Payment Init Debug - Secret Key:', secretKey ? 'Present' : 'MISSING')

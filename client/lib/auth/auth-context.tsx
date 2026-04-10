@@ -10,6 +10,7 @@ import { getFcmToken } from '@/lib/firebase'
 
 type Profile = {
   id: string
+  vps_id: string | null
   full_name: string | null
   avatar_url: string | null
   phone: string | null
@@ -71,27 +72,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Real-time VPS Hydration
   useEffect(() => {
-    if (!profile) return;
+    if (!profile?.vps_id) return;
     
-    const potentialId = profile.full_name || profile.phone;
-    if (potentialId && potentialId.length === 15 && !potentialId.includes(' ')) {
-      console.log('[VPS] Subscribing to profile updates:', potentialId);
-      const unsubscribe = subscribeToVPS('profiles', (e) => {
-        if (e.action === 'update' && e.record.id === potentialId) {
-          console.log('[VPS] Profile update received:', e.record);
-          setProfile(prev => prev ? {
-            ...prev,
-            full_name: e.record.full_name,
-            phone: e.record.phone
-          } : null);
-        }
-      });
-      
-      return () => {
-        console.log('[VPS] Unsubscribing from profile updates');
-        unsubscribe();
-      };
-    }
+    const vpsId = profile.vps_id;
+    console.log('[VPS] Subscribing to profile updates:', vpsId);
+    
+    const unsubscribe = subscribeToVPS('profiles', (e) => {
+      if (e.action === 'update' && e.record.id === vpsId) {
+        console.log('[VPS] Profile update received:', e.record);
+        setProfile(prev => prev ? {
+          ...prev,
+          full_name: e.record.full_name,
+          phone: e.record.phone
+        } : null);
+      }
+    });
+    
+    return () => {
+      console.log('[VPS] Unsubscribing from profile updates');
+      unsubscribe();
+    };
   }, [profile?.id, profile?.full_name, profile?.phone]);
 
   const fetchProfile = async (userId: string) => {
@@ -109,6 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!error && clientData) {
       mergedProfile = {
         id: clientData.id,
+        vps_id: null,
         full_name: clientData.full_name || '',
         avatar_url: clientData.avatar_url,
         phone: clientData.phone || '',
@@ -127,6 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!userError && userData) {
         mergedProfile = {
           id: userData.id,
+          vps_id: null,
           full_name: userData.full_name || '',
           avatar_url: userData.avatar_url,
           phone: userData.phone || '',
@@ -139,11 +141,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (mergedProfile) {
       // Hydrate from VPS if Name/Phone is a PocketBase ID (15 chars, no spaces)
-      // Standard IDs are 15 alphanumeric characters. We check both fields.
       const pbIdRegex = /^[a-z0-9]{15}$/;
       const potentialId = mergedProfile.full_name || mergedProfile.phone;
 
       if (potentialId && pbIdRegex.test(potentialId)) {
+        mergedProfile.vps_id = potentialId;
         console.log(`[AuthContext] Hydrating PII for user ${userId} using VPS ID: ${potentialId}`);
         const pii = await getPII('profiles', potentialId)
         if (pii) {
