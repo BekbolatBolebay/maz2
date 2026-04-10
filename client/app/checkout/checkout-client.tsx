@@ -8,7 +8,8 @@ import { useLocalCart } from '@/hooks/use-local-cart'
 import { clearLocalCart } from '@/lib/storage/local-storage'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
-import { savePII, getMerchantConfig, getRestaurantStatus, subscribeToVPS } from '@/lib/vps'
+import { savePII, getRestaurantStatus, subscribeToVPS } from '@/lib/vps'
+import { getSecureMerchantConfig } from '@/lib/actions'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -229,8 +230,8 @@ export function CheckoutClient() {
                     }
 
                     if (data) {
-                        // Hydrate with VPS data
-                        const vpsConfig = await getMerchantConfig(restaurantId);
+                        // Hydrate with VPS data via secure Server Action
+                        const vpsConfig = await getSecureMerchantConfig(restaurantId);
                         if (vpsConfig) {
                           data.kaspi_link = vpsConfig.kaspi_link;
                           data.accept_freedom = vpsConfig.accept_freedom ?? data.accept_freedom;
@@ -275,7 +276,7 @@ export function CheckoutClient() {
         const unsubscribeVPS = subscribeToVPS('restaurants', (e) => {
           if (e.action === 'update' && e.record.restaurant_id === restaurantId) {
             console.log('[VPS] Status update received:', e.record.status);
-            setRestaurantSettings(prev => prev ? { ...prev, status: e.record.status } : null);
+            setRestaurantSettings((prev: any) => prev ? { ...prev, status: e.record.status } : null);
           }
         });
 
@@ -283,7 +284,7 @@ export function CheckoutClient() {
           if ((e.action === 'update' || e.action === 'create') && e.record.restaurant_id === restaurantId) {
             console.log('[VPS] Merchant config update received:', e.record.config);
             if (e.record.config) {
-                setRestaurantSettings(prev => {
+                setRestaurantSettings((prev: any) => {
                     if (!prev) return null;
                     const newSettings = { ...prev };
                     if (e.record.config.accept_kaspi !== undefined) newSettings.accept_kaspi = e.record.config.accept_kaspi;

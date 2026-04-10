@@ -166,3 +166,21 @@ export async function updateRestaurantRating(restaurantId: string) {
         throw error
     }
 }
+
+export async function getSecureMerchantConfig(restaurantId: string) {
+    if (!restaurantId) return null;
+    try {
+        const { getMerchantConfig } = await import('./vps');
+        const config = await getMerchantConfig(restaurantId);
+        if (!config) return null;
+        
+        return {
+            kaspi_link: config.kaspi_link,
+            accept_kaspi: config.accept_kaspi,
+            accept_freedom: config.accept_freedom
+        };
+    } catch (error) {
+        console.error('[getSecureMerchantConfig] Error:', error);
+        return null;
+    }
+}
