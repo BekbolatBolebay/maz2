@@ -11,19 +11,19 @@ export default async function ProfilePage() {
 
   // Hydrate with VPS data if restaurant exists
   if (settings) {
-    const config = await getMerchantConfig(settings.id);
+    const rawConfig = await getMerchantConfig(settings.id);
+    const config = rawConfig as any;
     if (config) {
-      settings.freedom_merchant_id = config.freedom_merchant_id;
-      settings.freedom_payment_secret_key = config.freedom_payment_secret_key;
-      settings.freedom_receipt_secret_key = config.freedom_receipt_secret_key;
-      settings.freedom_test_mode = config.freedom_test_mode;
-      settings.kaspi_link = config.kaspi_link;
-      settings.accept_freedom = config.accept_freedom;
-      settings.accept_kaspi = config.accept_kaspi;
+      if (config.freedom_merchant_id !== undefined) settings.freedom_merchant_id = config.freedom_merchant_id;
+      if (config.freedom_payment_secret_key !== undefined) settings.freedom_payment_secret_key = config.freedom_payment_secret_key;
+      if (config.freedom_receipt_secret_key !== undefined) settings.freedom_receipt_secret_key = config.freedom_receipt_secret_key;
+      if (config.kaspi_link !== undefined) settings.kaspi_link = config.kaspi_link;
+      if (config.accept_freedom !== undefined) settings.accept_freedom = config.accept_freedom;
+      if (config.accept_kaspi !== undefined) settings.accept_kaspi = config.accept_kaspi;
     }
     
     const vpsStatus = await getRestaurantStatus(settings.id);
-    if (vpsStatus) {
+    if (vpsStatus && vpsStatus.status !== undefined) {
       settings.status = vpsStatus.status;
     }
   }
