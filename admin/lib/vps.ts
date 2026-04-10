@@ -156,12 +156,32 @@ export async function getMerchantConfig(restaurantId: string) {
 
 export async function saveMerchantConfig(restaurantId: string, data: Record<string, any>) {
     try {
-        const existing = await getMerchantConfig(restaurantId);
         const adminPb = await authenticateVPS();
-        if (existing && 'id' in existing) {
-            return await adminPb.collection('merchant_configs').update(existing.id, data);
+        
+        // Try to find if it already exists in the DB first (using admin rights if we have them)
+        let existingId: string | null = null;
+        try {
+            const existing = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+            if (existing) existingId = existing.id;
+        } catch (e) {
+            // Not found or no permission
+        }
+
+        if (existingId) {
+            console.log(`[VPS] Updating existing merchant config: ${existingId}`);
+            return await adminPb.collection('merchant_configs').update(existingId, data);
         } else {
-            return await adminPb.collection('merchant_configs').create({ ...data, restaurant_id: restaurantId });
+            console.log(`[VPS] Creating new merchant config for restaurant: ${restaurantId}`);
+            try {
+                return await adminPb.collection('merchant_configs').create({ ...data, restaurant_id: restaurantId });
+            } catch (createErr: any) {
+                // If create fails with 400, it might be a race condition where it was just created
+                if (createErr.status === 400) {
+                   const secondTry = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+                   return await adminPb.collection('merchant_configs').update(secondTry.id, data);
+                }
+                throw createErr;
+            }
         }
     } catch (error) {
         console.error(`[VPS] Error saving merchant config:`, error);
