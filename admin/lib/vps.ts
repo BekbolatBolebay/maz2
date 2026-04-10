@@ -25,16 +25,36 @@ export async function authenticateVPS() {
         if (typeof window === 'undefined') {
             console.warn('[VPS] Warning: VPS_ADMIN_EMAIL or VPS_ADMIN_PASSWORD is missing. Operating in reduced functionality mode (Read-only for public collections).');
         }
-        return pb; // Return unauthenticated pb client
+        return pb;
     }
 
     try {
-        await pb.admins.authWithPassword(email, password);
+        // MANUAL OVERRIDE for PB v0.22.7 compatibility
+        // Newer SDKs default to /api/collections/_superusers/..., but older PB needs /api/admins/...
+        const authUrl = `${VPS_URL}/api/admins/auth-with-password`;
+        const response = await fetch(authUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identity: email, password }),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || `Auth failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        // Save to authStore so the SDK can use it for subsequent requests
+        pb.authStore.save(data.token, data.admin);
+        
+        if (typeof window === 'undefined') {
+            console.log('[VPS] Successfully authenticated using legacy /api/admins path');
+        }
     } catch (err: any) {
         if (typeof window === 'undefined') {
-            console.error('[VPS] Authentication failed. Using unauthenticated client.', err.message);
+            console.error('[VPS] Authentication failed:', err.message);
         }
-        // Don't throw, let the caller handle unauthorized errors from specific collections
     }
     return pb;
 }

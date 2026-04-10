@@ -20,11 +20,38 @@ export async function authenticateVPS() {
     
     const email = process.env.VPS_ADMIN_EMAIL;
     const password = process.env.VPS_ADMIN_PASSWORD;
-    if (email && password) {
-        try {
-            await pb.admins.authWithPassword(email, password);
-        } catch (err) {
-            console.error('[VPS] Admin authentication failed', err);
+
+    if (!email || !password) {
+        if (typeof window === 'undefined') {
+            console.warn('[VPS] Warning: VPS_ADMIN_EMAIL or VPS_ADMIN_PASSWORD is missing.');
+        }
+        return pb;
+    }
+
+    try {
+        // MANUAL OVERRIDE for PB v0.22.7 compatibility
+        const authUrl = `${VPS_URL}/api/admins/auth-with-password`;
+        const response = await fetch(authUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identity: email, password }),
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || `Auth failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        pb.authStore.save(data.token, data.admin);
+        
+        if (typeof window === 'undefined') {
+            console.log('[VPS] Successfully authenticated using legacy /api/admins path');
+        }
+    } catch (err: any) {
+        if (typeof window === 'undefined') {
+            console.error('[VPS] Authentication failed:', err.message);
         }
     }
     return pb;
@@ -91,21 +118,72 @@ export async function getBulkPII(collection: string, ids: string[]) {
  */
 
 export async function getMerchantConfig(restaurantId: string) {
+    // Priority 1: Try to get from VPS with admin auth
     try {
         const adminPb = await authenticateVPS();
-        return await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+        if (adminPb.authStore.isValid && adminPb.authStore.isAdmin) {
+             const record = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+             if (record) return record;
+        }
     } catch (error) {
-        return null;
+        console.warn(`[VPS] Admin-authenticated fetch failed for ${restaurantId}, trying fallbacks...`);
     }
+
+    // Priority 2: Try to get from VPS using public read (if configured)
+    try {
+        const record = await pb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+        if (record) return record;
+    } catch (error) {
+        // Public read failed
+    }
+
+    // Priority 3: SELF-HEALING Fallback to Vercel Environment Variables
+    const envMerchantId = process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
+    const envSecretKey = process.env.FREEDOM_SECRET_KEY || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
+
+    if (envMerchantId && envSecretKey) {
+        console.log(`[VPS] Using FREEDOM_* environment variables as fallback source for ${restaurantId}`);
+        
+        return {
+            restaurant_id: restaurantId,
+            freedom_merchant_id: envMerchantId,
+            freedom_payment_secret_key: envSecretKey,
+            status: 'active',
+            is_auto_provisioned: true
+        };
+    }
+
+    return null;
 }
 
 export async function saveMerchantConfig(restaurantId: string, data: Record<string, any>) {
     try {
-        const existing = await getMerchantConfig(restaurantId);
-        if (existing) {
-            return await pb.collection('merchant_configs').update(existing.id, data);
+        const adminPb = await authenticateVPS();
+        
+        // Try to find if it already exists in the DB first (using admin rights if we have them)
+        let existingId: string | null = null;
+        try {
+            const existing = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+            if (existing) existingId = existing.id;
+        } catch (e) {
+            // Not found or no permission
+        }
+
+        if (existingId) {
+            console.log(`[VPS] Updating existing merchant config: ${existingId}`);
+            return await adminPb.collection('merchant_configs').update(existingId, data);
         } else {
-            return await pb.collection('merchant_configs').create({ ...data, restaurant_id: restaurantId });
+            console.log(`[VPS] Creating new merchant config for restaurant: ${restaurantId}`);
+            try {
+                return await adminPb.collection('merchant_configs').create({ ...data, restaurant_id: restaurantId });
+            } catch (createErr: any) {
+                // If create fails with 400 (likely unique constraint), try to update
+                if (createErr.status === 400) {
+                   const secondTry = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+                   return await adminPb.collection('merchant_configs').update(secondTry.id, data);
+                }
+                throw createErr;
+            }
         }
     } catch (error) {
         console.error(`[VPS] Error saving merchant config:`, error);
