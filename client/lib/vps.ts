@@ -35,10 +35,15 @@ export async function authenticateVPS() {
  */
 export async function savePII(collection: string, data: Record<string, any>) {
     try {
-        const record = await pb.collection(collection).create(data);
+        const adminPb = await authenticateVPS();
+        const record = await adminPb.collection(collection).create(data);
         return record.id;
-    } catch (error) {
-        console.error(`[VPS] Error saving PII:`, error);
+    } catch (error: any) {
+        if (error.status === 404) {
+            const msg = `[VPS] Collection "${collection}" not found. Please import pocketbase_schema.json in your VPS Admin Dashboard (Settings -> Import).`;
+            throw new Error(msg);
+        }
+        console.error(`[VPS] Error saving PII to ${collection}:`, error.message || error);
         throw error;
     }
 }

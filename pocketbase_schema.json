@@ -1,0 +1,49 @@
+[
+  {
+    "id": "profiles_collection",
+    "name": "profiles",
+    "type": "base",
+    "system": false,
+    "schema": [
+      { "name": "full_name", "type": "text", "required": false },
+      { "name": "phone", "type": "text", "required": false },
+      { "name": "email", "type": "email", "required": true },
+      { "name": "supabase_id", "type": "text", "required": true }
+    ],
+    "listRule": "id = @request.auth.id || @request.auth.isAdmin = true",
+    "viewRule": "id = @request.auth.id || @request.auth.isAdmin = true",
+    "createRule": "",
+    "updateRule": "id = @request.auth.id || @request.auth.isAdmin = true",
+    "deleteRule": "@request.auth.isAdmin = true"
+  },
+  {
+    "id": "restaurants_collection",
+    "name": "restaurants",
+    "type": "base",
+    "system": false,
+    "schema": [
+      { "name": "restaurant_id", "type": "text", "required": true },
+      { "name": "status", "type": "text", "required": false }
+    ],
+    "listRule": "",
+    "viewRule": "",
+    "createRule": "@request.auth.isAdmin = true",
+    "updateRule": "@request.auth.isAdmin = true",
+    "deleteRule": "@request.auth.isAdmin = true"
+  },
+  {
+    "id": "merchant_configs_collection",
+    "name": "merchant_configs",
+    "type": "base",
+    "system": false,
+    "schema": [
+      { "name": "restaurant_id", "type": "text", "required": true },
+      { "name": "config", "type": "json", "required": false }
+    ],
+    "listRule": "@request.auth.isAdmin = true",
+    "viewRule": "@request.auth.isAdmin = true",
+    "createRule": "@request.auth.isAdmin = true",
+    "updateRule": "@request.auth.isAdmin = true",
+    "deleteRule": "@request.auth.isAdmin = true"
+  }
+]

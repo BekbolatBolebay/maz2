@@ -32,6 +32,8 @@ export async function authenticateVPS() {
         await pb.admins.authWithPassword(email, password);
     } catch (err: any) {
         console.error('[VPS] Admin authentication failed. Check your VPS_ADMIN_EMAIL and VPS_ADMIN_PASSWORD.', err.message);
+        // Throw it so the caller knows auth failed
+        throw new Error(`VPS Auth Failed: ${err.message}. Please check VPS_ADMIN_EMAIL and VPS_ADMIN_PASSWORD in Vercel settings.`);
     }
     return pb;
 }
@@ -59,7 +61,11 @@ export async function savePII(collection: string, data: Record<string, any>) {
         const record = await adminPb.collection(collection).create(data);
         return record.id;
     } catch (error: any) {
-        console.error(`[VPS] Error saving PII to ${collection}:`, error);
+        if (error.status === 404) {
+            const msg = `[VPS] Collection "${collection}" not found. Please import pocketbase_schema.json in your VPS Admin Dashboard (Settings -> Import).`;
+            throw new Error(msg);
+        }
+        console.error(`[VPS] Error saving PII to ${collection}:`, error.message || error);
         throw error;
     }
 }
