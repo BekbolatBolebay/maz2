@@ -103,42 +103,55 @@ export async function getBulkPII(collection: string, ids: string[]) {
  */
 
 export async function getMerchantConfig(restaurantId: string) {
+    // Priority 1: Try to get from VPS with admin auth
     try {
         const adminPb = await authenticateVPS();
-        const record = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
-        return record;
+        if (adminPb.authStore.isValid && adminPb.authStore.isAdmin) {
+             const record = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+             if (record) return record;
+        }
     } catch (error) {
-        // SELF-HEALING: If not in DB, check environment variables (Vercel)
-        const envMerchantId = process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
-        const envSecretKey = process.env.FREEDOM_SECRET_KEY || process.env.FREEDOM_PAYMENT_SECRET_KEY;
+        console.warn(`[VPS] Admin-authenticated fetch failed for ${restaurantId}, trying fallbacks...`);
+    }
 
-        if (envMerchantId && envSecretKey) {
-            console.log(`[VPS] Merchant config not found for ${restaurantId}. Found FREEDOM_* env vars, using them as fallback.`);
-            
-            const fallbackData = {
-                restaurant_id: restaurantId,
-                freedom_merchant_id: envMerchantId,
-                freedom_payment_secret_key: envSecretKey,
-                status: 'active',
-                is_auto_provisioned: true
-            };
+    // Priority 2: Try to get from VPS using public read (if configured)
+    try {
+        const record = await pb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
+        if (record) return record;
+    } catch (error) {
+        // Public read failed
+    }
 
-            // Attempt to auto-save to VPS if we have admin rights
+    // Priority 3: SELF-HEALING Fallback to Vercel Environment Variables
+    const envMerchantId = process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
+    const envSecretKey = process.env.FREEDOM_SECRET_KEY || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
+
+    if (envMerchantId && envSecretKey) {
+        console.log(`[VPS] Using FREEDOM_* environment variables as fallback source for ${restaurantId}`);
+        
+        const fallbackData = {
+            restaurant_id: restaurantId,
+            freedom_merchant_id: envMerchantId,
+            freedom_payment_secret_key: envSecretKey,
+            status: 'active',
+            is_auto_provisioned: true
+        };
+
+        // Attempt to auto-sync to VPS if we have admin rights after all
+        try {
             const adminPb = await authenticateVPS();
             if (adminPb.authStore.isValid && adminPb.authStore.isAdmin) {
-                try {
-                    await adminPb.collection('merchant_configs').create(fallbackData);
-                    console.log(`[VPS] Successfully auto-provisioned merchant config for ${restaurantId}`);
-                } catch (saveErr) {
-                    console.warn(`[VPS] Could not auto-save config to DB:`, saveErr);
-                }
+                await adminPb.collection('merchant_configs').create(fallbackData);
+                console.log(`[VPS] Successfully auto-provisioned merchant config for ${restaurantId}`);
             }
-
-            return fallbackData;
+        } catch (saveErr) {
+            // Ignore save error, we already have the fallback data
         }
 
-        return null;
+        return fallbackData;
     }
+
+    return null;
 }
 
 export async function saveMerchantConfig(restaurantId: string, data: Record<string, any>) {
