@@ -14,7 +14,8 @@ export async function GET() {
 
     const diagnostics: any = {
         timestamp: new Date().toISOString(),
-        version: 'V1.0.2 - ADMIN_RESILIENCE_UPGRADE',
+        version: 'V1.0.3 - MANUAL_AUTH_FIX',
+        target_auth_path: '/api/admins/auth-with-password',
         environment: {
             NODE_ENV: process.env.NODE_ENV,
             VPS_URL: {
