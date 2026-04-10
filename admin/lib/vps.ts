@@ -128,7 +128,9 @@ export async function getMerchantConfig(restaurantId: string) {
         const adminPb = await authenticateVPS();
         if (adminPb.authStore.isValid && adminPb.authStore.isAdmin) {
              const record = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
-             if (record) return record;
+             if (record && record.config) {
+                 return { ...record.config, id: record.id };
+             }
         }
     } catch (error) {
         console.warn(`[VPS] Admin-authenticated fetch failed for ${restaurantId}, trying fallbacks...`);
@@ -137,7 +139,9 @@ export async function getMerchantConfig(restaurantId: string) {
     // Priority 2: Try to get from VPS using public read (if configured)
     try {
         const record = await pb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
-        if (record) return record;
+        if (record && record.config) {
+            return { ...record.config, id: record.id };
+        }
     } catch (error) {
         // Public read failed
     }
@@ -189,16 +193,16 @@ export async function saveMerchantConfig(restaurantId: string, data: Record<stri
 
         if (existingId) {
             console.log(`[VPS] Updating existing merchant config: ${existingId}`);
-            return await adminPb.collection('merchant_configs').update(existingId, data);
+            return await adminPb.collection('merchant_configs').update(existingId, { config: data });
         } else {
             console.log(`[VPS] Creating new merchant config for restaurant: ${restaurantId}`);
             try {
-                return await adminPb.collection('merchant_configs').create({ ...data, restaurant_id: restaurantId });
+                return await adminPb.collection('merchant_configs').create({ config: data, restaurant_id: restaurantId });
             } catch (createErr: any) {
                 // If create fails with 400, it might be a race condition where it was just created
                 if (createErr.status === 400) {
                    const secondTry = await adminPb.collection('merchant_configs').getFirstListItem(`restaurant_id="${restaurantId}"`);
-                   return await adminPb.collection('merchant_configs').update(secondTry.id, data);
+                   return await adminPb.collection('merchant_configs').update(secondTry.id, { config: data });
                 }
                 throw createErr;
             }
