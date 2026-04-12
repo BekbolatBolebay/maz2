@@ -192,7 +192,8 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     setter(newValue)
     
     // For settings that no longer exist in Supabase, only save to VPS
-    const isVpsOnly = ['freedom_merchant_id', 'freedom_payment_secret_key', 'freedom_receipt_secret_key', 'kaspi_link'].includes(field);
+    // Previously VPS-only fields, now moved to Supabase for cost reduction (no VPS required)
+    const isVpsOnly = false; // We want everything in Supabase now
 
     try {
       const updates: any = { [field]: newValue };
@@ -202,14 +203,18 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       if (field === 'accept_kaspi') updates.booking_accept_kaspi = newValue;
       if (field === 'accept_freedom') updates.booking_accept_freedom = newValue;
 
-      if (!isVpsOnly) {
+      if (updates) {
         const { error } = await updateCafeSettings(updates, settings?.id)
         if (error) throw error
       }
       
-      // Also update VPS if it's a merchant related flag
+      // Attempt to update VPS for backward compatibility, but don't fail if it's down
       if (['accept_freedom', 'accept_kaspi'].includes(field) && settings?.id) {
-        await saveMerchantConfigAction(settings.id, { [field]: newValue });
+        try {
+          await saveMerchantConfigAction(settings.id, { [field]: newValue });
+        } catch (e) {
+          console.warn('VPS Update failed (offline), but Supabase is updated:', e);
+        }
       }
 
       toast.success(lang === 'kk' ? 'Сақталды' : 'Сохранено', { duration: 1000 })
@@ -243,7 +248,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   async function handleSave() {
     setIsSaving(true)
     try {
-      // 1. Update settings in Supabase (Non-sensitive info)
+      // 1. Update settings in Supabase (ALL info now in Supabase)
       const { error: settingsError } = await updateCafeSettings({
         status: cafeStatus,
         name_ru: name,
@@ -261,22 +266,29 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
         is_booking_enabled: isBookingEnabled,
         image_url: imageUrl,
         banner_url: bannerUrl,
+        // New merchant fields in Supabase
+        freedom_merchant_id: freedomMerchantId,
+        freedom_payment_secret_key: freedomSecretKey,
+        freedom_receipt_secret_key: freedomReceiptSecretKey,
+        kaspi_link: kaspiLink,
       }, settings?.id)
       if (settingsError) throw settingsError
 
-      // 2. Update Merchant Credentials in VPS (Sensitive info)
+      // 2. Attempt to Update VPS for backward compatibility (Don't fail if VPS is blocked due to unpaid bill)
       if (settings?.id) {
-        await saveMerchantConfigAction(settings.id, {
-          freedom_merchant_id: freedomMerchantId,
-          freedom_payment_secret_key: freedomSecretKey,
-          freedom_receipt_secret_key: freedomReceiptSecretKey,
-          kaspi_link: kaspiLink,
-          accept_freedom: acceptFreedom,
-          accept_kaspi: acceptKaspi
-        });
-        
-        // Also ensure status is synced
-        await updateRestaurantStatusAction(settings.id, cafeStatus);
+        try {
+          await saveMerchantConfigAction(settings.id, {
+            freedom_merchant_id: freedomMerchantId,
+            freedom_payment_secret_key: freedomSecretKey,
+            freedom_receipt_secret_key: freedomReceiptSecretKey,
+            kaspi_link: kaspiLink,
+            accept_freedom: acceptFreedom,
+            accept_kaspi: acceptKaspi
+          });
+          await updateRestaurantStatusAction(settings.id, cafeStatus);
+        } catch (vpsError) {
+          console.warn('VPS Update failed, but Supabase is updated successfully:', vpsError);
+        }
       }
 
       // 2. Update working hours

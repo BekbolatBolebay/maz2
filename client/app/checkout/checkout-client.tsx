@@ -155,9 +155,9 @@ export function CheckoutClient() {
             setStep('form')
         }
 
-        const canKaspi = restaurantSettings.accept_kaspi ?? true
-        const canFreedom = restaurantSettings.accept_freedom ?? false
-        const canCash = restaurantSettings.accept_cash ?? true
+        const canKaspi = restaurantSettings.accept_kaspi
+        const canFreedom = restaurantSettings.accept_freedom
+        const canCash = restaurantSettings.accept_cash
         
         console.log('[Checkout] Payment flags calculated (with defaults):', { canKaspi, canFreedom, canCash })
 

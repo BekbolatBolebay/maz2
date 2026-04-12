@@ -170,14 +170,36 @@ export async function updateRestaurantRating(restaurantId: string) {
 export async function getSecureMerchantConfig(restaurantId: string) {
     if (!restaurantId) return null;
     try {
-        const { getMerchantConfig } = await import('./vps');
-        const config = await getMerchantConfig(restaurantId);
-        if (!config) return null;
+        const supabase = await createClient();
+        const { data: restaurant, error } = await supabase
+            .from('restaurants')
+            .select('kaspi_link, accept_kaspi, accept_freedom')
+            .eq('id', restaurantId)
+            .single();
+
+        if (error) {
+            console.error('[getSecureMerchantConfig] Supabase error:', error);
+            // Fallback to VPS if Supabase record is missing or has error
+            try {
+                const { getMerchantConfig } = await import('./vps');
+                const config = await getMerchantConfig(restaurantId);
+                if (config) {
+                    return {
+                        kaspi_link: config.kaspi_link,
+                        accept_kaspi: config.accept_kaspi,
+                        accept_freedom: config.accept_freedom
+                    };
+                }
+            } catch (vpsErr) {
+                console.error('[getSecureMerchantConfig] VPS Fallback failed:', vpsErr);
+            }
+            return null;
+        }
         
         return {
-            kaspi_link: config.kaspi_link,
-            accept_kaspi: config.accept_kaspi,
-            accept_freedom: config.accept_freedom
+            kaspi_link: restaurant.kaspi_link,
+            accept_kaspi: restaurant.accept_kaspi,
+            accept_freedom: restaurant.accept_freedom
         };
     } catch (error) {
         console.error('[getSecureMerchantConfig] Error:', error);
