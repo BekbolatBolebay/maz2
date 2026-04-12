@@ -230,18 +230,19 @@ export function CheckoutClient() {
                     }
 
                     if (data) {
-                        // Hydrate with VPS data via secure Server Action
+                        // Hydrate with VPS data via secure Server Action for sensitive fields only
                         const vpsConfig = await getSecureMerchantConfig(restaurantId);
                         if (vpsConfig) {
-                          data.kaspi_link = vpsConfig.kaspi_link;
-                          data.accept_freedom = vpsConfig.accept_freedom ?? data.accept_freedom;
-                          data.accept_kaspi = vpsConfig.accept_kaspi ?? data.accept_kaspi;
+                          data.kaspi_link = vpsConfig.kaspi_link || data.kaspi_link;
+                          // Do not overwrite realtime boolean toggles with VPS data which might be cached or lagging
+                          // Trust Supabase values for: accept_freedom, accept_kaspi, accept_cash
                         }
-
-                        const vpsStatus = await getRestaurantStatus(restaurantId);
-                        if (vpsStatus) {
-                          data.status = vpsStatus.status;
-                        }
+                        
+                        // Trust Supabase status as the single source of truth for realtime
+                        // const vpsStatus = await getRestaurantStatus(restaurantId);
+                        // if (vpsStatus) {
+                        //   data.status = vpsStatus.status;
+                        // }
 
                         setRestaurantSettings(data)
 
@@ -270,31 +271,6 @@ export function CheckoutClient() {
         }
 
         fetchSettings()
-
-        // Real-time status from VPS
-        console.log('[VPS] Subscribing to real-time status for:', restaurantId);
-        const unsubscribeVPS = subscribeToVPS('restaurants', (e) => {
-          if (e.action === 'update' && e.record.restaurant_id === restaurantId) {
-            console.log('[VPS] Status update received:', e.record.status);
-            setRestaurantSettings((prev: any) => prev ? { ...prev, status: e.record.status } : null);
-          }
-        });
-
-        const unsubscribeMerchantConfigs = subscribeToVPS('merchant_configs', (e) => {
-          if ((e.action === 'update' || e.action === 'create') && e.record.restaurant_id === restaurantId) {
-            console.log('[VPS] Merchant config update received:', e.record.config);
-            if (e.record.config) {
-                setRestaurantSettings((prev: any) => {
-                    if (!prev) return null;
-                    const newSettings = { ...prev };
-                    if (e.record.config.accept_kaspi !== undefined) newSettings.accept_kaspi = e.record.config.accept_kaspi;
-                    if (e.record.config.accept_freedom !== undefined) newSettings.accept_freedom = e.record.config.accept_freedom;
-                    if (e.record.config.kaspi_link !== undefined) newSettings.kaspi_link = e.record.config.kaspi_link;
-                    return newSettings;
-                });
-            }
-          }
-        });
 
         // Working Hours
         supabase
@@ -359,8 +335,6 @@ export function CheckoutClient() {
 
         return () => {
             supabase.removeChannel(channel)
-            unsubscribeVPS();
-            unsubscribeMerchantConfigs();
         }
     }, [restaurantId])
 
