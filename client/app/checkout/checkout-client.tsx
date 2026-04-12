@@ -224,6 +224,9 @@ export function CheckoutClient() {
                 .single()
                 .then(async ({ data, error }) => {
                     console.log('[Checkout] Fetched settings for ID:', restaurantId, data)
+                    if (!data) {
+                        console.warn('[Checkout] No data found for restaurantId:', restaurantId)
+                    }
                     if (error) {
                         console.error('[Checkout] Error fetching restaurant settings:', error)
                         return
@@ -469,7 +472,7 @@ export function CheckoutClient() {
                 const vpsId = await savePII('profiles', {
                     full_name: name,
                     phone: phone,
-                    address: orderType === 'delivery' ? address : '',
+                    address: '', // Inside booking block, address is not relevant
                     type: 'reservation'
                 });
                 
@@ -1001,7 +1004,7 @@ export function CheckoutClient() {
                                 <section className="space-y-3">
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">{t.cart.payment_method}</h3>
                                     <div className="grid grid-cols-1 gap-2">
-                                        {(restaurantSettings?.accept_kaspi ?? true) && (
+                                        {restaurantSettings?.accept_kaspi && (
                                             <button
                                                 onClick={() => handleSetPaymentMethod('kaspi')}
                                                 className={cn(
@@ -1034,7 +1037,7 @@ export function CheckoutClient() {
                                                 {paymentMethod === 'freedom' && <CheckCircle2 className="w-5 h-5 text-primary" />}
                                             </button>
                                         )}
-                                        {(restaurantSettings?.accept_cash ?? true) && (
+                                        {restaurantSettings?.accept_cash && (
                                             <button
                                                 onClick={() => handleSetPaymentMethod('cash')}
                                                 className={cn(

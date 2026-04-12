@@ -2,22 +2,20 @@ const { Client } = require('pg');
 
 const connectionString = "postgres://postgres.wuhefcbofaoqvsrejcjc:ppoHd9GwPwGUErIK@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x";
 
-async function checkRealtime() {
+async function checkColumns() {
   const client = new Client({ 
     connectionString,
     ssl: { rejectUnauthorized: false }
   });
   try {
     await client.connect();
-    // Check if restaurants table is in the supabase_realtime publication
     const query = `
-      SELECT * FROM pg_publication_tables 
-      WHERE pubname = 'supabase_realtime' 
-      AND schemaname = 'public' 
-      AND tablename = 'restaurants';
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'restaurants';
     `;
     const res = await client.query(query);
-    console.log("Realtime publication for restaurants:", res.rows);
+    console.log(res.rows);
     
   } catch (err) {
     console.error("Error executing query:", err);
@@ -26,4 +24,4 @@ async function checkRealtime() {
   }
 }
 
-checkRealtime();
+checkColumns();

@@ -195,8 +195,15 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     const isVpsOnly = ['freedom_merchant_id', 'freedom_payment_secret_key', 'freedom_receipt_secret_key', 'kaspi_link'].includes(field);
 
     try {
+      const updates: any = { [field]: newValue };
+      
+      // Auto-sync booking flags if it's a payment toggle
+      if (field === 'accept_cash') updates.booking_accept_cash = newValue;
+      if (field === 'accept_kaspi') updates.booking_accept_kaspi = newValue;
+      if (field === 'accept_freedom') updates.booking_accept_freedom = newValue;
+
       if (!isVpsOnly) {
-        const { error } = await updateCafeSettings({ [field]: newValue }, settings?.id)
+        const { error } = await updateCafeSettings(updates, settings?.id)
         if (error) throw error
       }
       

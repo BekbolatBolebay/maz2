@@ -960,7 +960,7 @@ export default function BookingPage({ restaurantId }: { restaurantId: string }) 
                                     { id: 'cash', label: 'Қолма-қол', icon: '💵', desc: 'Кафеде төлеу', enabled: restaurant?.booking_accept_cash },
                                     { id: 'freedom', label: 'Freedom Pay', icon: '💳', desc: 'Банк картасымен онлайн', enabled: restaurant?.booking_accept_freedom },
                                 ].filter(m => {
-                                    if (!restaurant) return true
+                                    if (!restaurant) return false
                                     return m.enabled === true
                                 }).map((m) => (
                                     <button
