@@ -11,6 +11,26 @@ import { toast } from 'sonner'
 
 export default function ClientsClient({ initialClients }: { initialClients: any[] }) {
     const { lang } = useApp()
+
+    /**
+     * Parses and formats customer values that might be stored as stringified JSON fallback (prefixed with 'db:')
+     */
+    function formatCustomerValue(value: string, field: 'full_name' | 'phone' | 'address' = 'full_name'): string {
+      if (!value) return ''
+      if (typeof value !== 'string') return String(value)
+      
+      if (value.startsWith('db:')) {
+        try {
+          const jsonStr = value.substring(3)
+          const data = JSON.parse(jsonStr)
+          return data[field] || data.full_name || data.phone || data.address || value
+        } catch (e) {
+          return value
+        }
+      }
+      return value
+    }
+
     const [clients, setClients] = useState<any[]>(initialClients)
     const [search, setSearch] = useState('')
     const [selectedClient, setSelectedClient] = useState<any | null>(null)
@@ -85,10 +105,10 @@ export default function ClientsClient({ initialClients }: { initialClients: any[
                                 <User className="w-6 h-6" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-foreground truncate">{c.customer_name}</p>
+                                <p className="text-sm font-bold text-foreground truncate">{formatCustomerValue(c.customer_name, 'full_name')}</p>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                     <Phone className="w-3 h-3 text-muted-foreground" />
-                                    <p className="text-xs text-muted-foreground">{c.customer_phone}</p>
+                                    <p className="text-xs text-muted-foreground">{formatCustomerValue(c.customer_phone, 'phone')}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -119,8 +139,8 @@ export default function ClientsClient({ initialClients }: { initialClients: any[
                             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
                                 <User className="w-10 h-10 text-primary" />
                             </div>
-                            <h3 className="text-xl font-bold text-foreground">{selectedClient.customer_name}</h3>
-                            <p className="text-sm text-muted-foreground">{selectedClient.customer_phone}</p>
+                            <h3 className="text-xl font-bold text-foreground">{formatCustomerValue(selectedClient.customer_name, 'full_name')}</h3>
+                            <p className="text-sm text-muted-foreground">{formatCustomerValue(selectedClient.customer_phone, 'phone')}</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -139,7 +159,7 @@ export default function ClientsClient({ initialClients }: { initialClients: any[
                                 <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                                 <div>
                                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Соңғы мекенжай</p>
-                                    <p className="text-sm text-foreground mt-0.5">{selectedClient.last_address || '—'}</p>
+                                    <p className="text-sm text-foreground mt-0.5">{formatCustomerValue(selectedClient.last_address || selectedClient.address, 'address') || '—'}</p>
                                 </div>
                             </div>
                         </div>

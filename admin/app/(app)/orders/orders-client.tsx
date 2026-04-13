@@ -742,16 +742,14 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       return
     }
 
-    const amount = isReservation ? (item as Reservation).total_amount : (item as ActivityItem).total_amount
-    const idDisplay = isReservation ? (item as Reservation).customer_name : `#${(item as ActivityItem).order_num}`
-
+    const idDisplay = isReservation ? formatCustomerValue((item as Reservation).customer_name, 'full_name') : `#${(item as ActivityItem).order_num}`
     const message = isReservation
       ? (lang === 'kk'
-        ? `Сәлеметсіз бе! Мазир арқылы жасаған брондауыңыз қабылданды. Төлем сомасы: ${amount} ₸.\nТөлем сілтемесі: ${restaurant.kaspi_link}`
-        : `Здравствуйте! Ваше бронирование через Mazir принято. Сумма к оплате: ${amount} ₸.\nСсылка на оплату: ${restaurant.kaspi_link}`)
+        ? `Сәлеметсіз бе! Мазир арқылы жасаған брондауыңыз қабылданды. Төлем сомасы: ${(item as Reservation).total_amount} ₸.\nТөлем сілтемесі: ${restaurant.kaspi_link}`
+        : `Здравствуйте! Ваше бронирование через Mazir принято. Сумма к оплате: ${(item as Reservation).total_amount} ₸.\nСсылка на оплату: ${restaurant.kaspi_link}`)
       : (lang === 'kk'
-        ? `Сәлеметсіз бе! Мазир арқылы берген ${idDisplay} тапсырысыңыз қабылданды. Төлем сомасы: ${amount} ₸.\nТөлем сілтемесі: ${restaurant.kaspi_link}`
-        : `Здравствуйте! Ваш заказ ${idDisplay} через Mazir принят. Сумма к оплате: ${amount} ₸.\nСсылка на оплату: ${restaurant.kaspi_link}`)
+        ? `Сәлеметсіз бе! Мазир арқылы берген ${idDisplay} тапсырысыңыз қабылданды. Төлем сомасы: ${(item as ActivityItem).total_amount} ₸.\nТөлем сілтемесі: ${restaurant.kaspi_link}`
+        : `Здравствуйте! Ваш заказ ${idDisplay} через Mazir принят. Сумма к оплате: ${(item as ActivityItem).total_amount} ₸.\nСсылка на оплату: ${restaurant.kaspi_link}`)
 
     const phone = item.customer_phone
     if (!phone) {
@@ -1228,8 +1226,10 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
               {/* Customer Info Section */}
               <div className="bg-secondary/40 rounded-[2.5rem] p-6 space-y-4 border border-secondary shadow-inner">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-xl font-black text-white shadow-lg ring-4 ring-white dark:ring-slate-900">
-                    {selected.customer_name?.[0] || 'C'}
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <p className="text-primary font-black">
+                      {formatCustomerValue(selected.customer_name, 'full_name')?.[0]?.toUpperCase() || 'C'}
+                    </p>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'kk' ? 'Клиент' : 'Клиент'}</p>
@@ -1274,7 +1274,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                     <OrderMap
                       latitude={selected.latitude!}
                       longitude={selected.longitude!}
-                      customerName={selected.customer_name}
+                      customerName={formatCustomerValue(selected.customer_name, 'full_name')}
                       address={selected.delivery_address || undefined}
                     />
                   </div>

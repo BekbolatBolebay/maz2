@@ -64,6 +64,13 @@ export async function POST(req: Request) {
         const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
         const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
         const isTestMode = vpsConfig?.freedom_test_mode ?? restaurant.freedom_test_mode;
+        
+        // Try to get public URL from headers if env is missing
+        const host = req.headers.get('host')
+        const protocol = req.headers.get('x-forwarded-proto') || 'http'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
+
+        console.log(`[Payment] Init: Restaurant=${restaurant.id}, Mode=${isTestMode ? 'TEST' : 'PRODUCTION'}, URL=${appUrl}`)
 
         console.log(`Payment Init - Credential Sources for Restaurant [${restaurant.id}]:`, {
             vps: vpsConfig ? 'Config Found in VPS' : 'No VPS Config',
@@ -98,13 +105,9 @@ export async function POST(req: Request) {
             pg_language: 'ru',
             pg_testing_mode: isTestMode ? 1 : 0, 
             // Webhook and redirect URLs
-            pg_result_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
-            pg_success_url: orderId
-                ? `${process.env.NEXT_PUBLIC_APP_URL}/orders/${orderId}?status=success`
-                : `${process.env.NEXT_PUBLIC_APP_URL}/reservations/${reservationId}?status=success`,
-            pg_failure_url: orderId
-                ? `${process.env.NEXT_PUBLIC_APP_URL}/orders/${orderId}?status=failure`
-                : `${process.env.NEXT_PUBLIC_APP_URL}/reservations/${reservationId}?status=failure`,
+            pg_result_url: `${appUrl}/api/payment/webhook`,
+            pg_success_url: `${appUrl}/${isReservation ? 'reservations' : 'orders'}/${finalId}?status=success`,
+            pg_failure_url: `${appUrl}/${isReservation ? 'reservations' : 'orders'}/${finalId}?status=failure`,
         }
 
         // Add Fiscalization Data if items and receipt key are available
@@ -134,7 +137,7 @@ export async function POST(req: Request) {
         }
 
         if (customerEmail) params.pg_user_contact_email = customerEmail
-        if (customerPhone) params.pg_user_phone = customerPhone.replace(/\D/g, '')
+        if (customerPhone) params.pg_user_phone = String(customerPhone).replace(/\D/g, '')
 
         // 3. Generate signature
         // Note: Some versions of Freedom Pay API expect just 'init_payment' 

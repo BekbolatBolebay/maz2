@@ -31,6 +31,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Freedom Pay credentials not configured for this restaurant' }, { status: 400 })
         }
 
+        // Try to get public URL from headers if env is missing (for Vercel/VPS production)
+        const host = req.headers.get('host')
+        const protocol = req.headers.get('x-forwarded-proto') || 'http'
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
+        const clientUrl = process.env.NEXT_PUBLIC_CLIENT_URL || baseUrl
+
+        // Determine if we should use test mode
+        const vpsConfig = order.vps_config // Assuming we might have joined it or fetch it? 
+        // Actually, let's keep it simple and robust
+        const isTestMode = restaurant.freedom_test_mode === true
+
         // 2. Prepare Freedom Pay parameters
         const params: any = {
             pg_merchant_id: merchantId,
@@ -40,14 +51,19 @@ export async function POST(req: Request) {
             pg_description: description || `Order #${orderId}`,
             pg_salt: Math.random().toString(36).substring(7),
             pg_language: 'ru',
+            pg_testing_mode: isTestMode ? 1 : 0,
             // Webhook and redirect URLs
-            pg_result_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
-            pg_success_url: `${process.env.NEXT_PUBLIC_CLIENT_URL}/orders/${orderId}?status=success`,
-            pg_failure_url: `${process.env.NEXT_PUBLIC_CLIENT_URL}/orders/${orderId}?status=failure`,
+            pg_result_url: `${baseUrl}/api/payment/webhook`,
+            pg_success_url: `${clientUrl}/orders/${orderId}?status=success`,
+            pg_failure_url: `${clientUrl}/orders/${orderId}?status=failure`,
         }
 
+        console.log(`[Admin Payment] Init: Restaurant=${restaurant.id}, Mode=${isTestMode ? 'TEST' : 'PRODUCTION'}, URL=${baseUrl}`)
+
         if (customerEmail) params.pg_user_contact_email = customerEmail
-        if (customerPhone) params.pg_user_phone = customerPhone
+        if (customerPhone) params.pg_user_phone = String(customerPhone).replace(/\D/g, '')
+
+        console.log('Payment Init Debug - Final Params (without sig):', params)
 
         // 3. Generate signature
         const sig = generateFreedomSignature('init_payment.php', params, secretKey)
