@@ -78,7 +78,7 @@ const sections = [
 ]
 
 export default function ManagementClient({ settings }: { settings: Restaurant | null }) {
-  const { lang, isInstallable, isIos, installApp } = useApp()
+  const { lang, isInstallable, isIos, isStandalone, installApp } = useApp()
   const [isPending, startTransition] = useTransition()
 
   function handleInstall() {
@@ -173,30 +173,28 @@ export default function ManagementClient({ settings }: { settings: Restaurant | 
         </div>
 
         {/* PWA Орнату батырмасы */}
-        {isInstallable && (
-          <div className="bg-primary/5 rounded-2xl border border-primary/20 p-4 border-dashed animate-in fade-in slide-in-from-bottom-5 duration-1000">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Download className="w-6 h-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  {lang === 'kk' ? 'Қолданбаны жүктеу' : 'Скачать приложение'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {lang === 'kk'
-                    ? 'Панельді негізгі экранға қосу және хабарламаларды алу'
-                    : 'Добавить панель на экран для уведомлений'}
-                </p>
-              </div>
-              <button
-                onClick={handleInstall}
-                className="shrink-0 bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-all shadow-lg shadow-primary/20 uppercase tracking-widest"
-              >
-                {lang === 'kk' ? 'Орнату' : 'Установить'}
-              </button>
+        {!isStandalone && (
+          <button
+            onClick={handleInstall}
+            className="w-full bg-card rounded-2xl border border-border p-4 flex items-center gap-4 hover:border-primary/30 active:scale-[0.98] transition-all text-left"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+              <Download className="w-6 h-6" />
             </div>
-          </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                {lang === 'kk' ? 'Қолданбаны жүктеу' : 'Скачать приложение'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'kk'
+                  ? 'Панельді тез ашу және хабарламаларды алу'
+                  : 'Для быстрого доступа и уведомлений'}
+              </p>
+            </div>
+            <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
+              <span className="text-muted-foreground text-xs font-bold">›</span>
+            </div>
+          </button>
         )}
       </div>
     </div>
