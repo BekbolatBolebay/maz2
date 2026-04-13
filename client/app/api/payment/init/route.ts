@@ -64,14 +64,14 @@ export async function POST(req: Request) {
         
         const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
         const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
-        const isTestMode = vpsConfig?.freedom_test_mode ?? restaurant.freedom_test_mode;
+        const isTestMode = (vpsConfig?.freedom_test_mode === true || restaurant.freedom_test_mode === true);
         
         // Try to get public URL from headers if env is missing
         const host = req.headers.get('host')
         const protocol = req.headers.get('x-forwarded-proto') || 'http'
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
 
-        console.log(`[Payment] Init: Restaurant=${restaurant.id}, Mode=${isTestMode ? 'TEST' : 'PRODUCTION'}, URL=${appUrl}`)
+        console.log(`[Payment] Init: Restaurant=${restaurant.id}, Mode=${isTestMode ? 'TEST' : 'PRODUCTION'}, Flags=[VPS:${!!vpsConfig?.freedom_test_mode}, DB:${!!restaurant.freedom_test_mode}], URL=${appUrl}`)
 
         console.log(`Payment Init - Credential Sources for Restaurant [${restaurant.id}]:`, {
             vps: vpsConfig ? 'Config Found in VPS' : 'No VPS Config',

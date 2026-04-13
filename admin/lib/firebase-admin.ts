@@ -6,7 +6,7 @@ const firebaseAdminConfig = {
   privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
 };
 
-if (!admin.apps.length) {
+if (!admin.apps.length && firebaseAdminConfig.projectId) {
   try {
     admin.initializeApp({
       credential: admin.credential.cert(firebaseAdminConfig),
@@ -15,7 +15,10 @@ if (!admin.apps.length) {
   } catch (error) {
     console.error('[Firebase Admin] Initialization error:', error);
   }
+} else if (!admin.apps.length) {
+  console.log('[Firebase Admin] Skipping initialization (missing credentials)');
 }
 
-export const messaging = admin.messaging();
+// Export messaging only if initialized
+export const messaging = admin.apps.length ? admin.messaging() : null;
 export default admin;

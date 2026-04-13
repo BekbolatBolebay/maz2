@@ -39,8 +39,7 @@ export async function POST(req: Request) {
 
         // Determine if we should use test mode
         const vpsConfig = order.vps_config // Assuming we might have joined it or fetch it? 
-        // Actually, let's keep it simple and robust
-        const isTestMode = restaurant.freedom_test_mode === true
+        const isTestMode = (restaurant.freedom_test_mode === true);
 
         // 2. Prepare Freedom Pay parameters
         const params: any = {
@@ -58,7 +57,7 @@ export async function POST(req: Request) {
             pg_failure_url: `${clientUrl}/orders/${orderId}?status=failure`,
         }
 
-        console.log(`[Admin Payment] Init: Restaurant=${restaurant.id}, Mode=${isTestMode ? 'TEST' : 'PRODUCTION'}, URL=${baseUrl}`)
+        console.log(`[Admin Payment] Init: Restaurant=${restaurant.id}, Mode=${isTestMode ? 'TEST' : 'PRODUCTION'}, Flags=[DB:${!!restaurant.freedom_test_mode}], URL=${baseUrl}`)
 
         if (customerEmail) params.pg_user_contact_email = customerEmail
         if (customerPhone) params.pg_user_phone = String(customerPhone).replace(/\D/g, '')
