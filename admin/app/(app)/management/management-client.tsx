@@ -93,11 +93,11 @@ export default function ManagementClient({ settings }: { settings: Restaurant | 
     if (isIos) {
       setShowGuide(true)
     } else {
-      // For Android/Chrome, try native first
-      if (typeof window !== 'undefined' && (window as any).deferredPrompt) {
+      // Для Android: Сначала пробуем прямой запуск
+      if (isInstallable) {
         installApp()
       } else {
-        // Fallback to instruction
+        // Если браузер еще не дал prompt, показываем инструкцию
         setShowGuide(true)
       }
     }
