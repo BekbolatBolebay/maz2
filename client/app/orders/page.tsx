@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { getBulkPII } from '@/lib/vps'
+import { formatCustomerValue } from '@/lib/utils'
 import { Header } from '@/components/layout/header'
 import { OrderCard } from '@/components/orders/order-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -113,6 +114,15 @@ export default function OrdersPage() {
             address: pii.address || o.address
           }
         }
+        // Hybrid fallback handling
+        if (o.customer_name?.startsWith('db:')) {
+            return {
+                ...o,
+                customer_name: formatCustomerValue(o.customer_name, 'full_name'),
+                customer_phone: formatCustomerValue(o.customer_name, 'phone'),
+                address: formatCustomerValue(o.customer_name, 'address') || o.address
+            }
+        }
         return o
       }))
 
@@ -124,6 +134,14 @@ export default function OrdersPage() {
             customer_phone: pii.phone,
             customer_name: pii.full_name
           }
+        }
+        // Hybrid fallback handling
+        if (r.customer_name?.startsWith('db:')) {
+            return {
+                ...r,
+                customer_name: formatCustomerValue(r.customer_name, 'full_name'),
+                customer_phone: formatCustomerValue(r.customer_name, 'phone')
+            }
         }
         return r
       }))

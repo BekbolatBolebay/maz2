@@ -96,7 +96,7 @@ export async function POST(req: Request) {
             pg_description: description || `Payment for #${finalId.slice(0, 8)}`,
             pg_salt: Math.random().toString(36).substring(7),
             pg_language: 'ru',
-            pg_testing_mode: 0, // ALWAYS PRODUCTION
+            pg_testing_mode: isTestMode ? 1 : 0, 
             // Webhook and redirect URLs
             pg_result_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
             pg_success_url: orderId

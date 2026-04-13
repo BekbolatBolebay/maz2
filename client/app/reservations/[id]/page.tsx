@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCustomerValue } from '@/lib/utils'
 
 const statusVariantMap: Record<string, string> = {
     pending: 'bg-muted text-muted-foreground',
@@ -61,6 +61,13 @@ export default function ReservationDetailsPage({ params }: { params: Promise<{ i
                         data.customer_name = pii.full_name
                         data.customer_phone = pii.phone
                     }
+                }
+
+                // Hybrid fallback handling
+                if (data.customer_name?.startsWith('db:')) {
+                    const raw = data.customer_name;
+                    data.customer_name = formatCustomerValue(raw, 'full_name');
+                    data.customer_phone = formatCustomerValue(raw, 'phone');
                 }
             }
 

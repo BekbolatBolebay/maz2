@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { formatCustomerValue } from '@/lib/utils'
 import { OrderRating } from '@/components/orders/order-rating'
 import { OrderTracker } from '@/components/orders/order-tracker'
 import { useI18n } from '@/lib/i18n/i18n-context'
@@ -108,6 +109,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             orderData.customer_phone = pii.phone
             orderData.delivery_address = pii.address || orderData.delivery_address
           }
+        }
+        
+        // Hybrid fallback handling
+        if (orderData.customer_name?.startsWith('db:')) {
+            const raw = orderData.customer_name;
+            orderData.customer_name = formatCustomerValue(raw, 'full_name');
+            orderData.customer_phone = formatCustomerValue(raw, 'phone');
+            orderData.delivery_address = formatCustomerValue(raw, 'address') || orderData.delivery_address;
         }
       }
 
@@ -212,14 +221,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
                     {locale === 'ru' ? 'Телефон' : 'Телефон'}
                   </p>
-                  <p className="text-base font-bold text-white">{order.customer_phone || '-'}</p>
+                  <p className="text-base font-bold text-white">{formatCustomerValue(order.customer_phone || order.customer_name, 'phone') || '-'}</p>
                 </div>
                 <div className="col-span-2 space-y-1.5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
                     {locale === 'ru' ? 'Адрес доставки' : 'Мекен-жайы'}
                   </p>
                   <p className="text-base font-bold text-white leading-snug">
-                    {order.delivery_address || (locale === 'ru' ? 'Самовывоз' : 'Өзі алып кету')}
+                    {formatCustomerValue(order.delivery_address || order.customer_name, 'address') || (locale === 'ru' ? 'Самовывоз' : 'Өзі алып кету')}
                   </p>
                 </div>
               </div>
@@ -320,7 +329,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <OrderRating
                   orderId={order.id}
                   restaurantId={order.cafe_id}
-                  customerName={order.customer_name || t.common.client}
+                  customerName={formatCustomerValue(order.customer_name, 'full_name') || t.common.client}
                   initialRating={existingReview?.rating}
                   initialComment={existingReview?.comment}
                 />

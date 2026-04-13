@@ -21,7 +21,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { useAuth } from '@/lib/auth/auth-context'
-import { cn } from '@/lib/utils'
+import { cn, formatCustomerValue } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -70,8 +70,8 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                     label: t.profile?.editProfile || 'Профильді өңдеу',
                     icon: UserIcon,
                     onClick: () => {
-                        setEditName(profile?.full_name || '')
-                        setEditPhone(profile?.phone || '')
+                        setEditName(formatCustomerValue(profile?.full_name, 'full_name') || '')
+                        setEditPhone(formatCustomerValue(profile?.phone || profile?.full_name, 'phone') || '')
                         setIsEditModalOpen(true)
                     }
                 },
@@ -134,7 +134,7 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                     <div className="text-center space-y-2 mb-6">
                         <div className="flex flex-col items-center gap-2">
                              <h1 className="text-3xl font-black text-white tracking-tight">
-                                {isGuest ? (t.profile?.guest || 'Гость') : (profile?.full_name || (t.common?.user || 'Пользователь'))}
+                                {isGuest ? (t.profile?.guest || 'Гость') : (formatCustomerValue(profile?.full_name, 'full_name') || (t.common?.user || 'Пользователь'))}
                             </h1>
                             <RoleBadge role={profile?.role || 'user'} />
                         </div>
@@ -151,8 +151,8 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                             variant="secondary"
                             className="rounded-2xl font-black px-8 h-12 bg-white text-slate-950 hover:bg-slate-100 shadow-xl transition-all active:scale-95 group"
                             onClick={() => {
-                                setEditName(profile?.full_name || '')
-                                setEditPhone(profile?.phone || '')
+                                setEditName(formatCustomerValue(profile?.full_name, 'full_name') || '')
+                                setEditPhone(formatCustomerValue(profile?.phone || profile?.full_name, 'phone') || '')
                                 setIsEditModalOpen(true)
                             }}
                         >

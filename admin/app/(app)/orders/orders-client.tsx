@@ -109,6 +109,25 @@ function timeAgo(dateStr: string): string {
   } catch { return '' }
 }
 
+/**
+ * Parses and formats customer values that might be stored as stringified JSON fallback (prefixed with 'db:')
+ */
+function formatCustomerValue(value: string, field: 'full_name' | 'phone' | 'address' = 'full_name'): string {
+  if (!value) return ''
+  if (typeof value !== 'string') return String(value)
+  
+  if (value.startsWith('db:')) {
+    try {
+      const jsonStr = value.substring(3)
+      const data = JSON.parse(jsonStr)
+      return data[field] || data.full_name || data.phone || data.address || value
+    } catch (e) {
+      return value
+    }
+  }
+  return value
+}
+
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371 // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -256,6 +275,14 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
             customer_name: pii.full_name,
             customer_phone: pii.phone
           }
+        }
+        // Even if not in VPS, check if the name itself is a db: JSON
+        if (r.customer_name?.startsWith('db:')) {
+            return {
+                ...r,
+                customer_name: formatCustomerValue(r.customer_name, 'full_name'),
+                customer_phone: formatCustomerValue(r.customer_name, 'phone')
+            }
         }
         return r
       }))
@@ -875,11 +902,11 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{lang === 'kk' ? 'Клиент' : 'Клиент'}</p>
-                    <p className="text-sm font-bold truncate">{item.customer_name || '—'}</p>
+                    <p className="text-sm font-bold truncate">{formatCustomerValue(item.customer_name, 'full_name') || '—'}</p>
                   </div>
                   <div className="space-y-1 text-right">
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">{lang === 'kk' ? 'Телефон' : 'Телефон'}</p>
-                    <p className="text-sm font-bold">{item.customer_phone || '—'}</p>
+                    <p className="text-sm font-bold">{formatCustomerValue(item.customer_phone, 'phone') || '—'}</p>
                   </div>
                 </div>
 
@@ -1011,7 +1038,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                                     <p className="text-[10px] font-black tracking-widest text-muted-foreground/60 uppercase">
                                         {lang === 'kk' ? 'Брондау' : 'Бронирование'}
                                     </p>
-                                    <h3 className="text-lg font-black tracking-tight">{res.customer_name}</h3>
+                                    <h3 className="text-lg font-black tracking-tight">{formatCustomerValue(res.customer_name, 'full_name')}</h3>
                                 </div>
                                 <div className={cn('text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest', resStatusColors[res.status])}>
                                     {resStatusLabels[res.status]?.[lang]}
@@ -1033,9 +1060,9 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                             </div>
 
                             <div className="space-y-4 mb-6">
-                                <a href={`tel:${res.customer_phone}`} className="flex items-center gap-2 text-primary text-sm font-bold">
+                                <a href={`tel:${formatCustomerValue(res.customer_phone, 'phone')}`} className="flex items-center gap-2 text-primary text-sm font-bold">
                                     <Phone className="w-4 h-4" />
-                                    {res.customer_phone}
+                                    {formatCustomerValue(res.customer_phone, 'phone')}
                                 </a>
                                 {res.table_id && (
                                     <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold">
@@ -1206,7 +1233,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'kk' ? 'Клиент' : 'Клиент'}</p>
-                    <p className="text-lg font-black text-foreground truncate">{selected.customer_name}</p>
+                    <p className="text-lg font-black text-foreground truncate">{formatCustomerValue(selected.customer_name, 'full_name')}</p>
                   </div>
                 </div>
 
@@ -1218,7 +1245,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                     <div className="flex-1 flex justify-between items-center pr-2">
                       <div>
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'kk' ? 'Телефон' : 'Телефон'}</p>
-                        <p className="text-sm font-black">{selected.customer_phone || '—'}</p>
+                        <p className="text-sm font-black">{formatCustomerValue(selected.customer_phone, 'phone') || '—'}</p>
                       </div>
                       <button
                         onClick={() => sendWhatsAppUpdate(selected)}
@@ -1236,7 +1263,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'kk' ? 'Мекен-жай' : 'Адрес'}</p>
-                        <p className="text-sm font-black leading-tight">{selected.delivery_address}</p>
+                        <p className="text-sm font-black leading-tight">{formatCustomerValue(selected.delivery_address || selected.customer_name, 'address')}</p>
                       </div>
                     </div>
                   )}

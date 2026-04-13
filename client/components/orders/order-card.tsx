@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Clock, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { useI18n } from '@/lib/i18n/i18n-context'
+import { formatCustomerValue } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -60,7 +61,7 @@ export function OrderCard({ order }: { order: Order }) {
               {t.cart.address || 'Address'}
             </p>
             <p className="text-xs font-bold text-zinc-100 line-clamp-1">
-              {order.delivery_address || t.common.notSpecified}
+              {formatCustomerValue(order.delivery_address || (order as any).customer_name, 'address') || t.common.notSpecified}
             </p>
           </div>
           <div className="space-y-1">
@@ -68,7 +69,7 @@ export function OrderCard({ order }: { order: Order }) {
               {t.common.phone || 'Phone'}
             </p>
             <p className="text-xs font-bold text-zinc-300">
-              {order.customer_phone || t.common.notSpecified}
+              {formatCustomerValue(order.customer_phone || (order as any).customer_name, 'phone') || t.common.notSpecified}
             </p>
           </div>
         </div>

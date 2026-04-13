@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, formatCustomerValue } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { useAuth } from '@/lib/auth/auth-context'
 import { CheckCircle2, MapPin, CreditCard, Banknote, ArrowLeft, Map as MapIcon, Navigation, Loader2, Truck, ShoppingBag, Users, Wallet, Utensils, ShoppingCart, Ban, Calendar, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -67,8 +67,8 @@ export function CheckoutClient() {
     // Sync name and phone with profile if authenticated
     useEffect(() => {
         if (profile) {
-            setName(profile.full_name || '')
-            const profilePhone = profile.phone || ''
+            setName(formatCustomerValue(profile.full_name, 'full_name') || '')
+            const profilePhone = formatCustomerValue(profile.phone || profile.full_name, 'phone') || ''
             if (profilePhone) {
                 // Ensure it has +7 if not present
                 setPhone(profilePhone.startsWith('+7') ? profilePhone : `+7 ${profilePhone}`)

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { formatCustomerValue } from '@/lib/utils'
 
 export default function AdminReviews() {
     const [reviews, setReviews] = useState<any[]>([])
@@ -88,7 +89,7 @@ export default function AdminReviews() {
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-sm">{review.customer_name}</div>
+                                                <div className="font-bold text-sm">{formatCustomerValue(review.customer_name, 'full_name')}</div>
                                                 <div className="text-[10px] text-muted-foreground">
                                                     {format(new Date(review.created_at), 'MMM d, yyyy HH:mm')}
                                                 </div>

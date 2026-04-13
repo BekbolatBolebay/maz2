@@ -77,6 +77,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const [freedomMerchantId, setFreedomMerchantId] = useState(settings?.freedom_merchant_id || '')
   const [freedomSecretKey, setFreedomSecretKey] = useState(settings?.freedom_payment_secret_key || '')
   const [freedomReceiptSecretKey, setFreedomReceiptSecretKey] = useState(settings?.freedom_receipt_secret_key || '')
+  const [freedomTestMode, setFreedomTestMode] = useState(settings?.freedom_test_mode ?? false)
   
   // Sync state when navigating back to the page and receiving fresh props
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       setFreedomMerchantId(settings.freedom_merchant_id || '');
       setFreedomSecretKey(settings.freedom_payment_secret_key || '');
       setFreedomReceiptSecretKey(settings.freedom_receipt_secret_key || '');
+      setFreedomTestMode(settings.freedom_test_mode ?? false);
       setAcceptFreedom(settings.accept_freedom ?? false);
       setAcceptKaspi(settings.accept_kaspi ?? true);
     }
@@ -131,7 +133,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       setFreedomMerchantId(settings.freedom_merchant_id || '')
       setFreedomSecretKey(settings.freedom_payment_secret_key || '')
       setFreedomReceiptSecretKey(settings.freedom_receipt_secret_key || '')
-      setFreedomReceiptSecretKey(settings.freedom_receipt_secret_key || '')
+      setFreedomTestMode(settings.freedom_test_mode ?? false)
       if (settings.latitude && settings.longitude) {
         setCoords({ lat: settings.latitude, lng: settings.longitude })
       }
@@ -211,7 +213,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       // Attempt to update VPS for backward compatibility, but don't fail if it's down
       if (['accept_freedom', 'accept_kaspi'].includes(field) && settings?.id) {
         try {
-          await saveMerchantConfigAction(settings.id, { [field]: newValue });
+          await saveMerchantConfigAction(settings.id, { [field]: newValue, freedom_test_mode: freedomTestMode });
         } catch (e) {
           console.warn('VPS Update failed (offline), but Supabase is updated:', e);
         }
@@ -270,6 +272,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
         freedom_merchant_id: freedomMerchantId,
         freedom_payment_secret_key: freedomSecretKey,
         freedom_receipt_secret_key: freedomReceiptSecretKey,
+        freedom_test_mode: freedomTestMode,
         kaspi_link: kaspiLink,
       }, settings?.id)
       if (settingsError) throw settingsError
@@ -281,6 +284,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
             freedom_merchant_id: freedomMerchantId,
             freedom_payment_secret_key: freedomSecretKey,
             freedom_receipt_secret_key: freedomReceiptSecretKey,
+            freedom_test_mode: freedomTestMode,
             kaspi_link: kaspiLink,
             accept_freedom: acceptFreedom,
             accept_kaspi: acceptKaspi
@@ -661,6 +665,24 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         placeholder="••••••••••••••••"
                       />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase">
+                        {lang === 'kk' ? 'Тест журналы' : 'Тестовый режим'}
+                      </label>
+                      <button
+                        onClick={() => setFreedomTestMode(!freedomTestMode)}
+                        className={cn(
+                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                          freedomTestMode ? "bg-primary" : "bg-muted"
+                        )}
+                      >
+                        <span className={cn(
+                          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
+                          freedomTestMode ? "translate-x-4" : "translate-x-0"
+                        )} />
+                      </button>
                     </div>
 
                   </div>

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { formatCustomerValue } from '@/lib/utils'
 
 const statusMap: any = {
     new: { label: 'New', icon: Clock, color: 'text-amber-500 bg-amber-500/10' },
@@ -104,8 +105,8 @@ export default function AdminOrders() {
                                             #{order.order_number || order.id.slice(0, 8)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="font-semibold">{order.customer_name}</div>
-                                            <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                                            <div className="font-semibold">{formatCustomerValue(order.customer_name, 'full_name')}</div>
+                                            <div className="text-xs text-muted-foreground">{formatCustomerValue(order.customer_phone || order.customer_name, 'phone')}</div>
                                         </td>
                                         <td className="px-6 py-4 font-bold">
                                             {order.total_amount.toLocaleString()}₸
