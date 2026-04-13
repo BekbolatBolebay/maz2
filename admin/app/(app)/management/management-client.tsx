@@ -1,15 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { UtensilsCrossed, Users, Megaphone, BarChart3, Star, Settings, LayoutGrid, Loader2, CheckCircle, CalendarCheck, Calendar, Download } from 'lucide-react'
+import { UtensilsCrossed, Users, Megaphone, BarChart3, Star, Settings, LayoutGrid, Loader2, CheckCircle, CalendarCheck, Calendar, Download, Share, PlusSquare, MoreVertical, Smartphone } from 'lucide-react'
 import { useApp } from '@/lib/app-context'
 import { t } from '@/lib/i18n'
 import type { Restaurant } from '@/lib/db'
 import { cn } from '@/lib/utils'
-import { useTransition } from 'react'
+import { useTransition, useState } from 'react'
 import { seedDefaultCategories } from '@/lib/actions'
 import { DEFAULT_CATEGORIES } from '@/lib/constants'
 import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const sections = [
   {
@@ -80,17 +87,19 @@ const sections = [
 export default function ManagementClient({ settings }: { settings: Restaurant | null }) {
   const { lang, isInstallable, isIos, isStandalone, installApp } = useApp()
   const [isPending, startTransition] = useTransition()
+  const [showGuide, setShowGuide] = useState(false)
 
   function handleInstall() {
     if (isIos) {
-      toast.info(
-        lang === 'kk'
-          ? 'Safari-де "Бөлісу" батырмасын басып, "Бас экранға қосу" таңдаңыз.'
-          : 'Нажмите "Поделиться" в Safari и выберите "На экран Домой".',
-        { duration: 5000 }
-      )
+      setShowGuide(true)
     } else {
-      installApp()
+      // For Android/Chrome, try native first
+      if (typeof window !== 'undefined' && (window as any).deferredPrompt) {
+        installApp()
+      } else {
+        // Fallback to instruction
+        setShowGuide(true)
+      }
     }
   }
 
@@ -197,6 +206,80 @@ export default function ManagementClient({ settings }: { settings: Restaurant | 
           </button>
         )}
       </div>
+
+      {/* Орнату нұсқаулығы (Popup) */}
+      <Dialog open={showGuide} onOpenChange={setShowGuide}>
+        <DialogContent className="rounded-3xl border-2 sm:max-w-md bg-card/95 backdrop-blur-xl">
+          <DialogHeader className="space-y-4">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 rounded-[2rem] bg-primary/10 flex items-center justify-center shadow-inner animate-in zoom-in-50 duration-500">
+                <Smartphone className="w-10 h-10 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-xl font-black tracking-tight">
+              {lang === 'kk' ? 'Орнату нұсқаулығы' : 'Инструкция по установке'}
+            </DialogTitle>
+            <DialogDescription className="text-center font-medium">
+              {lang === 'kk' 
+                ? 'Қосымшаны негізгі экранға қосу үшін мына қадамдарды орындаңыз:' 
+                : 'Для добавления приложения на экран выполните следующие действия:'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6 flex flex-col gap-6">
+            {isIos ? (
+              // iOS Instructions
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                    <Share className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-bold leading-tight">
+                    {lang === 'kk' ? '1. Safari-де "Бөлісу" батырмасын басыңыз' : '1. Нажмите "Поделиться" в Safari'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                    <PlusSquare className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-bold leading-tight">
+                    {lang === 'kk' ? '2. "Бас экранға қосу" таңдаңыз' : '2. Выберите "На экран Домой"'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // Android Instructions
+              <div className="space-y-6">
+                 <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                    <MoreVertical className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-bold leading-tight">
+                    {lang === 'kk' ? '1. Браузер мәзірін (3 нүкте) басыңыз' : '1. Нажмите на меню (3 точки) браузера'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                    <Download className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-bold leading-tight">
+                    {lang === 'kk' ? '2. "Қолданбаны орнату" таңдаңыз' : '2. Выберите "Установить приложение"'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={() => setShowGuide(false)}
+              className="px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20"
+            >
+              ОК
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
