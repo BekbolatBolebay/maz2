@@ -1,11 +1,18 @@
 {
-    "name": "Məzir Admin - Restaurant Management",
-    "short_name": "Məzir Admin",
-    "description": "Manage your restaurant orders and settings",
+    "name": "Məzir Admin - Кафе басқару",
+    "short_name": "Məzir-Admin",
+    "description": "Кафе тапсырыстары мен параметрлерін басқару",
+    "id": "/",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
+    "orientation": "portrait",
     "background_color": "#ffffff",
-    "theme_color": "#ffffff",
+    "theme_color": "#f59e0b",
+    "categories": [
+        "business",
+        "productivity"
+    ],
     "icons": [
         {
             "src": "/icon-192x192.png",

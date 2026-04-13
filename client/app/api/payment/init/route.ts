@@ -64,7 +64,8 @@ export async function POST(req: Request) {
         
         const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
         const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
-        const isTestMode = (vpsConfig?.freedom_test_mode === true || restaurant.freedom_test_mode === true);
+        // Fixed to production mode as requested by user
+        const isTestMode = false; 
         
         // Try to get public URL from headers if env is missing
         const host = req.headers.get('host')

@@ -28,18 +28,29 @@ export function FCMHandler() {
                 }
 
                 // Listen for foreground messages
-                onMessageListener().then((payload: any) => {
+                const unsubscribe = onMessageListener((payload: any) => {
                     console.log('[FCMHandler] Foreground message received:', payload)
-                    toast.success(payload.notification?.title || 'Новое уведомление', {
+                    toast.success(payload.notification?.title || 'Жаңа хабарлама', {
                         description: payload.notification?.body,
+                        action: {
+                            label: 'Көру',
+                            onClick: () => window.location.href = payload.data?.url || '/orders'
+                        }
                     })
                 })
+
+                return unsubscribe
             } catch (error) {
                 console.error('[FCMHandler] Error setting up FCM:', error)
             }
         }
 
-        setupFCM()
+        let unsubscribe: (() => void) | undefined
+        setupFCM().then(u => unsubscribe = u)
+        
+        return () => {
+            if (unsubscribe) unsubscribe()
+        }
     }, [])
 
     return null

@@ -640,17 +640,21 @@ export function CheckoutClient() {
                     window.location.href = payData.redirectUrl
                     return
                 } else {
+                    console.error('[Checkout] Freedom Pay Init Error:', payData.error)
+                    // If payment init fails, we stay on this page to let them try again or change method
                     throw new Error(payData.error || t.cart.payment_failed)
                 }
             }
 
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('customer_phone', phone)
+            // Only redirect to success page if it's NOT a card payment that pending redirect
+            if (paymentMethod !== 'freedom') {
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('customer_phone', phone)
+                }
+                clearLocalCart()
+                toast.success(t.cart.order_confirmed)
+                router.push(`/orders/${order.id}`)
             }
-
-            clearLocalCart()
-            toast.success(t.cart.order_confirmed)
-            router.push(`/orders/${order.id}`)
         } catch (error: any) {
             console.error('[Checkout] Error:', error)
             const message = error.message || error.details || t.cart.order_error
@@ -1132,11 +1136,19 @@ export function CheckoutClient() {
                                             <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                                                 <CreditCard className="w-5 h-5 text-primary" />
                                             </div>
-                                            <div>
+                                            <div className="flex-1">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t.cart.payment_method}</p>
-                                                <p className="text-sm font-bold">
-                                                    {paymentMethod === 'kaspi' ? 'Kaspi.kz' : (paymentMethod === 'freedom' ? (locale === 'kk' ? 'Картамен төлеу' : 'Оплата картой') : (paymentMethod === 'cash' ? (locale === 'kk' ? 'Қолма-қол' : 'Наличными') : ''))}
-                                                </p>
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-sm font-bold">
+                                                        {paymentMethod === 'kaspi' ? 'Kaspi.kz' : (paymentMethod === 'freedom' ? (locale === 'kk' ? 'Картамен төлеу' : 'Оплата картой') : (paymentMethod === 'cash' ? (locale === 'kk' ? 'Қолма-қол' : 'Наличными') : ''))}
+                                                    </p>
+                                                    {paymentMethod === 'freedom' && (
+                                                        <div className="flex gap-1">
+                                                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 w-auto" />
+                                                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-4 w-auto" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1193,6 +1205,56 @@ export function CheckoutClient() {
                                         <span className="text-2xl font-black text-primary">{(orderType === 'delivery' || orderType === 'booking' ? total : subtotal).toLocaleString()} ₸</span>
                                     </div>
                                 </div>
+
+                                <div className="flex flex-col gap-4">
+                                    <Button
+                                        size="lg"
+                                        className="w-full h-16 rounded-[2rem] text-lg font-black shadow-xl shadow-primary/20 active:scale-95 transition-all group"
+                                        onClick={handleCheckout}
+                                        disabled={checkoutLoading}
+                                    >
+                                        {checkoutLoading ? (
+                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                        ) : (
+                                            <>
+                                                {locale === 'kk' ? 'Тапсырысты растау' : 'Подтвердить заказ'}
+                                                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    {/* Compliance Links & Info */}
+                                    <div className="space-y-4 px-4 text-center">
+                                        <div className="text-[10px] text-muted-foreground leading-relaxed">
+                                            {locale === 'kk' ? (
+                                                <>
+                                                    «Тапсырысты растау» батырмасын басу арқылы сіз <a href="/offer" className="underline text-primary" target="_blank">Жария оферта</a> және <a href="/privacy" className="underline text-primary" target="_blank">Құпиялылық саясаты</a> шарттарымен келісесіз. <br />
+                                                    Төлем FreedomPay қауіпсіз жүйесі арқылы жүзеге асырылады. <a href="/refund" className="underline" target="_blank">Қайтару шарттары</a>.
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Нажимая «Подтвердить заказ», вы соглашаетесь с условиями <a href="/offer" className="underline text-primary" target="_blank">Публичной оферты</a> и <a href="/privacy" className="underline text-primary" target="_blank">Политики конфиденциальности</a>. <br />
+                                                    Оплата производится через защищенную систему FreedomPay. <a href="/refund" className="underline" target="_blank">Условия возврата</a>.
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* Requisites Block */}
+                                        {restaurantSettings && (
+                                            <div className="p-4 rounded-3xl bg-muted/20 border border-transparent hover:border-muted-foreground/10 transition-colors">
+                                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">
+                                                    {locale === 'kk' ? 'Сатушы реквизиттері' : 'Реквизиты продавца'}
+                                                </p>
+                                                <div className="text-[10px] text-muted-foreground space-y-1 text-center">
+                                                    <p className="font-bold">"Lunar Techonology" ЖШС</p>
+                                                    <p>Қызылорда облысы, Абай ауылы, Жамбыл Жабаев к-сі, 21-үй</p>
+                                                    <p>{restaurantSettings.phone}</p>
+                                                    <p className="font-bold text-primary/80">БИН 260240021120</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -1201,7 +1263,7 @@ export function CheckoutClient() {
                             className="w-full py-4 text-sm font-bold text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2"
                         >
                             <ArrowLeft className="w-4 h-4" />
-                            {t.cart.back_to_edit}
+                            {locale === 'kk' ? 'Артқа оралу' : 'Вернуться назад'}
                         </button>
                     </div>
                 )}
@@ -1246,8 +1308,6 @@ export function CheckoutClient() {
                                 className="absolute inset-0 bg-background/80 backdrop-blur-sm"
                                 onClick={() => {
                                     setIsKaspiModalOpen(false)
-                                    // Use searchParams to get reservationId if stored, or just go to orders
-                                    // Actually, we don't have reservationId easily here unless we store it in state
                                     router.push('/orders')
                                 }}
                             />

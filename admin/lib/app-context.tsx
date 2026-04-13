@@ -11,6 +11,8 @@ interface AppContextType {
   theme: Theme
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
+  isInstallable: boolean
+  installApp: () => Promise<void>
 }
 
 const AppContext = createContext<AppContextType>({
@@ -19,11 +21,15 @@ const AppContext = createContext<AppContextType>({
   theme: 'light',
   setTheme: () => { },
   toggleTheme: () => { },
+  isInstallable: false,
+  installApp: async () => { },
 })
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('ru')
   const [theme, setThemeState] = useState<Theme>('light')
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isInstallable, setIsInstallable] = useState(false)
 
   useEffect(() => {
     const savedLang = localStorage.getItem('cafe_lang') as Lang
@@ -35,6 +41,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (savedTheme) {
       setThemeState(savedTheme)
       document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+    }
+
+    // PWA Install logic
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setIsInstallable(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
     }
   }, [])
 
@@ -52,12 +71,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
 
+  const installApp = async () => {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if (outcome === 'accepted') {
+      setIsInstallable(false)
+      setDeferredPrompt(null)
+    }
+  }
+
   return (
-    <AppContext.Provider value={{ lang, setLang, theme, setTheme, toggleTheme }}>
+    <AppContext.Provider value={{ lang, setLang, theme, setTheme, toggleTheme, isInstallable, installApp }}>
       {children}
     </AppContext.Provider>
   )
 }
+
 
 export function useApp() {
   return useContext(AppContext)

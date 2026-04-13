@@ -219,7 +219,11 @@ export const translations = {
     tableDeleted: 'Үстел жойылды',
     enterNumber: 'Нөмірді енгізіңіз',
     enterCapacity: 'Сыйымдылықты енгізіңіз',
+    installApp: 'Орнату',
+    downloadApp: 'Қолданбаны жүктеу',
+    installAppDesc: 'Тапсырыстарды жылдам басқару және хабарламаларды нақты уақытта алу үшін Məzir Admin мобильді қосымшасын орнатыңыз.',
   },
+
   ru: {
     // Nav
     home: 'Главная',
@@ -438,7 +442,11 @@ export const translations = {
     tableDeleted: 'Стол удален',
     enterNumber: 'Введите номер',
     enterCapacity: 'Введите вместимость',
+    installApp: 'Установить',
+    downloadApp: 'Скачать приложение',
+    installAppDesc: 'Установите мобильное приложение Məzir Admin для быстрого управления заказами и получения уведомлений в реальном времени.',
   },
+
 }
 
 export function t(lang: Lang, key: keyof typeof translations.ru, replacements?: Record<string, string>): string {

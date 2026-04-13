@@ -33,12 +33,11 @@ export const getFcmToken = async () => {
   }
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    const messaging = getMessaging(app);
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
+export const onMessageListener = (callback: (payload: any) => void) => {
+  const messaging = getMessaging(app);
+  return onMessage(messaging, (payload) => {
+    callback(payload);
   });
+};
 
 export { app };

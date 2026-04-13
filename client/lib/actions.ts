@@ -53,10 +53,10 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
 
         const orderId = data.id.slice(0, 8)
         const payload = {
-            title: type === 'order' ? 'Новый заказ!' : 'Новое бронирование!',
+            title: type === 'order' ? 'Жаңа тапсырыс!' : 'Жаңа брондау!',
             body: type === 'order'
-                ? `Заказ #${orderId} на сумму ${data.total_amount}₸`
-                : `Бронь на ${data.date} в ${data.time} (${data.guests_count} чел). Сумма: ${data.total_amount}₸`,
+                ? `#${orderId} тапсырыс - ${data.total_amount}₸`
+                : `${data.date} күні сағат ${data.time}-ге брондау (${data.guests_count} адам). Сомасы: ${data.total_amount}₸`,
             url: type === 'order' ? '/orders' : '/reservations'
         }
 

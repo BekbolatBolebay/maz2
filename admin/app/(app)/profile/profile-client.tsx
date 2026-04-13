@@ -20,7 +20,9 @@ import {
   CalendarDays,
   Truck,
   Bell,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  Smartphone
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
@@ -42,7 +44,7 @@ const DAYS_KK = ['Дүйсенбі', 'Сейсенбі', 'Сәрсенбі', 'Б
 const DAYS_RU = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']
 
 export default function ProfileClient({ settings, workingHours, userProfile }: ProfileClientProps) {
-  const { lang } = useApp()
+  const { lang, isInstallable, installApp } = useApp()
   const [isSaving, setIsSaving] = useState(false)
   const [isTestingEmail, setIsTestingEmail] = useState(false)
   const [isTestingPush, setIsTestingPush] = useState(false)
@@ -666,25 +668,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                         placeholder="••••••••••••••••"
                       />
                     </div>
-                    
-                    <div className="flex items-center justify-between p-2">
-                      <label className="text-xs font-bold text-muted-foreground uppercase">
-                        {lang === 'kk' ? 'Тест журналы' : 'Тестовый режим'}
-                      </label>
-                      <button
-                        onClick={() => setFreedomTestMode(!freedomTestMode)}
-                        className={cn(
-                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                          freedomTestMode ? "bg-primary" : "bg-muted"
-                        )}
-                      >
-                        <span className={cn(
-                          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
-                          freedomTestMode ? "translate-x-4" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
-
+                    {/* Freedom Pay Test Mode Toggle Removed as requested by user */}
                   </div>
                 )}
               </div>
@@ -822,6 +806,40 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
             </div>
           </div>
         </section>
+
+        {/* PWA Install Section */}
+        {isInstallable && (
+          <section className="space-y-4 animate-in fade-in slide-in-from-bottom-5 duration-700">
+            <h3 className="text-lg font-medium">{lang === 'kk' ? 'Мобильді қосымша' : 'Мобильное приложение'}</h3>
+            <div className="relative overflow-hidden p-6 rounded-[2rem] border-2 border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card shadow-xl shadow-primary/5 group transition-all hover:shadow-primary/10">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <Smartphone className="w-40 h-40 text-primary" />
+              </div>
+              
+              <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-start gap-5">
+                  <div className="p-4 bg-primary rounded-2xl text-primary-foreground shadow-lg shadow-primary/30 group-hover:rotate-6 transition-transform">
+                    <Download className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xl font-black tracking-tight">{t(lang, 'downloadApp')}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-md italic">
+                      {t(lang, 'installAppDesc')}
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={installApp}
+                  className="inline-flex items-center justify-center rounded-2xl text-sm font-black ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 gap-3 shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95 whitespace-nowrap"
+                >
+                  <Smartphone className="w-5 h-5" />
+                  {t(lang, 'installApp')}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Push Notifications Section */}
         <section className="space-y-4">

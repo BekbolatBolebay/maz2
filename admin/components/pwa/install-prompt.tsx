@@ -8,10 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '@/lib/app-context'
 
 export function InstallPrompt() {
-    const { lang } = useApp()
+    const { lang, isInstallable, installApp } = useApp()
     const [show, setShow] = useState(false)
     const [platform, setPlatform] = useState<'ios' | 'android' | 'other' | null>(null)
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
 
     useEffect(() => {
         // Detect platform
@@ -21,40 +20,22 @@ export function InstallPrompt() {
 
         setPlatform(isIos ? 'ios' : isAndroid ? 'android' : 'other')
 
-        // Handle Android/Chrome install prompt
-        const handler = (e: any) => {
-            e.preventDefault()
-            setDeferredPrompt(e)
-            // Only show if not already installed
-            if (!window.matchMedia('(display-mode: standalone)').matches) {
-                setShow(true)
-            }
+        // Show prompt if installable
+        if (isInstallable) {
+            setShow(true)
         }
-
-        window.addEventListener('beforeinstallprompt', handler)
 
         // Handle iOS check
         if (isIos && !window.matchMedia('(display-mode: standalone)').matches) {
             // Show iOS prompt after a short delay
             const timer = setTimeout(() => setShow(true), 3000)
-            return () => {
-                clearTimeout(timer)
-                window.removeEventListener('beforeinstallprompt', handler)
-            }
+            return () => clearTimeout(timer)
         }
-
-        return () => window.removeEventListener('beforeinstallprompt', handler)
-    }, [])
+    }, [isInstallable])
 
     const handleInstallClick = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt()
-            const { outcome } = await deferredPrompt.userChoice
-            if (outcome === 'accepted') {
-                setShow(false)
-            }
-            setDeferredPrompt(null)
-        }
+        await installApp()
+        setShow(false)
     }
 
     if (!show) return null
@@ -127,3 +108,4 @@ export function InstallPrompt() {
         </AnimatePresence>
     )
 }
+
