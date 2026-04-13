@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { OrderStatusListener } from '@/components/notifications/order-status-listener'
 import { FCMHandler } from '@/components/fcm-handler'
+import { AppProvider } from '@/lib/app-context'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -64,13 +65,15 @@ export default function RootLayout({
         >
           <AuthProvider>
             <I18nProvider>
-              {children}
-              <InstallPrompt />
-              <PushPrompt />
-              <BottomNav />
-              <OrderStatusListener />
-              <FCMHandler />
-              <Toaster position="top-center" duration={2 * 1000} />
+              <AppProvider>
+                {children}
+                <InstallPrompt />
+                <PushPrompt />
+                <BottomNav />
+                <OrderStatusListener />
+                <FCMHandler />
+                <Toaster position="top-center" duration={2 * 1000} />
+              </AppProvider>
             </I18nProvider>
           </AuthProvider>
         </ThemeProvider>

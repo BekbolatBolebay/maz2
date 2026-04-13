@@ -5,11 +5,14 @@ import { X, Download, Share, PlusSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useApp } from '@/lib/app-context'
+import { useI18n } from '@/lib/i18n/i18n-context'
 
 export function InstallPrompt() {
+    const { isInstallable, installApp } = useApp()
+    const { locale } = useI18n()
     const [show, setShow] = useState(false)
     const [platform, setPlatform] = useState<'ios' | 'android' | 'other' | null>(null)
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
 
     useEffect(() => {
         // Detect platform
@@ -19,33 +22,22 @@ export function InstallPrompt() {
 
         setPlatform(isIos ? 'ios' : isAndroid ? 'android' : 'other')
 
-        // Handle Android/Chrome install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault()
-            setDeferredPrompt(e)
-            // Only show if not already installed
-            if (!window.matchMedia('(display-mode: standalone)').matches) {
-                setShow(true)
-            }
-        })
+        // Show prompt if installable
+        if (isInstallable) {
+            setShow(true)
+        }
 
         // Handle iOS check
         if (isIos && !window.matchMedia('(display-mode: standalone)').matches) {
             // Show iOS prompt after a short delay
-            const timer = setTimeout(() => setShow(true), 3000)
+            const timer = setTimeout(() => setShow(true), 5000)
             return () => clearTimeout(timer)
         }
-    }, [])
+    }, [isInstallable])
 
     const handleInstallClick = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt()
-            const { outcome } = await deferredPrompt.userChoice
-            if (outcome === 'accepted') {
-                setShow(false)
-            }
-            setDeferredPrompt(null)
-        }
+        await installApp()
+        setShow(false)
     }
 
     if (!show) return null
@@ -56,49 +48,61 @@ export function InstallPrompt() {
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-20 left-4 right-4 z-[100]"
+                className="fixed bottom-24 left-4 right-4 z-[100] md:left-auto md:right-8 md:w-80"
             >
-                <Card className="bg-white dark:bg-slate-900 border-primary/20 shadow-2xl rounded-2xl overflow-hidden">
-                    <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                <Download className="w-6 h-6 text-primary" />
-                            </div>
-                            <div className="flex-1 space-y-1">
-                                <p className="text-sm font-bold">Қолданбаны орнату</p>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {platform === 'ios'
-                                        ? 'Safari-де "Бөлісу" батырмасын басып, "Home Screen-ге қосу" таңдаңыз.'
-                                        : 'Қолданбаны жылдам ашу үшін негізгі экранға қосыңыз.'}
-                                </p>
+                <Card className="bg-card/80 backdrop-blur-xl border-primary/20 shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[2rem] overflow-hidden border-2 animate-in slide-in-from-bottom-10 duration-700">
+                    <CardContent className="p-6 relative">
+                        {/* Improved Close Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShow(false);
+                            }}
+                            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-all active:scale-95 cursor-pointer z-20"
+                            aria-label="Close"
+                        >
+                            <X className="w-5 h-5 text-muted-foreground" />
+                        </button>
 
+                        <div className="flex flex-col items-center text-center space-y-4 pt-2">
+                            <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center shadow-inner group">
+                                <Download className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-black tracking-tight">
+                                    {locale === 'kk' ? 'Məzir қосымшасы' : 'Приложение Məzir'}
+                                </h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed px-2">
+                                    {platform === 'ios'
+                                        ? (locale === 'kk'
+                                            ? 'Safari-де "Бөлісу" батырмасын басып, "Home Screen-ге қосу" таңдаңыз.'
+                                            : 'Нажмите "Поделиться" в Safari и выберите "На экран Домой".')
+                                        : (locale === 'kk'
+                                            ? 'Тапсырыс беруді тездету үшін қосымшаны негізгі экранға қосыңыз.'
+                                            : 'Добавьте приложение на главный экран для быстрого заказа еды.')}
+                                </p>
+                            </div>
+
+                            <div className="w-full pt-2">
                                 {platform === 'ios' ? (
-                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                        <Share className="w-4 h-4 text-primary" />
-                                        <span className="text-[10px] font-medium">{"->"}</span>
-                                        <PlusSquare className="w-4 h-4 text-primary" />
-                                        <span className="text-[10px] font-medium">Бас экранға қосу</span>
+                                    <div className="flex items-center justify-center gap-3 py-3 px-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                        <Share className="w-5 h-5 text-primary" />
+                                        <span className="text-xs font-bold">→</span>
+                                        <PlusSquare className="w-5 h-5 text-primary" />
+                                        <span className="text-[11px] font-bold uppercase tracking-wider">
+                                            {locale === 'kk' ? 'Экранға қосу' : 'На экран Домой'}
+                                        </span>
                                     </div>
                                 ) : (
                                     <Button
-                                        size="sm"
-                                        className="w-full mt-2 h-8 text-[10px] uppercase font-black tracking-widest"
                                         onClick={handleInstallClick}
+                                        className="w-full h-12 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all"
                                     >
-                                        Орнату
+                                        {locale === 'kk' ? 'Орнату' : 'Установить'}
                                     </Button>
                                 )}
                             </div>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShow(false);
-                                }}
-                                className="w-10 h-10 -mr-2 -mt-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer touch-manipulation z-[110]"
-                                aria-label="Close"
-                            >
-                                <X className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
-                            </button>
                         </div>
                     </CardContent>
                 </Card>
