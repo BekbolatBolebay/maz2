@@ -12,6 +12,8 @@ interface AppContextType {
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
   isInstallable: boolean
+  isIos: boolean
+  isStandalone: boolean
   installApp: () => Promise<void>
 }
 
@@ -22,6 +24,8 @@ const AppContext = createContext<AppContextType>({
   setTheme: () => { },
   toggleTheme: () => { },
   isInstallable: false,
+  isIos: false,
+  isStandalone: false,
   installApp: async () => { },
 })
 
@@ -30,6 +34,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isInstallable, setIsInstallable] = useState(false)
+  const [isIos, setIsIos] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
 
   useEffect(() => {
     const savedLang = localStorage.getItem('cafe_lang') as Lang
@@ -51,6 +57,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+
+    // iOS and Standalone detection
+    const ua = window.navigator.userAgent.toLowerCase()
+    const ios = /iphone|ipad|ipod/.test(ua)
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+
+    setIsIos(ios)
+    setIsStandalone(standalone)
+
+    if (ios && !standalone) {
+      setIsInstallable(true)
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
@@ -82,7 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ lang, setLang, theme, setTheme, toggleTheme, isInstallable, installApp }}>
+    <AppContext.Provider value={{ lang, setLang, theme, setTheme, toggleTheme, isInstallable, isIos, isStandalone, installApp }}>
       {children}
     </AppContext.Provider>
   )

@@ -78,8 +78,21 @@ const sections = [
 ]
 
 export default function ManagementClient({ settings }: { settings: Restaurant | null }) {
-  const { lang, isInstallable, installApp } = useApp()
+  const { lang, isInstallable, isIos, installApp } = useApp()
   const [isPending, startTransition] = useTransition()
+
+  function handleInstall() {
+    if (isIos) {
+      toast.info(
+        lang === 'kk'
+          ? 'Safari-де "Бөлісу" батырмасын басып, "Бас экранға қосу" таңдаңыз.'
+          : 'Нажмите "Поделиться" в Safari и выберите "На экран Домой".',
+        { duration: 5000 }
+      )
+    } else {
+      installApp()
+    }
+  }
 
   function handleSeedCategories() {
     startTransition(async () => {
@@ -177,7 +190,7 @@ export default function ManagementClient({ settings }: { settings: Restaurant | 
                 </p>
               </div>
               <button
-                onClick={installApp}
+                onClick={handleInstall}
                 className="shrink-0 bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-all shadow-lg shadow-primary/20 uppercase tracking-widest"
               >
                 {lang === 'kk' ? 'Орнату' : 'Установить'}
