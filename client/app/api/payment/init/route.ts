@@ -21,6 +21,7 @@ export async function POST(req: Request) {
 
         let restaurant: any = null
         let record: any = null
+        const isReservation = !!reservationId
         let finalId = orderId || reservationId
 
         // 1. Get order/reservation and restaurant details
