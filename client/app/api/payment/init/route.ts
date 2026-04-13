@@ -133,16 +133,14 @@ export async function POST(req: Request) {
                 })
             }
 
-            // Important: Freedom Pay expects pg_receipt_data as a JSON string for the signature
-            params.pg_receipt_data = JSON.stringify(receiptData)
+            // Important: Use pg_receipt_positions as per modern docs, stringify for signature and transmission
+            params.pg_receipt_positions = JSON.stringify(receiptData)
         }
 
         if (customerEmail) params.pg_user_contact_email = customerEmail
         if (customerPhone) params.pg_user_phone = String(customerPhone).replace(/\D/g, '')
 
         // 3. Generate signature
-        // Note: Some versions of Freedom Pay API expect just 'init_payment' 
-        // while others expect 'init_payment.php'
         const sig = generateFreedomSignature('init_payment.php', params, secretKey)
         params.pg_sig = sig
 
