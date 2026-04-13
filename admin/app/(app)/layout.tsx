@@ -1,6 +1,9 @@
 import BottomNav from '@/components/layout/bottom-nav'
 import { SubscriptionGuard } from '@/components/layout/subscription-guard'
 import { getCafeSettings } from '@/lib/db'
+import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { FCMHandler } from '@/components/fcm-handler'
+import { PushPrompt } from '@/components/pwa/push-prompt'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const settings = await getCafeSettings()
@@ -15,6 +18,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </main>
           <BottomNav />
+          <FCMHandler />
+          <PushPrompt />
+          <InstallPrompt />
         </SubscriptionGuard>
       </div>
     </div>

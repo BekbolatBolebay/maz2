@@ -2,10 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AppProvider } from '@/lib/app-context'
-import { PushPrompt } from '@/components/pwa/push-prompt'
-import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Toaster } from 'sonner'
-import { FCMHandler } from '@/components/fcm-handler'
 import { SWRegistration } from '@/components/pwa/sw-registration'
 import './globals.css'
 
@@ -59,9 +56,6 @@ export default function RootLayout({
         <AppProvider>
           {children}
           <SWRegistration />
-          <FCMHandler />
-          <PushPrompt />
-          <InstallPrompt />
           <Toaster position="top-center" />
         </AppProvider>
         <Analytics />
