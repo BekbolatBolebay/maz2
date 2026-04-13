@@ -134,7 +134,7 @@ export async function POST(req: Request) {
         }
 
         if (customerEmail) params.pg_user_contact_email = customerEmail
-        if (customerPhone) params.pg_user_phone = customerPhone
+        if (customerPhone) params.pg_user_phone = customerPhone.replace(/\D/g, '')
 
         // 3. Generate signature
         // Note: Some versions of Freedom Pay API expect just 'init_payment' 
