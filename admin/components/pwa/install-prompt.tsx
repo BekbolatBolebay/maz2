@@ -8,11 +8,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApp } from '@/lib/app-context'
 
 export function InstallPrompt() {
-    const { lang, isInstallable, installApp } = useApp()
+    const { lang, isInstallable, isStandalone, installApp } = useApp()
     const [show, setShow] = useState(false)
+    const [isDismissed, setIsDismissed] = useState(false)
     const [platform, setPlatform] = useState<'ios' | 'android' | 'other' | null>(null)
 
     useEffect(() => {
+        // Check session dismissal
+        const dismissed = sessionStorage.getItem('pwa_prompt_dismissed')
+        if (dismissed) setIsDismissed(true)
+
         // Detect platform
         const ua = window.navigator.userAgent.toLowerCase()
         const isIos = /iphone|ipad|ipod/.test(ua)
@@ -20,25 +25,35 @@ export function InstallPrompt() {
 
         setPlatform(isIos ? 'ios' : isAndroid ? 'android' : 'other')
 
-        // Show prompt if installable
-        if (isInstallable) {
-            setShow(true)
-        }
-
-        // Handle iOS check
-        if (isIos && !window.matchMedia('(display-mode: standalone)').matches) {
-            // Show iOS prompt after a short delay
-            const timer = setTimeout(() => setShow(true), 3000)
+        // Show prompt if not standalone and not dismissed
+        // We don't wait for isInstallable (which depends on beforeinstallprompt)
+        // so that the button is "Directly" available as a guide even if the native prompt isn't ready.
+        if (!isStandalone && !dismissed) {
+            // Short delay for better UX
+            const timer = setTimeout(() => setShow(true), 2000)
             return () => clearTimeout(timer)
         }
-    }, [isInstallable])
+    }, [isStandalone])
 
-    const handleInstallClick = async () => {
-        await installApp()
+    const handleDismiss = (e: React.MouseEvent) => {
+        e.stopPropagation()
         setShow(false)
+        setIsDismissed(true)
+        sessionStorage.setItem('pwa_prompt_dismissed', 'true')
     }
 
-    if (!show) return null
+    const handleInstallClick = async () => {
+        if (isInstallable) {
+            await installApp()
+            setShow(false)
+        } else {
+            // If not directly installable (e.g. Chrome on iOS or native prompt not ready), 
+            // the UI already shows the manual instructions.
+            console.log('[PWA] Native install not available, showing guide instead.')
+        }
+    }
+
+    if (!show || isDismissed || isStandalone) return null
 
     return (
         <AnimatePresence>
@@ -53,10 +68,7 @@ export function InstallPrompt() {
                     <CardContent className="p-8 relative">
                         {/* Close Button */}
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShow(false);
-                            }}
+                            onClick={handleDismiss}
                             className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all active:scale-90 cursor-pointer z-20"
                             aria-label="Close"
                         >
@@ -84,21 +96,23 @@ export function InstallPrompt() {
                             </div>
 
                             <div className="w-full pt-4">
-                                {platform === 'ios' ? (
-                                    <div className="flex items-center justify-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10">
-                                        <Share className="w-6 h-6 text-red-500" />
-                                        <span className="text-sm font-black">→</span>
-                                        <PlusSquare className="w-6 h-6 text-red-500" />
-                                        <span className="text-xs font-black uppercase tracking-[0.2em]">
-                                            {lang === 'kk' ? 'Экранға қосу' : 'На экран Домой'}
-                                        </span>
+                                {(platform === 'ios' || !isInstallable) ? (
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center justify-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10">
+                                            <Share className="w-6 h-6 text-red-500" />
+                                            <span className="text-sm font-black">→</span>
+                                            <PlusSquare className="w-6 h-6 text-red-500" />
+                                            <span className="text-xs font-black uppercase tracking-[0.2em]">
+                                                {lang === 'kk' ? 'Экранға қосу' : 'На экран Домой'}
+                                            </span>
+                                        </div>
                                     </div>
                                 ) : (
                                     <Button
                                         onClick={handleInstallClick}
                                         className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white shadow-2xl shadow-red-600/30 active:scale-[0.98] transition-all border-none"
                                     >
-                                        {lang === 'kk' ? 'Орнату' : 'Установить'}
+                                        {lang === 'kk' ? 'Жүктеп алу' : 'Скачать'}
                                     </Button>
                                 )}
                             </div>
@@ -109,4 +123,3 @@ export function InstallPrompt() {
         </AnimatePresence>
     )
 }
-
