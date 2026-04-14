@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Share, PlusSquare, MoreVertical } from 'lucide-react'
+import { X, Download, Share, PlusSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -26,10 +26,7 @@ export function InstallPrompt() {
         setPlatform(isIos ? 'ios' : isAndroid ? 'android' : 'other')
 
         // Show prompt if not standalone and not dismissed
-        // We don't wait for isInstallable (which depends on beforeinstallprompt)
-        // so that the button is "Directly" available as a guide even if the native prompt isn't ready.
-        if (!isStandalone && !dismissed) {
-            // Short delay for better UX
+        if (!isStandalone && !isDismissed && !dismissed) {
             const timer = setTimeout(() => setShow(true), 2000)
             return () => clearTimeout(timer)
         }
@@ -45,11 +42,9 @@ export function InstallPrompt() {
     const handleInstallClick = async () => {
         if (isInstallable) {
             await installApp()
-            setShow(false)
+            // We don't hide immediately to allow the browser prompt to show
         } else {
-            // If not directly installable (e.g. Chrome on iOS or native prompt not ready), 
-            // the UI already shows the manual instructions.
-            console.log('[PWA] Native install not available, showing guide instead.')
+            console.log('[PWA] Direct install not available.')
         }
     }
 
@@ -96,37 +91,16 @@ export function InstallPrompt() {
                             </div>
 
                             <div className="w-full pt-4">
-                                {(platform === 'ios' || !isInstallable) ? (
+                                {platform === 'ios' ? (
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-center justify-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10">
-                                            {platform === 'ios' ? (
-                                                <>
-                                                    <Share className="w-6 h-6 text-red-500" />
-                                                    <span className="text-sm font-black">→</span>
-                                                    <PlusSquare className="w-6 h-6 text-red-500" />
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <MoreVertical className="w-6 h-6 text-red-500" />
-                                                    <span className="text-sm font-black">→</span>
-                                                    <Download className="w-6 h-6 text-red-500" />
-                                                </>
-                                            )}
+                                            <Share className="w-6 h-6 text-red-500" />
+                                            <span className="text-sm font-black">→</span>
+                                            <PlusSquare className="w-6 h-6 text-red-500" />
                                             <span className="text-xs font-black uppercase tracking-[0.2em]">
-                                                {lang === 'kk' 
-                                                    ? (platform === 'ios' ? 'Экранға қосу' : 'Қосымшаны орнату') 
-                                                    : (platform === 'ios' ? 'На экран Домой' : 'Установить приложение')}
+                                                {lang === 'kk' ? 'Экранға қосу' : 'На экран Домой'}
                                             </span>
                                         </div>
-                                        
-                                        {/* Specific instruction text for Android workaround */}
-                                        {platform !== 'ios' && !isInstallable && (
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center mt-2">
-                                                {lang === 'kk' 
-                                                    ? 'Мәзірді (3 нүкте) басып, "Қолданбаны орнату" таңдаңыз' 
-                                                    : 'Нажмите на меню (3 точки) и выберите "Установить приложение"'}
-                                            </p>
-                                        )}
                                     </div>
                                 ) : (
                                     <Button
