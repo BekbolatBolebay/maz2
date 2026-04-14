@@ -93,12 +93,9 @@ export default function ManagementClient({ settings }: { settings: Restaurant | 
     if (isIos) {
       setShowGuide(true)
     } else {
-      // Для Android: Сначала пробуем прямой запуск
-      if (isInstallable) {
+      // For Android/Other: Direct trigger
+      if (typeof installApp === 'function') {
         installApp()
-      } else {
-        // Если браузер еще не дал prompt, показываем инструкцию
-        setShowGuide(true)
       }
     }
   }
@@ -221,53 +218,30 @@ export default function ManagementClient({ settings }: { settings: Restaurant | 
             </DialogTitle>
             <DialogDescription className="text-center font-medium">
               {lang === 'kk' 
-                ? 'Қосымшаны негізгі экранға қосу үшін мына қадамдарды орындаңыз:' 
-                : 'Для добавления приложения на экран выполните следующие действия:'}
+                ? 'iPhone-ға қосымшаны қосу үшін мына қадамдарды орындаңыз:' 
+                : 'Для добавления приложения на iPhone выполните следующие действия:'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-6 flex flex-col gap-6">
-            {isIos ? (
-              // iOS Instructions
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
-                    <Share className="w-5 h-5 text-primary" />
-                  </div>
-                  <p className="text-sm font-bold leading-tight">
-                    {lang === 'kk' ? '1. Safari-де "Бөлісу" батырмасын басыңыз' : '1. Нажмите "Поделиться" в Safari'}
-                  </p>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                  <Share className="w-5 h-5 text-primary" />
                 </div>
-                <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
-                    <PlusSquare className="w-5 h-5 text-primary" />
-                  </div>
-                  <p className="text-sm font-bold leading-tight">
-                    {lang === 'kk' ? '2. "Бас экранға қосу" таңдаңыз' : '2. Выберите "На экран Домой"'}
-                  </p>
-                </div>
+                <p className="text-sm font-bold leading-tight">
+                  {lang === 'kk' ? '1. Safari-де "Бөлісу" батырмасын басыңыз' : '1. Нажмите "Поделиться" в Safari'}
+                </p>
               </div>
-            ) : (
-              // Android Instructions
-              <div className="space-y-6">
-                 <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
-                    <MoreVertical className="w-5 h-5 text-primary" />
-                  </div>
-                  <p className="text-sm font-bold leading-tight">
-                    {lang === 'kk' ? '1. Браузер мәзірін (3 нүкте) басыңыз' : '1. Нажмите на меню (3 точки) браузера'}
-                  </p>
+              <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                  <PlusSquare className="w-5 h-5 text-primary" />
                 </div>
-                <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
-                    <Download className="w-5 h-5 text-primary" />
-                  </div>
-                  <p className="text-sm font-bold leading-tight">
-                    {lang === 'kk' ? '2. "Қолданбаны орнату" таңдаңыз' : '2. Выберите "Установить приложение"'}
-                  </p>
-                </div>
+                <p className="text-sm font-bold leading-tight">
+                  {lang === 'kk' ? '2. "Бас экранға қосу" таңдаңыз' : '2. Выберите "На экран Домой"'}
+                </p>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex justify-center pb-2">

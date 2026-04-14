@@ -485,28 +485,23 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                 </div>
                 
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                   <Button 
-                     onClick={() => {
-                        const { isIos, installApp } = (window as any).__APP_CONTEXT__ || {};
-                        // Fallback to simpler check if context is not available through window
+                    <Button 
+                      onClick={() => {
+                        // Detect platform
                         const ua = navigator.userAgent.toLowerCase();
                         const isIosDevice = /iphone|ipad|ipod/.test(ua);
                         
                         if (isIosDevice) {
-                           setShowInstallGuide(true);
+                          setShowInstallGuide(true);
                         } else {
-                           // Try to use the installApp from context if possible, or show guide
-                           // In profile-client we have access to context via useApp
-                           // But we already have installApp and isInstallable from useApp()
-                           if (typeof installApp === 'function') {
-                             installApp();
-                           } else {
-                             setShowInstallGuide(true);
-                           }
+                          // For Android/Other: Always try to use installApp directly
+                          if (typeof installApp === 'function') {
+                            installApp();
+                          }
                         }
-                     }}
-                     className="flex-1 md:flex-none h-12 px-6 rounded-2xl bg-white text-slate-950 hover:bg-slate-100 font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all"
-                   >
+                      }}
+                      className="flex-1 md:flex-none h-12 px-6 rounded-2xl bg-white text-slate-950 hover:bg-slate-100 font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all"
+                    >
                      <Smartphone className="w-4 h-4 mr-2 text-primary" />
                      {lang === 'kk' ? 'Android-қа жүктеу' : 'Скачать на Android'}
                    </Button>
@@ -1027,7 +1022,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
           </div>
         </section>
 
-        {/* Install Guide Modal */}
+        {/* Install Guide Modal (iOS ONLY) */}
         <Dialog open={showInstallGuide} onOpenChange={setShowInstallGuide}>
           <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl bg-white dark:bg-slate-900 mx-auto">
             <DialogHeader className="space-y-4 pt-4">
@@ -1041,8 +1036,8 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
               </DialogTitle>
               <DialogDescription className="text-center font-black text-[10px] uppercase tracking-widest text-muted-foreground/60">
                 {lang === 'kk' 
-                  ? 'Қолданбаны негізгі экранға қосу үшін мына қадамдарды орындаңыз:' 
-                  : 'Для добавления приложения на экран выполните следующие действия:'}
+                  ? 'iPhone-ға қосымшаны қосу үшін мына қадамдарды орындаңыз:' 
+                  : 'Для добавления приложения на iPhone выполните следующие действия:'}
               </DialogDescription>
             </DialogHeader>
 
@@ -1052,7 +1047,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                     <Share className="w-5 h-5 text-primary" />
                   </div>
                   <p className="text-xs font-black uppercase tracking-wide leading-snug">
-                    {lang === 'kk' ? '1. Браузер мәзірін немесе "Поделиться" батырмасын басыңыз' : '1. Нажмите на меню браузера или "Поделиться"'}
+                    {lang === 'kk' ? '1. Safari-де "Бөлісу" батырмасын басыңыз' : '1. Нажмите "Поделиться" в Safari'}
                   </p>
                </div>
                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
@@ -1060,7 +1055,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                     <PlusSquare className="w-5 h-5 text-primary" />
                   </div>
                   <p className="text-xs font-black uppercase tracking-wide leading-snug">
-                    {lang === 'kk' ? '2. "Бас экранға қосу" немесе "Install App" таңдаңыз' : '2. Выберите "На экран Домой" или "Install App"'}
+                    {lang === 'kk' ? '2. "Бас экранға қосу" таңдаңыз' : '2. Выберите "На экран Домой"'}
                   </p>
                </div>
             </div>
