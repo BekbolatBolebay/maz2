@@ -5,10 +5,10 @@ export default async function HomePage() {
   const [settings, stats, recentOrders] = await Promise.all([
     getCafeSettings(),
     getOrdersStats(),
-    getOrders(),
+    getOrders('all', 5),
   ])
 
-  const recent = recentOrders.slice(0, 5)
+  const recent = recentOrders
 
   return (
     <DashboardClient

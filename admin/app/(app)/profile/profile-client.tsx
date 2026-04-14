@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { t } from '@/lib/i18n'
 import { useApp } from '@/lib/app-context'
 import type { Restaurant, WorkingHour, UserProfile } from '@/lib/db'
-import { updateCafeSettings, updateWorkingHours, sendTestEmailAction, sendTestPushAction, saveMerchantConfigAction, updateRestaurantStatusAction } from '@/lib/actions'
+import { updateCafeSettings, updateWorkingHours, sendTestEmailAction, sendTestPushAction, saveMerchantConfigAction, updateRestaurantStatusAction, signOutAction } from '@/lib/actions'
 import { toast } from 'sonner'
 import { 
   Save, 
@@ -26,11 +26,13 @@ import {
   Share,
   MoreVertical,
   PlusSquare,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import ImageUpload from '@/components/ui/image-upload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -58,7 +60,9 @@ const DAYS_RU = ['Понедельник', 'Вторник', 'Среда', 'Че
 
 export default function ProfileClient({ settings, workingHours, userProfile }: ProfileClientProps) {
   const { lang, isInstallable, installApp } = useApp()
+  const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isTestingEmail, setIsTestingEmail] = useState(false)
   const [isTestingPush, setIsTestingPush] = useState(false)
   const [showInstallGuide, setShowInstallGuide] = useState(false)
@@ -444,6 +448,21 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     }
   };
 
+  const handleSignOut = async () => {
+    if (confirm(lang === 'kk' ? 'Шығуды растайсыз ба?' : 'Вы уверены, что хотите выйти?')) {
+      setIsLoggingOut(true)
+      try {
+        await signOutAction()
+        router.refresh()
+        router.push('/login')
+      } catch (err) {
+        toast.error('Error signing out')
+      } finally {
+        setIsLoggingOut(false)
+      }
+    }
+  }
+
   return (
     <div className="container max-w-4xl py-4 sm:py-10 px-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
@@ -451,14 +470,24 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t(lang, 'profile')}</h1>
           <p className="text-sm text-muted-foreground">{userProfile?.email}</p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="inline-flex items-center justify-center rounded-xl text-sm font-black ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-12 sm:h-10 px-6 sm:px-4 py-2 gap-2 shadow-lg shadow-primary/20 active:scale-95"
-        >
-          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {t(lang, 'save')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+            className="inline-flex items-center justify-center rounded-xl text-sm font-black ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent text-muted-foreground hover:text-foreground h-12 sm:h-10 px-4 py-2 gap-2 active:scale-95"
+          >
+            {isLoggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+            {t(lang, 'logout')}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="inline-flex items-center justify-center rounded-xl text-sm font-black ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-12 sm:h-10 px-6 sm:px-4 py-2 gap-2 shadow-lg shadow-primary/20 active:scale-95"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {t(lang, 'save')}
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6">

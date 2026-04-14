@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { cache } from 'react'
 import { createAdminClient } from './supabase/admin'
 import type { Lang } from '@/lib/i18n'
 
@@ -272,7 +273,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   return data as UserProfile
 }
 
-export async function getCurrentRestaurantId(): Promise<string | null> {
+export const getCurrentRestaurantId = cache(async (): Promise<string | null> => {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -328,7 +329,7 @@ export async function getCurrentRestaurantId(): Promise<string | null> {
   }
 
   return newRestaurant?.id || null
-}
+})
 
 export async function getTables(restaurantId?: string): Promise<RestaurantTable[]> {
   const id = restaurantId || await getCurrentRestaurantId()
@@ -441,7 +442,7 @@ export async function getMenuItems(restaurantId?: string): Promise<MenuItem[]> {
   return data || []
 }
 
-export async function getOrders(status?: string): Promise<Order[]> {
+export async function getOrders(status?: string, limit?: number): Promise<Order[]> {
   const restaurantId = await getCurrentRestaurantId()
   if (!restaurantId) return []
 
@@ -453,6 +454,7 @@ export async function getOrders(status?: string): Promise<Order[]> {
     .order('created_at', { ascending: false })
 
   if (status && status !== 'all') q = q.eq('status', status)
+  if (limit) q = q.limit(limit)
   const { data } = await q
   return data || []
 }

@@ -274,3 +274,9 @@ export async function updateRestaurantStatusAction(restaurantId: string, status:
 export async function notifyCustomerAction(userId: string, payload: { title: string; body: string; icon?: string; url?: string }) {
     return await notifyCustomer(userId, payload);
 }
+
+export async function signOutAction() {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.signOut()
+    return { error }
+}

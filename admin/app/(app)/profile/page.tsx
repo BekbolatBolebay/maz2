@@ -11,7 +11,11 @@ export default async function ProfilePage() {
 
   // Hydrate with VPS data if restaurant exists
   if (settings) {
-    const rawConfig = await getMerchantConfig(settings.id);
+    const [rawConfig, vpsStatus] = await Promise.all([
+      getMerchantConfig(settings.id),
+      getRestaurantStatus(settings.id)
+    ]);
+    
     const config = rawConfig as any;
     if (config) {
       if (config.freedom_merchant_id !== undefined) settings.freedom_merchant_id = config.freedom_merchant_id;
@@ -22,7 +26,6 @@ export default async function ProfilePage() {
       if (config.accept_kaspi !== undefined) settings.accept_kaspi = config.accept_kaspi;
     }
     
-    const vpsStatus = await getRestaurantStatus(settings.id);
     if (vpsStatus && vpsStatus.status !== undefined) {
       settings.status = vpsStatus.status;
     }
