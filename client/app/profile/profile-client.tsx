@@ -15,12 +15,18 @@ import {
     ShieldCheck as VerifiedIcon,
     LogIn,
     ArrowRight,
-    Sparkles
+    Sparkles,
+    Download,
+    Smartphone,
+    MoreVertical,
+    PlusSquare,
+    Share
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useApp } from '@/lib/app-context'
 import { cn, formatCustomerValue } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -30,6 +36,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -49,12 +56,26 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
     const router = useRouter()
     const { t, locale } = useI18n()
     const { subscribeToPush, updateProfile } = useAuth()
+    const { isInstallable, isIos, isStandalone, installApp } = useApp()
     const supabase = createClient()
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [editName, setEditName] = useState('')
     const [editPhone, setEditPhone] = useState('')
     const [isUpdating, setIsUpdating] = useState(false)
+    const [showInstallGuide, setShowInstallGuide] = useState(false)
+
+    const handleInstall = () => {
+        if (isIos) {
+            setShowInstallGuide(true)
+        } else {
+            if (isInstallable) {
+                installApp()
+            } else {
+                setShowInstallGuide(true)
+            }
+        }
+    }
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
@@ -111,34 +132,40 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
         <div className="flex flex-col min-h-screen pb-24 bg-slate-50/50 dark:bg-slate-950 font-sans">
             {/* Header with Dynamic Background */}
             <div className="relative pt-16 pb-32 px-6 overflow-hidden bg-slate-900">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-black/40" />
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute top-1/2 -left-32 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-blue-600/20 to-slate-950 opacity-90" />
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                    <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/30 rounded-full blur-[100px] animate-pulse" />
+                    <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-blue-500/20 rounded-full blur-[80px]" />
+                </div>
                 
                 <div className="relative flex flex-col items-center">
-                    <div className="relative group mb-6">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-                        <Avatar className="w-28 h-28 border-4 border-white shadow-2xl relative transition-transform duration-500 group-hover:scale-105">
+                    <div className="relative group mb-8">
+                        <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-blue-400 to-primary rounded-full blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-spin-slow" />
+                        <Avatar className="w-32 h-32 border-4 border-white/90 dark:border-slate-800 shadow-2xl relative transition-all duration-700 group-hover:scale-105 group-hover:rotate-1">
                             <AvatarImage src={profile?.avatar_url} />
                             <AvatarFallback className="bg-slate-800 text-white text-4xl font-black">
                                 {isGuest ? '?' : (profile?.full_name?.charAt(0) || user.email?.charAt(0).toUpperCase())}
                             </AvatarFallback>
                         </Avatar>
                         {!isGuest && (
-                            <div className="absolute -bottom-1 -right-1 p-1.5 bg-white dark:bg-slate-900 rounded-full shadow-lg border-2 border-primary">
-                                <VerifiedIcon className="w-4 h-4 text-primary fill-primary/10" />
+                            <div className="absolute -bottom-2 -right-2 p-2 bg-white dark:bg-slate-900 rounded-full shadow-2xl border-2 border-primary animate-bounce-subtle">
+                                <VerifiedIcon className="w-5 h-5 text-primary fill-primary/10" />
                             </div>
                         )}
                     </div>
                     
-                    <div className="text-center space-y-2 mb-6">
-                        <div className="flex flex-col items-center gap-2">
-                             <h1 className="text-3xl font-black text-white tracking-tight">
+                    <div className="text-center space-y-3 mb-8">
+                        <div className="flex flex-col items-center gap-1">
+                             <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-sm">
                                 {isGuest ? (t.profile?.guest || 'Гость') : (formatCustomerValue(profile?.full_name, 'full_name') || (t.common?.user || 'Пользователь'))}
                             </h1>
-                            <RoleBadge role={profile?.role || 'user'} />
+                            <div className="flex items-center gap-2">
+                                <RoleBadge role={profile?.role || 'user'} />
+                                <span className="h-1 w-1 rounded-full bg-white/30" />
+                                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Premium Member</span>
+                            </div>
                         </div>
-                        <p className="text-sm text-slate-400 font-medium">
+                        <p className="text-xs text-white/60 font-medium tracking-wide">
                             {isGuest
                                 ? (t.profile?.unauthorized || 'Неавторизованный пользователь')
                                 : user.email
@@ -146,20 +173,36 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                         </p>
                     </div>
 
-                    {!isGuest && (
-                        <Button
-                            variant="secondary"
-                            className="rounded-2xl font-black px-8 h-12 bg-white text-slate-950 hover:bg-slate-100 shadow-xl transition-all active:scale-95 group"
-                            onClick={() => {
-                                setEditName(formatCustomerValue(profile?.full_name, 'full_name') || '')
-                                setEditPhone(formatCustomerValue(profile?.phone || profile?.full_name, 'phone') || '')
-                                setIsEditModalOpen(true)
-                            }}
-                        >
-                            {t.profile?.editProfile || 'Профильді өңдеу'}
-                            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                        </Button>
-                    )}
+                    <div className="flex gap-3 w-full max-w-sm px-4">
+                        {/* Quick Install Button */}
+                        {!isStandalone && (
+                            <Button
+                                onClick={handleInstall}
+                                className="flex-1 rounded-2xl font-black h-12 bg-white text-slate-950 hover:bg-slate-50 shadow-2xl shadow-black/20 active:scale-95 transition-all text-xs uppercase tracking-widest group"
+                            >
+                                <Smartphone className="w-4 h-4 mr-2 text-primary group-hover:scale-110 transition-transform" />
+                                {locale === 'kk' ? 'Орнату' : 'Установить'}
+                            </Button>
+                        )}
+
+                        {!isGuest && (
+                            <Button
+                                variant="secondary"
+                                className={cn(
+                                    "rounded-2xl font-black h-12 shadow-2xl transition-all active:scale-95 group border-none",
+                                    !isStandalone ? "flex-1 bg-white/10 backdrop-blur-md text-white hover:bg-white/20" : "w-full bg-white text-slate-950 hover:bg-slate-50"
+                                )}
+                                onClick={() => {
+                                    setEditName(formatCustomerValue(profile?.full_name, 'full_name') || '')
+                                    setEditPhone(formatCustomerValue(profile?.phone || profile?.full_name, 'phone') || '')
+                                    setIsEditModalOpen(true)
+                                }}
+                            >
+                                <ArrowRight className={cn("w-4 h-4 mr-2 transition-transform group-hover:translate-x-1", !isStandalone ? "text-white" : "text-primary")} />
+                                {t.profile?.editProfile || 'Өңдеу'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -228,30 +271,54 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                     </div>
                 ))}
 
-                {/* Analytics/History Preview (Example of more premium feel) */}
-                <Card className="bg-slate-950 border-none overflow-hidden text-white">
-                    <CardContent className="p-8">
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
-                                <h3 className="text-xl font-black tracking-tight">{locale === 'kk' ? 'Тапсырыстар' : 'Заказы'}</h3>
-                                <p className="text-xs text-slate-400 mt-1">Соңғы айдағы статистикаңыз</p>
+                {/* Premium Analytics/Stats Card */}
+                <div className="grid grid-cols-1 gap-6 relative">
+                    <Card className="bg-slate-950 border-none overflow-hidden text-white shadow-2xl shadow-black/40 group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-blue-600/10 opacity-50 group-hover:opacity-70 transition-opacity" />
+                        <CardContent className="p-8 relative z-10">
+                            <div className="flex justify-between items-start mb-8">
+                                <div>
+                                    <h3 className="text-2xl font-black tracking-tighter uppercase italic">{locale === 'kk' ? 'Мәзір Статус' : 'Статус'}</h3>
+                                    <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest opacity-80">Premium Experience</p>
+                                </div>
+                                <div className="bg-white/10 p-4 rounded-[1.5rem] backdrop-blur-xl border border-white/10 shadow-inner">
+                                    <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                                </div>
                             </div>
-                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md">
-                                <History className="w-6 h-6" />
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white/5 backdrop-blur-sm rounded-[2rem] p-6 border border-white/5 transition-transform hover:scale-[1.02]">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <History className="w-3 h-3 text-primary" />
+                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{locale === 'kk' ? 'Тапсырыстар' : 'Заказы'}</p>
+                                    </div>
+                                    <p className="text-3xl font-black tracking-tighter">12</p>
+                                </div>
+                                <div className="bg-white/5 backdrop-blur-sm rounded-[2rem] p-6 border border-white/5 transition-transform hover:scale-[1.02]">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <VerifiedIcon className="w-3 h-3 text-emerald-500" />
+                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{locale === 'kk' ? 'Үнем' : 'Эконом'}</p>
+                                    </div>
+                                    <p className="text-3xl font-black tracking-tighter text-emerald-400">1.2к <span className="text-xs font-bold text-slate-500 uppercase">₸</span></p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white/5 rounded-3xl p-5 border border-white/5">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Саны</p>
-                                <p className="text-2xl font-black mt-2">12</p>
+
+                            <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                                <div className="flex -space-x-2">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[10px] font-black">
+                                            {i}
+                                        </div>
+                                    ))}
+                                    <div className="w-8 h-8 rounded-full border-2 border-slate-950 bg-primary/20 text-primary flex items-center justify-center text-[10px] font-black font-sans">
+                                        +5
+                                    </div>
+                                </div>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{locale === 'kk' ? 'Белсенді қолданушы' : 'Активный клиент'}</p>
                             </div>
-                            <div className="bg-white/5 rounded-3xl p-5 border border-white/5">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Үнем</p>
-                                <p className="text-2xl font-black mt-2 text-emerald-400">1.2к ₸</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Sign Out Section with danger style */}
                 <button
@@ -303,6 +370,78 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Install Guide Modal */}
+            <Dialog open={showInstallGuide} onOpenChange={setShowInstallGuide}>
+                <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl bg-white dark:bg-slate-900">
+                    <DialogHeader className="space-y-4 pt-4">
+                        <div className="flex justify-center">
+                            <div className="w-20 h-20 rounded-[2rem] bg-orange-500/10 flex items-center justify-center shadow-inner">
+                                <Smartphone className="w-10 h-10 text-orange-500" />
+                            </div>
+                        </div>
+                        <DialogTitle className="text-center text-2xl font-black tracking-tight">
+                            {locale === 'kk' ? 'Орнату нұсқаулығы' : 'Инструкция по установке'}
+                        </DialogTitle>
+                        <DialogDescription className="text-center font-medium">
+                            {locale === 'kk' 
+                                ? 'Қосымшаны негізгі экранға қосу үшін мына қадамдарды орындаңыз:' 
+                                : 'Для добавления приложения на экран выполните следующие действия:'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-6 flex flex-col gap-6">
+                        {isIos ? (
+                            <div className="space-y-6 px-2">
+                                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                                        <Share className="w-5 h-5 text-orange-500" />
+                                    </div>
+                                    <p className="text-sm font-bold leading-tight">
+                                        {locale === 'kk' ? '1. Safari-де "Бөлісу" батырмасын басыңыз' : '1. Нажмите "Поделиться" в Safari'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                                        <PlusSquare className="w-5 h-5 text-orange-500" />
+                                    </div>
+                                    <p className="text-sm font-bold leading-tight">
+                                        {locale === 'kk' ? '2. "Бас экранға қосу" таңдаңыз' : '2. Выберите "На экран Домой"'}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-6 px-2">
+                                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                                        <MoreVertical className="w-5 h-5 text-orange-500" />
+                                    </div>
+                                    <p className="text-sm font-bold leading-tight">
+                                        {locale === 'kk' ? '1. Браузер мәзірін басыңыз' : '1. Нажмите на меню браузера'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                                        <Download className="w-5 h-5 text-orange-500" />
+                                    </div>
+                                    <p className="text-sm font-bold leading-tight">
+                                        {locale === 'kk' ? '2. "Қолданбаны орнату" таңдаңыз' : '2. Выберите "Установить приложение"'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-center pb-6">
+                        <Button
+                            onClick={() => setShowInstallGuide(false)}
+                            className="px-10 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl shadow-orange-500/20"
+                        >
+                            ОК
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

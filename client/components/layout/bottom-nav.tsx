@@ -24,9 +24,9 @@ export function BottomNav() {
   const navItems = [
     { href: '/', label: locale === 'kk' ? 'Басты бет' : 'Главная', icon: Home },
     { href: '/restaurants', label: locale === 'kk' ? 'Мәзірлер' : 'Меню', icon: UtensilsCrossed },
-    { href: '/favorites', label: locale === 'kk' ? 'Таңдаулар' : 'Избранное', icon: Heart, badge: favoritesCount },
     { href: '/cart', label: locale === 'kk' ? 'Себет' : 'Корзина', icon: ShoppingCart, badge: cartCount },
     { href: '/orders', label: locale === 'kk' ? 'Тапсырыс' : 'Заказы', icon: Clock },
+    { href: '/profile', label: locale === 'kk' ? 'Профиль' : 'Профиль', icon: User },
   ]
 
   return (
