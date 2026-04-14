@@ -46,56 +46,57 @@ export function InstallPrompt() {
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 100, opacity: 0 }}
-                className="fixed bottom-24 left-4 right-4 z-[100] md:left-auto md:right-8 md:w-80"
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="fixed bottom-24 left-4 right-4 z-[100] md:left-auto md:right-8 md:w-96"
             >
-                <Card className="bg-card/80 backdrop-blur-xl border-primary/20 shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[2rem] overflow-hidden border-2 animate-in slide-in-from-bottom-10 duration-700">
-                    <CardContent className="p-6 relative">
-                        {/* Improved Close Button */}
+                <Card className="bg-slate-900/90 backdrop-blur-3xl border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] rounded-[2.5rem] overflow-hidden border-2 text-white">
+                    <CardContent className="p-8 relative">
+                        {/* Close Button */}
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setShow(false);
                             }}
-                            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-all active:scale-95 cursor-pointer z-20"
+                            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all active:scale-90 cursor-pointer z-20"
                             aria-label="Close"
                         >
-                            <X className="w-5 h-5 text-muted-foreground" />
+                            <X className="w-5 h-5 text-white/70" />
                         </button>
 
-                        <div className="flex flex-col items-center text-center space-y-4 pt-2">
-                            <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center shadow-inner group">
-                                <Download className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
+                        <div className="flex flex-col items-center text-center space-y-6">
+                            <div className="w-20 h-20 rounded-[2rem] bg-red-500/10 flex items-center justify-center shadow-inner group border border-red-500/20">
+                                <Download className="w-10 h-10 text-red-500 group-hover:scale-110 transition-transform" />
                             </div>
                             
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-black tracking-tight">
-                                    {lang === 'kk' ? 'Məzir Admin қосымшасы' : 'Приложение Məzir Admin'}
+                            <div className="space-y-3">
+                                <h3 className="text-2xl font-black tracking-tight">
+                                    {lang === 'kk' ? 'Məzir қосымшасы' : 'Приложение Məzir'}
                                 </h3>
-                                <p className="text-xs text-muted-foreground leading-relaxed px-2">
+                                <p className="text-sm text-slate-400 font-medium leading-relaxed px-4 opacity-80">
                                     {platform === 'ios'
                                         ? (lang === 'kk'
-                                            ? 'Safari-де "Бөлісу" батырмасын басып, "Home Screen-ге қосу" таңдаңыз.'
+                                            ? 'Safari-де "Бөлісу" батырмасын басып, "Бас экранға қосу" таңдаңыз.'
                                             : 'Нажмите "Поделиться" в Safari и выберите "На экран Домой".')
                                         : (lang === 'kk'
-                                            ? 'Панельді жылдам ашу және хабарламаларды алу үшін негізгі экранға қосыңыз.'
-                                            : 'Добавьте панель на главный экран для быстрого доступа и получения уведомлений.')}
+                                            ? 'Тапсырыс беруді тездету үшін қосымшаны негізгі экранға қосыңыз.'
+                                            : 'Добавьте приложение на главный экран для быстрого заказа еды.')}
                                 </p>
                             </div>
 
-                            <div className="w-full pt-2">
+                            <div className="w-full pt-4">
                                 {platform === 'ios' ? (
-                                    <div className="flex items-center justify-center gap-3 py-3 px-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                        <Share className="w-5 h-5 text-primary" />
-                                        <span className="text-xs font-bold">→</span>
-                                        <PlusSquare className="w-5 h-5 text-primary" />
-                                        <span className="text-[11px] font-bold uppercase tracking-wider">
+                                    <div className="flex items-center justify-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10">
+                                        <Share className="w-6 h-6 text-red-500" />
+                                        <span className="text-sm font-black">→</span>
+                                        <PlusSquare className="w-6 h-6 text-red-500" />
+                                        <span className="text-xs font-black uppercase tracking-[0.2em]">
                                             {lang === 'kk' ? 'Экранға қосу' : 'На экран Домой'}
                                         </span>
                                     </div>
                                 ) : (
                                     <Button
                                         onClick={handleInstallClick}
-                                        className="w-full h-12 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all"
+                                        className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white shadow-2xl shadow-red-600/30 active:scale-[0.98] transition-all border-none"
                                     >
                                         {lang === 'kk' ? 'Орнату' : 'Установить'}
                                     </Button>
