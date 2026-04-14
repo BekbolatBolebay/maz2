@@ -173,40 +173,77 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                         </p>
                     </div>
 
-                    <div className="flex gap-3 w-full max-w-sm px-4">
-                        {/* Quick Install Button */}
-                        {!isStandalone && (
-                            <Button
-                                onClick={handleInstall}
-                                className="flex-1 rounded-2xl font-black h-12 bg-white text-slate-950 hover:bg-slate-50 shadow-2xl shadow-black/20 active:scale-95 transition-all text-xs uppercase tracking-widest group"
-                            >
-                                <Smartphone className="w-4 h-4 mr-2 text-primary group-hover:scale-110 transition-transform" />
-                                {locale === 'kk' ? 'Орнату' : 'Установить'}
-                            </Button>
-                        )}
+                    <div className="px-6 w-full -mb-4">
+                         {/* Premium App Experience Card */}
+                        <Card className="bg-slate-950 border-none overflow-hidden text-white shadow-2xl shadow-black/40 group relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-blue-600/10 opacity-50 group-hover:opacity-70 transition-opacity" />
+                            <CardContent className="p-6 relative z-10">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-1">
+                                            <h3 className="text-xl font-black tracking-tighter uppercase italic flex items-center gap-2">
+                                                Mazir App
+                                                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-80">
+                                                {locale === 'kk' ? 'Тапсырыс беру енді жылдам' : 'Заказывать стало еще быстрее'}
+                                            </p>
+                                        </div>
+                                        <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md border border-white/10">
+                                            <Smartphone className="w-5 h-5 text-primary" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-2">
+                                        {!isStandalone && (
+                                            <Button 
+                                                onClick={handleInstall}
+                                                className="flex-1 h-11 rounded-xl bg-white text-slate-950 hover:bg-slate-100 font-black uppercase tracking-widest text-[9px] shadow-xl active:scale-95 transition-all"
+                                            >
+                                                <Download className="w-3 h-3 mr-2 text-primary" />
+                                                {locale === 'kk' ? 'Жүктеп алу' : 'Скачать'}
+                                            </Button>
+                                        )}
+                                        
+                                        {!isGuest && (
+                                            <Button 
+                                                onClick={() => {
+                                                    setEditName(formatCustomerValue(profile?.full_name, 'full_name') || '')
+                                                    setEditPhone(formatCustomerValue(profile?.phone || profile?.full_name, 'phone') || '')
+                                                    setIsEditModalOpen(true)
+                                                }}
+                                                variant="outline"
+                                                className={cn(
+                                                    "h-11 rounded-xl bg-white/10 border-white/10 hover:bg-white/20 text-white font-black uppercase tracking-widest text-[9px] backdrop-blur-md active:scale-95 transition-all",
+                                                    isStandalone ? "w-full" : "flex-1"
+                                                )}
+                                            >
+                                                <ArrowRight className="w-3 h-3 mr-2" />
+                                                {t.profile?.editProfile || 'Өңдеу'}
+                                            </Button>
+                                        )}
+                                    </div>
 
-                        {!isGuest && (
-                            <Button
-                                variant="secondary"
-                                className={cn(
-                                    "rounded-2xl font-black h-12 shadow-2xl transition-all active:scale-95 group border-none",
-                                    !isStandalone ? "flex-1 bg-white/10 backdrop-blur-md text-white hover:bg-white/20" : "w-full bg-white text-slate-950 hover:bg-slate-50"
-                                )}
-                                onClick={() => {
-                                    setEditName(formatCustomerValue(profile?.full_name, 'full_name') || '')
-                                    setEditPhone(formatCustomerValue(profile?.phone || profile?.full_name, 'phone') || '')
-                                    setIsEditModalOpen(true)
-                                }}
-                            >
-                                <ArrowRight className={cn("w-4 h-4 mr-2 transition-transform group-hover:translate-x-1", !isStandalone ? "text-white" : "text-primary")} />
-                                {t.profile?.editProfile || 'Өңдеу'}
-                            </Button>
-                        )}
+                                    {!isStandalone && (
+                                        <div className="flex items-center gap-3 pt-2 border-t border-white/5 mt-2">
+                                            <div className="flex -space-x-1.5">
+                                                {[1, 2, 3].map(i => (
+                                                    <div key={i} className="w-5 h-5 rounded-full border border-slate-950 bg-slate-800 flex items-center justify-center text-[7px] font-black">
+                                                        {i}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Android & iOS қолдайды</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>
 
-            <div className="px-6 -mt-12 space-y-8 relative z-20">
+            <div className="px-6 space-y-8 relative z-20 mt-4">
                 {/* Restaurant Ownership Card */}
                 {restaurant && (
                     <Link href="/manage" className="block transform transition-transform active:scale-[0.98]">
