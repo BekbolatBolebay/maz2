@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'Кафені басқару жүйесі',
   generator: 'v0.app',
   manifest: '/manifest.json',
+  applicationName: 'Məzir Admin',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -28,9 +29,16 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: '/favicon-32x32.png',
+    icon: [
+      { url: '/favicon-32x32.png', sizes: '32x32' },
+      { url: '/icon-192x192.png', sizes: '192x192' },
+    ],
     apple: '/apple-touch-icon.png',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+  }
 }
 
 export const viewport: Viewport = {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Share, PlusSquare } from 'lucide-react'
+import { X, Download, Share, PlusSquare, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -99,13 +99,34 @@ export function InstallPrompt() {
                                 {(platform === 'ios' || !isInstallable) ? (
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-center justify-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10">
-                                            <Share className="w-6 h-6 text-red-500" />
-                                            <span className="text-sm font-black">→</span>
-                                            <PlusSquare className="w-6 h-6 text-red-500" />
+                                            {platform === 'ios' ? (
+                                                <>
+                                                    <Share className="w-6 h-6 text-red-500" />
+                                                    <span className="text-sm font-black">→</span>
+                                                    <PlusSquare className="w-6 h-6 text-red-500" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <MoreVertical className="w-6 h-6 text-red-500" />
+                                                    <span className="text-sm font-black">→</span>
+                                                    <Download className="w-6 h-6 text-red-500" />
+                                                </>
+                                            )}
                                             <span className="text-xs font-black uppercase tracking-[0.2em]">
-                                                {lang === 'kk' ? 'Экранға қосу' : 'На экран Домой'}
+                                                {lang === 'kk' 
+                                                    ? (platform === 'ios' ? 'Экранға қосу' : 'Қосымшаны орнату') 
+                                                    : (platform === 'ios' ? 'На экран Домой' : 'Установить приложение')}
                                             </span>
                                         </div>
+                                        
+                                        {/* Specific instruction text for Android workaround */}
+                                        {platform !== 'ios' && !isInstallable && (
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center mt-2">
+                                                {lang === 'kk' 
+                                                    ? 'Мәзірді (3 нүкте) басып, "Қолданбаны орнату" таңдаңыз' 
+                                                    : 'Нажмите на меню (3 точки) и выберите "Установить приложение"'}
+                                            </p>
+                                        )}
                                     </div>
                                 ) : (
                                     <Button
