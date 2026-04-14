@@ -1223,37 +1223,6 @@ export function CheckoutClient() {
                                         )}
                                     </Button>
 
-                                    {/* Compliance Links & Info */}
-                                    <div className="space-y-4 px-4 text-center">
-                                        <div className="text-[10px] text-muted-foreground leading-relaxed">
-                                            {locale === 'kk' ? (
-                                                <>
-                                                    «Тапсырысты растау» батырмасын басу арқылы сіз <a href="/offer" className="underline text-primary" target="_blank">Жария оферта</a> және <a href="/privacy" className="underline text-primary" target="_blank">Құпиялылық саясаты</a> шарттарымен келісесіз. <br />
-                                                    Төлем FreedomPay қауіпсіз жүйесі арқылы жүзеге асырылады. <a href="/refund" className="underline" target="_blank">Қайтару шарттары</a>.
-                                                </>
-                                            ) : (
-                                                <>
-                                                    Нажимая «Подтвердить заказ», вы соглашаетесь с условиями <a href="/offer" className="underline text-primary" target="_blank">Публичной оферты</a> и <a href="/privacy" className="underline text-primary" target="_blank">Политики конфиденциальности</a>. <br />
-                                                    Оплата производится через защищенную систему FreedomPay. <a href="/refund" className="underline" target="_blank">Условия возврата</a>.
-                                                </>
-                                            )}
-                                        </div>
-
-                                        {/* Requisites Block */}
-                                        {restaurantSettings && (
-                                            <div className="p-4 rounded-3xl bg-muted/20 border border-transparent hover:border-muted-foreground/10 transition-colors">
-                                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 italic">
-                                                    {locale === 'kk' ? 'Сатушы реквизиттері' : 'Реквизиты продавца'}
-                                                </p>
-                                                <div className="text-[10px] text-muted-foreground space-y-1 text-center">
-                                                    <p className="font-bold">"Lunar Techonology" ЖШС</p>
-                                                    <p>Қызылорда облысы, Абай ауылы, Жамбыл Жабаев к-сі, 21-үй</p>
-                                                    <p>{restaurantSettings.phone}</p>
-                                                    <p className="font-bold text-primary/80">БИН 260240021120</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
