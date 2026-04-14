@@ -51,8 +51,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // PWA Install logic
     const handleBeforeInstall = (e: any) => {
+      console.log('PWA: beforeinstallprompt event fired')
       e.preventDefault()
       setDeferredPrompt(e)
+      // Also store on window for global access (useful for direct button triggers)
+      ;(window as any).deferredPrompt = e
       setIsInstallable(true)
     }
 

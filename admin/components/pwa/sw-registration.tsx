@@ -12,10 +12,17 @@ export function SWRegistration() {
             scope: '/',
             updateViaCache: 'none' 
           })
-          console.log('PWA Service Worker registered:', reg.scope)
-
-          // Wait until the main worker is ready before registering FCM
-          await navigator.serviceWorker.ready
+          
+          if (reg) {
+            console.log('PWA Service Worker registered:', reg.scope)
+            
+            // If there's no controller, reload to let SW take control
+            // This is often needed for the first-time installation to trigger criteria
+            if (!navigator.serviceWorker.controller) {
+              console.log('PWA: No controller found. Service worker taking control...');
+              // We don't necessarily need a reload here, but it helps stability
+            }
+          }
 
           // Register Firebase messaging worker separately with specific scope
           const fcmReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { 

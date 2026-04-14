@@ -2,10 +2,15 @@
     "name": "Məzir Admin - Кафе басқару",
     "short_name": "Məzir-Admin",
     "description": "Кафе тапсырыстары мен параметрлерін басқару",
-    "id": "/",
+    "id": "mazir-admin-pwa",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
+    "display_override": [
+        "window-controls-overlay",
+        "standalone"
+    ],
+    "prefer_related_applications": false,
     "orientation": "portrait",
     "background_color": "#ffffff",
     "theme_color": "#f59e0b",
