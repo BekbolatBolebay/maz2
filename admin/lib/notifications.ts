@@ -44,14 +44,59 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 /**
  * Sends a Web Push notification to a specific user subscription.
  */
-export async function sendPushNotification(subscription: any, payload: { title: string; body: string; icon?: string; url?: string }) {
+export async function sendPushNotification(user: { fcm_token?: string; push_subscription?: any }, payload: { title: string; body: string; icon?: string; url?: string }) {
   try {
-    const result = await webpush.sendNotification(
-      subscription,
-      JSON.stringify(payload)
-    );
-    console.log('[Push] Sent successfully');
-    return { success: true, result };
+    const pushPromises: Promise<any>[] = [];
+
+    // 1. Firebase FCM (Preferred)
+    if (user.fcm_token) {
+      try {
+        const { messaging } = await import('./firebase-admin');
+        if (messaging) {
+          const message = {
+            token: user.fcm_token,
+            notification: {
+              title: payload.title,
+              body: payload.body,
+            },
+            data: {
+              url: payload.url || '/',
+            },
+            webpush: {
+              fcm_options: {
+                link: payload.url || '/',
+              },
+              notification: {
+                icon: payload.icon || '/favicon-32x32.png',
+              }
+            },
+          };
+          pushPromises.push((messaging as any).send(message));
+        } else {
+          console.warn('[Push] FCM messaging not initialized (missing credentials)');
+        }
+      } catch (e) {
+        console.error('[Push] FCM import error:', e);
+      }
+    }
+
+    // 2. Legacy Web-Push (Fallback)
+    if (user.push_subscription && !user.fcm_token) {
+      pushPromises.push(
+        webpush.sendNotification(
+          user.push_subscription,
+          JSON.stringify(payload)
+        )
+      );
+    }
+
+    if (pushPromises.length === 0) {
+      return { success: false, error: 'No subscription or token found' };
+    }
+
+    await Promise.all(pushPromises);
+    console.log('[Push] Sent successfully via all available channels');
+    return { success: true };
   } catch (error: any) {
     console.error('[Push] Error:', error);
     return { success: false, error: error.message };
@@ -78,9 +123,8 @@ export async function notifyAdminAllChannels(order: any, restaurant: any) {
   const supabase = await createClient();
   const { data: staff } = await supabase
     .from('staff_profiles')
-    .select('push_subscription')
-    .eq('cafe_id', restaurant.id)
-    .not('push_subscription', 'is', null);
+    .select('role, fcm_token, push_subscription, full_name')
+    .eq('cafe_id', restaurant.id);
 
   if (staff && staff.length > 0) {
     const pushPayload = {
@@ -90,10 +134,12 @@ export async function notifyAdminAllChannels(order: any, restaurant: any) {
       url: '/orders'
     };
     
+    // Notify everyone in the restaurant staff
     for (const member of staff) {
-        if (member.push_subscription) {
-            await sendPushNotification(member.push_subscription, pushPayload);
-        }
+        await sendPushNotification({ 
+            fcm_token: member.fcm_token, 
+            push_subscription: member.push_subscription 
+        }, pushPayload);
     }
   }
 }
@@ -107,23 +153,26 @@ export async function notifyCustomer(userId: string, payload: { title: string; b
     // Try clients table
     let { data } = await supabase
         .from('clients')
-        .select('push_subscription')
+        .select('fcm_token, push_subscription')
         .eq('id', userId)
         .single();
         
-    if (!data?.push_subscription) {
+    if (!data?.fcm_token && !data?.push_subscription) {
         // Fallback to staff_profiles (if staff is the customer)
         const { data: staffData } = await supabase
             .from('staff_profiles')
-            .select('push_subscription')
+            .select('fcm_token, push_subscription')
             .eq('id', userId)
             .single();
-        data = staffData;
+        data = staffData as any;
     }
 
-    if (data?.push_subscription) {
-        return await sendPushNotification(data.push_subscription, payload);
+    if (data?.fcm_token || data?.push_subscription) {
+        return await sendPushNotification({ 
+            fcm_token: data.fcm_token, 
+            push_subscription: data.push_subscription 
+        }, payload);
     }
     
-    return { success: false, error: 'No subscription found' };
+    return { success: false, error: 'No subscription or token found' };
 }

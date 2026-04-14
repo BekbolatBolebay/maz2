@@ -255,114 +255,104 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const subscribeToPush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.warn('Push messaging is not supported')
-      return
+      console.warn('Push messaging is not supported in this browser');
+      const { toast } = await import('sonner');
+      toast.error('Бұл браузер хабарламаларды қолдамайды');
+      return;
     }
 
     try {
-      const permission = await Notification.requestPermission()
+      const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        const { toast } = await import('sonner')
-        toast.error(
-          window.location.hostname === 'localhost'
-            ? 'Notification permission denied'
-            : 'Хабарламаға рұқсат берілмеді'
-        )
-        return
+        const { toast } = await import('sonner');
+        toast.error('Хабарламаға рұқсат берілмеді');
+        return;
       }
+
+      console.log('[Push] Notification permission granted. Registering service workers...');
 
       // Ensure service worker is registered
-      let registrations = await navigator.serviceWorker.getRegistrations()
+      let registrations = await navigator.serviceWorker.getRegistrations();
       if (registrations.length === 0) {
-        console.log('[AuthContext] No service worker found, attempting registration...')
         try {
-          // Manual registration fallback
-          await navigator.serviceWorker.register('/sw.js')
-          // Wait briefly for registration to settle
-          await new Promise(r => setTimeout(r, 1000))
-          registrations = await navigator.serviceWorker.getRegistrations()
+          await navigator.serviceWorker.register('/sw.js');
+          await new Promise(r => setTimeout(r, 1000));
+          registrations = await navigator.serviceWorker.getRegistrations();
         } catch (regError) {
-          console.error('[AuthContext] Manual registration failed:', regError)
+          console.error('[Push] SW registration failed:', regError);
         }
       }
 
-      // Check again after attempt
-      if (registrations.length === 0) {
-        if (process.env.NODE_ENV === 'development') {
-          throw new Error('PWA is disabled in development mode. Use "npm run build && npm start" to test push notifications.')
-        }
-        throw new Error(
-          window.location.hostname === 'localhost'
-            ? 'Service Worker not registered. Please ensure PWA is enabled.'
-            : 'Сервис-вокер тіркелмеген. PWA қосулы екеніне көз жеткізіңіз.'
-        )
-      }
-
-      // Add a timeout to serviceWorker.ready to avoid infinite spinning
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Service Worker timeout')), 10000)
         )
-      ])
+      ]);
 
-      if (!registration) {
-        throw new Error('Service Worker not ready')
-      }
+      if (!registration) throw new Error('Service Worker not ready');
 
-      // Try to get existing subscription first
-      let subscription = await registration.pushManager.getSubscription()
-
+      // 1. Web-Push Subscription (Native)
+      let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-        })
+        });
+      }
+      console.log('[Push] Native subscription obtained');
+
+      // 2. Firebase FCM Token
+      let fcmToken = null;
+      try {
+        const { getFcmToken } = await import('@/lib/firebase');
+        fcmToken = await getFcmToken();
+        console.log('[Push] FCM Token obtained:', fcmToken ? 'Success' : 'Failed');
+      } catch (fcmError) {
+        console.error('[Push] FCM specific error:', fcmError);
       }
 
-      // Store subscription in profile/DB
+      // 3. Save to Database
       if (user) {
-        const supabase = createClient()
-        const subscriptionString = JSON.stringify(subscription)
+        const supabase = createClient();
+        const subData = { 
+          push_subscription: subscription as any,
+          push_token: JSON.stringify(subscription),
+          fcm_token: fcmToken,
+          updated_at: new Date().toISOString()
+        };
 
-        // Also get FCM Token
-        const fcmToken = await getFcmToken()
+        console.log('[Push] Updating profile for user:', user.id);
 
         // Try clients first
-        const { error: clientError } = await supabase
+        const { data: client, error: clientError } = await supabase
             .from('clients')
-            .update({ 
-              push_token: subscriptionString,
-              push_subscription: subscription as any,
-              fcm_token: fcmToken,
-              preferred_language: (profile as any)?.language || 'ru',
-              language: (profile as any)?.language || 'ru'
-            })
+            .update(subData)
             .eq('id', user.id)
+            .select()
+            .single();
 
-        if (clientError) {
+        if (clientError || !client) {
           // Fallback to staff_profiles
-          await supabase
+          console.log('[Push] User not in clients table, trying staff_profiles');
+          const { error: staffError } = await supabase
               .from('staff_profiles')
-              .update({ 
-                push_subscription: subscription as any,
-                push_token: subscriptionString,
-                fcm_token: fcmToken
-              } as any)
-              .eq('id', user.id)
+              .update(subData)
+              .eq('id', user.id);
+          
+          if (staffError) {
+              console.error('[Push] DB Update Error (Staff):', staffError);
+              throw new Error('Деректер базасын жаңарту мүмкін болмады');
+          }
         }
       }
 
-      const { toast } = await import('sonner')
-      toast.success(
-        window.location.hostname === 'localhost'
-          ? 'Subscribed to notifications'
-          : 'Хабарламалар қосылды'
-      )
+      const { toast } = await import('sonner');
+      toast.success('Хабарламалар сәтті қосылды');
     } catch (error: any) {
-      console.error('Error subscribing to push:', error)
-      const { toast } = await import('sonner')
-      toast.error(error.message || 'Error subscribing')
+      console.error('[Push] Overall subscription error:', error);
+      const { toast } = await import('sonner');
+      toast.error(error.message || 'Сәтсіз аяқталды');
     }
   }
 
