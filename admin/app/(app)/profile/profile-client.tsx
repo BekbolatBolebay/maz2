@@ -322,45 +322,82 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     }
 
     try {
+      const { toast } = await import('sonner')
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
         toast.error(lang === 'kk' ? 'Хабарламаларға рұқсат берілмеді' : 'Разрешение на уведомления не получено')
         return
       }
 
-      const registrations = await navigator.serviceWorker.getRegistrations()
+      console.log('[AdminPush] Notification permission granted. Checking service worker...');
+
+      // 1. Ensure service worker is registered
+      let registrations = await navigator.serviceWorker.getRegistrations();
       if (registrations.length === 0) {
-        toast.error(lang === 'kk' ? 'Сервис-вокер тіркелмеген' : 'Сервис-воркер не зарегистрирован')
-        return
+        console.log('[AdminPush] No registration found, registering /sw.js...');
+        try {
+          await navigator.serviceWorker.register('/sw.js');
+          await new Promise(r => setTimeout(r, 1000));
+          registrations = await navigator.serviceWorker.getRegistrations();
+        } catch (regError) {
+          console.error('[AdminPush] Manual registration failed:', regError);
+        }
       }
 
+      // 2. Wait for SW to be ready with a longer timeout (12s)
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Service Worker timeout')), 5000)
+          setTimeout(() => reject(new Error('Service Worker timeout (12s)')), 12000)
         )
       ]) as ServiceWorkerRegistration
 
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      })
+      if (!registration) {
+          throw new Error('Service Worker not ready');
+      }
 
+      // 3. Obtain Native Web-Push Subscription
+      let subscription = await registration.pushManager.getSubscription()
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        })
+      }
+      console.log('[AdminPush] Native subscription obtained');
+
+      // 4. Obtain FCM Token
+      let fcmToken = null;
+      try {
+          const { getFcmToken } = await import('@/lib/firebase');
+          fcmToken = await getFcmToken();
+          console.log('[AdminPush] FCM Token obtained:', fcmToken ? 'Success' : 'Failed');
+      } catch (fcmErr) {
+          console.warn('[AdminPush] FCM specific retrieval error:', fcmErr);
+      }
+
+      // 5. Save to Database
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
+        console.log('[AdminPush] Saving subscription for admin:', user.id);
         const { error } = await supabase
           .from('staff_profiles')
-          .update({ push_subscription: subscription })
+          .update({ 
+              push_subscription: subscription as any,
+              push_token: JSON.stringify(subscription),
+              fcm_token: fcmToken,
+              updated_at: new Date().toISOString()
+          })
           .eq('id', user.id)
 
         if (error) throw error
         toast.success(lang === 'kk' ? 'Хабарламалар сәтті қосылды' : 'Уведомления успешно включены')
       }
     } catch (error: any) {
-      console.error('Push subscription error:', error)
-      toast.error(lang === 'kk' ? 'Қате шықты' : 'Ошибка при подписке')
+      console.error('[AdminPush] Overall registration error:', error)
+      toast.error(lang === 'kk' ? `Қате шықты: ${error.message}` : `Ошибка: ${error.message}`)
     }
   }
 
