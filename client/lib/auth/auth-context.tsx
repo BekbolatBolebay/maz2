@@ -271,26 +271,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('[Push] Notification permission granted. Registering service workers...');
 
-      // Ensure service worker is registered
-      let registrations = await navigator.serviceWorker.getRegistrations();
-      if (registrations.length === 0) {
+      // 1. Ensure service worker is registered and get registration object
+      let registration: ServiceWorkerRegistration | undefined;
+      
+      const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+      if (existingRegistrations.length > 0) {
+        registration = existingRegistrations[0];
+        console.log('[Push] Using existing registration');
+      } else {
+        console.log('[Push] No registration found, registering /sw.js...');
         try {
-          await navigator.serviceWorker.register('/sw.js');
+          registration = await navigator.serviceWorker.register('/sw.js');
           await new Promise(r => setTimeout(r, 1000));
-          registrations = await navigator.serviceWorker.getRegistrations();
         } catch (regError) {
-          console.error('[Push] SW registration failed:', regError);
+          console.error('[Push] Registration failed:', regError);
         }
       }
 
-      const registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Service Worker timeout')), 10000)
-        )
-      ]);
+      if (!registration) {
+          // One last attempt
+          registration = await navigator.serviceWorker.getRegistration('/');
+      }
 
-      if (!registration) throw new Error('Service Worker not ready');
+      if (!registration) throw new Error('Service Worker registration failed or not found');
 
       // 1. Web-Push Subscription (Native)
       let subscription = await registration.pushManager.getSubscription();

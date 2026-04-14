@@ -331,29 +331,30 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
 
       console.log('[AdminPush] Notification permission granted. Checking service worker...');
 
-      // 1. Ensure service worker is registered
-      let registrations = await navigator.serviceWorker.getRegistrations();
-      if (registrations.length === 0) {
+      // 1. Ensure service worker is registered and get registration object
+      let registration: ServiceWorkerRegistration | undefined;
+      
+      const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+      if (existingRegistrations.length > 0) {
+        registration = existingRegistrations[0];
+        console.log('[AdminPush] Using existing registration');
+      } else {
         console.log('[AdminPush] No registration found, registering /sw.js...');
         try {
-          await navigator.serviceWorker.register('/sw.js');
+          registration = await navigator.serviceWorker.register('/sw.js');
           await new Promise(r => setTimeout(r, 1000));
-          registrations = await navigator.serviceWorker.getRegistrations();
         } catch (regError) {
-          console.error('[AdminPush] Manual registration failed:', regError);
+          console.error('[AdminPush] Registration failed:', regError);
         }
       }
 
-      // 2. Wait for SW to be ready with a longer timeout (12s)
-      const registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Service Worker timeout (12s)')), 12000)
-        )
-      ]) as ServiceWorkerRegistration
+      if (!registration) {
+          // One last attempt
+          registration = await navigator.serviceWorker.getRegistration('/');
+      }
 
       if (!registration) {
-          throw new Error('Service Worker not ready');
+          throw new Error('Service Worker registration failed or not found');
       }
 
       // 3. Obtain Native Web-Push Subscription
