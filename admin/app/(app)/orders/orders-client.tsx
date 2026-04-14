@@ -395,10 +395,10 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
           const o = payload.new as any
           if (!o) return
 
-          const fetchDetails = async () => {
+          const fetchDetails = async (retryCount = 0) => {
             try {
-              // Wait 1 second to allow client to insert order_items
-              await new Promise(resolve => setTimeout(resolve, 1000))
+              // Wait significantly less time (300ms) for the first attempt
+              if (retryCount === 0) await new Promise(resolve => setTimeout(resolve, 300))
               
               // Fetch items, customer name and reviews in parallel
               const [itemsRes, clientRes, reviewsRes] = await Promise.all([
@@ -406,6 +406,13 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                 supabase.from('clients').select('full_name').eq('id', o.user_id).maybeSingle(),
                 supabase.from('reviews').select('*').eq('order_id', o.id).maybeSingle()
               ])
+
+              // If items are missing and we haven't retried much, wait and try again
+              if ((!itemsRes.data || itemsRes.data.length === 0) && retryCount < 3) {
+                console.log(`[Admin Orders] Items not found for order ${o.id}, retrying... (${retryCount + 1})`)
+                setTimeout(() => fetchDetails(retryCount + 1), 1000)
+                return
+              }
 
               const mappedItems = itemsRes.data?.map((item: any) => ({
                 ...item,
@@ -441,7 +448,12 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
             }
           }
           fetchDetails()
-      }).subscribe()
+      }).subscribe((status) => {
+        console.log(`[Admin Orders] Channel Status: ${status}`)
+        if (status === 'SUBSCRIBED') {
+          console.log('[Admin Orders] Successfully subscribed to real-time updates')
+        }
+      })
 
     const resChannel = supabase
         .channel(`reservations-realtime-${restaurant.id}`)
