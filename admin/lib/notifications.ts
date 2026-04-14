@@ -48,8 +48,9 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
   try {
     const pushPromises: Promise<any>[] = [];
 
-    // 1. Firebase FCM (Preferred)
+    // 1. Firebase FCM (High priority)
     if (user.fcm_token) {
+      console.log('[Push] Attempting FCM delivery for token:', user.fcm_token.slice(0, 10) + '...');
       try {
         const { messaging } = await import('./firebase-admin');
         if (messaging) {
@@ -76,12 +77,13 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
           console.warn('[Push] FCM messaging not initialized (missing credentials)');
         }
       } catch (e) {
-        console.error('[Push] FCM import error:', e);
+        console.error('[Push] FCM processing error:', e);
       }
     }
 
-    // 2. Legacy Web-Push (Fallback)
-    if (user.push_subscription && !user.fcm_token) {
+    // 2. Standard Web-Push (Reliable fallback/complement)
+    if (user.push_subscription) {
+      console.log('[Push] Attempting Web-Push delivery for endpoint:', user.push_subscription.endpoint?.slice(0, 30) + '...');
       pushPromises.push(
         webpush.sendNotification(
           user.push_subscription,

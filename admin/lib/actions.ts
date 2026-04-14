@@ -253,7 +253,7 @@ export async function sendTestPushAction() {
         return { success: false, error: 'Push-хабарламаларға рұқсат берілмеген. Алдымен "Қосу" батырмасын басыңыз.' };
     }
 
-    return await sendPushNotification(profile.push_subscription, {
+    return await sendPushNotification({ push_subscription: profile.push_subscription }, {
         title: 'Тест хабарламасы',
         body: 'Push-хабарламалар сәтті қосылды! ✅',
         icon: '/logo.png'
