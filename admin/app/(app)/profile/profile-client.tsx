@@ -22,12 +22,25 @@ import {
   Bell,
   ShieldCheck,
   Download,
-  Smartphone
+  Smartphone,
+  Share,
+  MoreVertical,
+  PlusSquare,
+  Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import ImageUpload from '@/components/ui/image-upload'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const MapPicker = dynamic(() => import('@/components/restaurant/map-picker').then(mod => mod.MapPicker), {
   ssr: false,
@@ -48,6 +61,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const [isSaving, setIsSaving] = useState(false)
   const [isTestingEmail, setIsTestingEmail] = useState(false)
   const [isTestingPush, setIsTestingPush] = useState(false)
+  const [showInstallGuide, setShowInstallGuide] = useState(false)
   
   // Local state for settings
   const [cafeStatus, setCafeStatus] = useState(settings?.status || 'open')
@@ -448,6 +462,90 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       </div>
 
       <div className="grid gap-6">
+        {/* Professional App Section */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
+               <Sparkles className="w-4 h-4 text-primary" />
+               {lang === 'kk' ? 'Қолданба мүмкіндіктері' : 'Возможности приложения'}
+            </h3>
+          </div>
+          
+          <Card className="bg-slate-950 border-none overflow-hidden text-white shadow-2xl shadow-black/40 group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-blue-600/10 opacity-50 group-hover:opacity-70 transition-opacity" />
+            <CardContent className="p-8 relative z-10">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black tracking-tighter uppercase italic">Mazir Admin App</h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest opacity-80">
+                    {lang === 'kk' 
+                       ? 'Мейрамхананы телефоннан басқару әлдеқайда ыңғайлы' 
+                       : 'Управлять рестораном с телефона намного удобнее'}
+                  </p>
+                </div>
+                
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                   <Button 
+                     onClick={() => {
+                        const { isIos, installApp } = (window as any).__APP_CONTEXT__ || {};
+                        // Fallback to simpler check if context is not available through window
+                        const ua = navigator.userAgent.toLowerCase();
+                        const isIosDevice = /iphone|ipad|ipod/.test(ua);
+                        
+                        if (isIosDevice) {
+                           setShowInstallGuide(true);
+                        } else {
+                           // Try to use the installApp from context if possible, or show guide
+                           // In profile-client we have access to context via useApp
+                           // But we already have installApp and isInstallable from useApp()
+                           if (typeof installApp === 'function') {
+                             installApp();
+                           } else {
+                             setShowInstallGuide(true);
+                           }
+                        }
+                     }}
+                     className="flex-1 md:flex-none h-12 px-6 rounded-2xl bg-white text-slate-950 hover:bg-slate-100 font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all"
+                   >
+                     <Smartphone className="w-4 h-4 mr-2 text-primary" />
+                     {lang === 'kk' ? 'Android-қа жүктеу' : 'Скачать на Android'}
+                   </Button>
+
+                   <Button 
+                     onClick={subscribeToPush}
+                     variant="outline"
+                     className="flex-1 md:flex-none h-12 px-6 rounded-2xl bg-white/10 border-white/10 hover:bg-white/20 text-white font-black uppercase tracking-widest text-[10px] backdrop-blur-md active:scale-95 transition-all"
+                   >
+                     <Bell className="w-4 h-4 mr-2" />
+                     {lang === 'kk' ? 'Пуш қосу' : 'Включить пуш'}
+                   </Button>
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/10 pt-8">
+                 <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Нақты уақыттағы тапсырыстар</span>
+                 </div>
+                 <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                       <Smartphone className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">PWA Технологиясы</span>
+                 </div>
+                 <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                       <Bell className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Жедел хабарламалар</span>
+                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Images Section */}
         <section className="space-y-4">
           <h3 className="text-lg font-medium">{lang === 'kk' ? 'Брендинг (Суреттер)' : 'Брендинг (Изображения)'}</h3>
@@ -928,11 +1026,56 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
             </button>
           </div>
         </section>
+
+        {/* Install Guide Modal */}
+        <Dialog open={showInstallGuide} onOpenChange={setShowInstallGuide}>
+          <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl bg-white dark:bg-slate-900 mx-auto">
+            <DialogHeader className="space-y-4 pt-4">
+              <div className="flex justify-center">
+                <div className="w-20 h-20 rounded-[2rem] bg-primary/10 flex items-center justify-center shadow-inner">
+                  <Smartphone className="w-10 h-10 text-primary" />
+                </div>
+              </div>
+              <DialogTitle className="text-center text-2xl font-black tracking-tight uppercase italic">
+                {lang === 'kk' ? 'Орнату нұсқаулығы' : 'Инструкция по установке'}
+              </DialogTitle>
+              <DialogDescription className="text-center font-black text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                {lang === 'kk' 
+                  ? 'Қолданбаны негізгі экранға қосу үшін мына қадамдарды орындаңыз:' 
+                  : 'Для добавления приложения на экран выполните следующие действия:'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-6 flex flex-col gap-4">
+               <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                    <Share className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-wide leading-snug">
+                    {lang === 'kk' ? '1. Браузер мәзірін немесе "Поделиться" батырмасын басыңыз' : '1. Нажмите на меню браузера или "Поделиться"'}
+                  </p>
+               </div>
+               <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm shrink-0">
+                    <PlusSquare className="w-5 h-5 text-primary" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-wide leading-snug">
+                    {lang === 'kk' ? '2. "Бас экранға қосу" немесе "Install App" таңдаңыз' : '2. Выберите "На экран Домой" или "Install App"'}
+                  </p>
+               </div>
+            </div>
+
+            <div className="flex justify-center pb-6 px-6">
+              <Button
+                onClick={() => setShowInstallGuide(false)}
+                className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black uppercase text-sm tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all"
+              >
+                ОК
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
-}
-
-function Card({ children, className }: { children: React.ReactNode, className?: string }) {
-    return <div className={cn("bg-card rounded-2xl border border-border p-4", className)}>{children}</div>
 }
