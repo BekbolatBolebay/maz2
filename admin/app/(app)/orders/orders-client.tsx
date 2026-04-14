@@ -497,11 +497,12 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       }
       return true
     })
-    tabCounts[s] = s === 'all' ? visibleItems.length : visibleItems.filter((o) => o.status === s).length
+    tabCounts[s] = s === 'all' ? items.length : items.filter((o) => o.status === s).length
   })
 
+  // Filter items based on active tab
   const filtered = (activeTab === 'all' ? items : items.filter((o) => o.status === activeTab)).filter(o => {
-    // Hide unpaid Freedom Pay orders ONLY from the 'new' tab
+    // For 'new' tab, hide unpaid freedom orders
     if (activeTab === 'new' && o.payment_method === 'freedom' && o.payment_status !== 'paid' && o.status !== 'cancelled') {
       return false
     }

@@ -155,25 +155,30 @@ export async function notifyCustomer(userId: string, payload: { title: string; b
     // Try clients table
     let { data } = await supabase
         .from('clients')
-        .select('fcm_token, push_subscription')
+        .select('fcm_token, push_subscription, push_token')
         .eq('id', userId)
         .single();
         
-    if (!data?.fcm_token && !data?.push_subscription) {
-        // Fallback to staff_profiles (if staff is the customer)
+    if (!data?.fcm_token && !data?.push_subscription && !data?.push_token) {
+        // Fallback to staff_profiles
         const { data: staffData } = await supabase
             .from('staff_profiles')
-            .select('fcm_token, push_subscription')
+            .select('fcm_token, push_subscription, push_token')
             .eq('id', userId)
             .single();
         data = staffData as any;
     }
 
-    if (data?.fcm_token || data?.push_subscription) {
-        return await sendPushNotification({ 
-            fcm_token: data.fcm_token, 
-            push_subscription: data.push_subscription 
-        }, payload);
+    if (data) {
+        // Use either native push_subscription or the stringified push_token
+        const subscription = data.push_subscription || (data.push_token ? JSON.parse(data.push_token) : null);
+        
+        if (data.fcm_token || subscription) {
+            return await sendPushNotification({ 
+                fcm_token: data.fcm_token, 
+                push_subscription: subscription 
+            }, payload);
+        }
     }
     
     return { success: false, error: 'No subscription or token found' };

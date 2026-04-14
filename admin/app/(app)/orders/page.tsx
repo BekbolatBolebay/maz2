@@ -3,7 +3,7 @@ import OrdersClient from './orders-client'
 
 export default async function OrdersPage() {
   const [orders, reservations, settings] = await Promise.all([
-    getOrders('all', 50),
+    getOrders('all', 100),
     getReservations(),
     getCafeSettings()
   ])

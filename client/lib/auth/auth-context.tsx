@@ -337,7 +337,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (clientError || !client) {
           // Fallback to staff_profiles
-          console.log('[Push] User not in clients table, trying staff_profiles');
+          console.log('[Push] User not in clients table or update failed, trying staff_profiles');
           const { error: staffError } = await supabase
               .from('staff_profiles')
               .update(subData)
@@ -345,7 +345,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (staffError) {
               console.error('[Push] DB Update Error (Staff):', staffError);
-              throw new Error('Деректер базасын жаңарту мүмкін болмады');
+              // We don't throw here to avoid blocking the user experience if it's just a schema mismatch
+              // but we log it for diagnostics
           }
         }
       }
