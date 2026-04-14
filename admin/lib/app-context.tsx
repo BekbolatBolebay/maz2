@@ -51,7 +51,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // PWA Install logic
     const handleBeforeInstall = (e: any) => {
-      console.log('PWA: beforeinstallprompt event fired')
+      console.log('PWA: beforeinstallprompt event fired! App is now installable.')
       e.preventDefault()
       setDeferredPrompt(e)
       // Also store on window for global access (useful for direct button triggers)
@@ -65,6 +65,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const ua = window.navigator.userAgent.toLowerCase()
     const ios = /iphone|ipad|ipod/.test(ua)
     const standalone = window.matchMedia('(display-mode: standalone)').matches
+
+    console.log('PWA: Detection results:', { ios, standalone, isInstallable: ios && !standalone })
 
     setIsIos(ios)
     setIsStandalone(standalone)

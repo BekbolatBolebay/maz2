@@ -7,6 +7,8 @@ export function SWRegistration() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const registerSW = async () => {
         try {
+          console.log('PWA: Starting service worker registration...')
+          
           // Register the main PWA service worker first
           const reg = await navigator.serviceWorker.register('/sw.js', { 
             scope: '/',
@@ -14,23 +16,28 @@ export function SWRegistration() {
           })
           
           if (reg) {
-            console.log('PWA Service Worker registered:', reg.scope)
+            console.log('PWA: Main Service Worker registered successfully:', reg.scope)
             
-            // If there's no controller, reload to let SW take control
-            // This is often needed for the first-time installation to trigger criteria
-            if (!navigator.serviceWorker.controller) {
-              console.log('PWA: No controller found. Service worker taking control...');
-              // We don't necessarily need a reload here, but it helps stability
+            // Wait for the SW to be active if it's the first time
+            if (reg.installing) {
+              console.log('PWA: Service worker is installing...')
+            } else if (reg.active) {
+              console.log('PWA: Service worker is already active')
+            }
+
+            // Register Firebase messaging worker separately with specific scope
+            // We do this after the main SW to avoid potential conflicts during bridge initialization
+            try {
+              const fcmReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { 
+                scope: '/firebase-cloud-messaging-push-scope' 
+              })
+              console.log('PWA: Firebase Messaging Worker registered:', fcmReg.scope)
+            } catch (fcmErr) {
+              console.warn('PWA: Firebase Messaging registration failed (non-critical):', fcmErr)
             }
           }
-
-          // Register Firebase messaging worker separately with specific scope
-          const fcmReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { 
-            scope: '/firebase-cloud-messaging-push-scope' 
-          })
-          console.log('Firebase Service Worker registered:', fcmReg.scope)
         } catch (error) {
-          console.error('Service Worker registration failure:', error)
+          console.error('PWA: Service Worker registration failure:', error)
         }
       }
 
