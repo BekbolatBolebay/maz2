@@ -98,7 +98,12 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
           user.push_subscription,
           JSON.stringify(payload)
         ).catch((e: any) => {
-          console.error('[Push] Web-Push error:', e?.statusCode, e?.body);
+          console.error('[Push] Web-Push error:', {
+              statusCode: e?.statusCode,
+              body: e?.body,
+              message: e?.message,
+              hint: e?.statusCode === 401 || e?.statusCode === 403 ? 'Check VAPID keys in .env' : 'Check network/endpoint'
+          });
           throw e;
         })
       );

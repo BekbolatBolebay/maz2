@@ -412,7 +412,13 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
           .eq('id', user.id)
 
         if (error) throw error
-        toast.success(lang === 'kk' ? 'Хабарламалар сәтті қосылды' : 'Уведомления успешно включены')
+        
+        if (subscription && !fcmToken) {
+            console.log('[AdminPush] Registered with Native Push only (FCM skipped/failed)');
+            toast.success(lang === 'kk' ? 'Хабарламалар қосылды (Native)' : 'Уведомления включены (Native)')
+        } else {
+            toast.success(lang === 'kk' ? 'Хабарламалар сәтті қосылды' : 'Уведомления успешно включены')
+        }
       }
     } catch (error: any) {
       console.error('[AdminPush] Overall registration error:', error)

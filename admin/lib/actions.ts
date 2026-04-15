@@ -269,25 +269,47 @@ export async function sendTestPushAction() {
         return { success: false, error: 'Push-хабарламаларға рұқсат берілмеген. Алдымен "Қосу" батырмасын басыңыз.' };
     }
 
+    // Diagnostic: Check if VAPID keys are loaded on the server
+    const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
+    
+    if (!vapidPublic || !vapidPrivate) {
+        console.error('[Push Debug] Missing VAPID keys on server:', { public: !!vapidPublic, private: !!vapidPrivate });
+        return { 
+            success: false, 
+            error: `Серверде VAPID кілттері жоқ! (Public: ${!!vapidPublic}, Private: ${!!vapidPrivate}). Баптауларды (Env vars) тексеріңіз.` 
+        };
+    }
+
     // Parse push_subscription from various formats
     let subscription = profile?.push_subscription;
     if (!subscription && profile?.push_token) {
         try {
             subscription = JSON.parse(profile.push_token);
         } catch (e) {
-            // push_token might already be an object
             subscription = profile.push_token;
         }
     }
 
-    return await sendPushNotification({ 
-        push_subscription: subscription,
-        fcm_token: profile?.fcm_token
-    }, {
-        title: 'Тест хабарламасы',
-        body: 'Push-хабарламалар сәтті қосылды! ✅',
-        icon: '/logo.png'
-    });
+    try {
+        const result = await sendPushNotification({ 
+            push_subscription: subscription,
+            fcm_token: profile?.fcm_token
+        }, {
+            title: 'Тест хабарламасы',
+            body: 'Native Web-Push сәтті қосылды! ✅',
+            icon: '/icon-192x192.png'
+        });
+        
+        if (!result.success) {
+            return { success: false, error: `Жіберу сәтсіз: ${result.error}` };
+        }
+        
+        return result;
+    } catch (e: any) {
+        console.error('[Push Action Error]:', e);
+        return { success: false, error: `Жүйелік қате: ${e.message || 'Unknown server error'}` };
+    }
 }
 
 // Server Actions for VPS syncing (securely authenticated)
