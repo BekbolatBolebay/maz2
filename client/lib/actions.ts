@@ -18,21 +18,38 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 export async function notifyAdmin(data: any, type: 'order' | 'booking', restaurantId?: string) {
     try {
         console.log(`[Notification] Starting notifyAdmin for type: ${type}, restaurantId: ${restaurantId}`);
-        const { messaging } = await import('./firebase-admin')
         const supabase = await createClient()
 
-        // 1. Determine which staff members to notify.
-        // We notify admins, managers, and staff (for orders) who are associated with the restaurant.
-        let staffQuery = supabase
-            .from('staff_profiles')
-            .select('id, full_name, role, push_subscription, fcm_token')
-            .not('fcm_token', 'is', null) // Prioritize FCM
+        // Step 1: restaurants.owner_id → staff_profiles.id арқылы байланыстыру
+        // (staff_profiles-та cafe_id жоқ)
+        let ownerIds: string[] = []
 
         if (restaurantId) {
-            staffQuery = staffQuery.eq('cafe_id', restaurantId)
+            const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select('owner_id')
+                .eq('id', restaurantId)
+                .single()
+
+            if (restaurant?.owner_id) {
+                ownerIds.push(restaurant.owner_id)
+                console.log(`[Notification] Found owner_id: ${restaurant.owner_id}`)
+            }
+        }
+
+        if (ownerIds.length === 0) {
+            console.log('[Notification] No owner found — looking for all admins')
+        }
+
+        // Step 2: FCM token немесе push_subscription бар staff-ты табу
+        const staffQuery = supabase
+            .from('staff_profiles')
+            .select('id, full_name, role, push_subscription, fcm_token, push_token')
+
+        if (ownerIds.length > 0) {
+            staffQuery.in('id', ownerIds)
         } else {
-            // General admins if no restaurantId
-            staffQuery = staffQuery.eq('role', 'admin')
+            staffQuery.eq('role', 'admin')
         }
 
         const { data: staff, error: staffError } = await staffQuery
@@ -42,96 +59,97 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
             return
         }
 
-        if (!staff || staff.length === 0) {
-            console.log(`[Notification] No staff with FCM tokens found for restaurant ${restaurantId}`);
-            // Fallback: check if anyone has legacy push_subscription
-            const { data: legacyStaff } = await supabase
-                .from('staff_profiles')
-                .select('id, full_name, role, push_subscription, fcm_token')
-                .eq('cafe_id', restaurantId)
-                .not('push_subscription', 'is', null)
-            
-            if (!legacyStaff || legacyStaff.length === 0) {
-                console.log('[Notification] Totally no staff found to notify');
-                return
-            }
+        console.log(`[Notification] Found ${staff?.length || 0} staff members`)
+
+        const targetStaff = (staff || []).filter(member => {
+            const hasFcm = !!member.fcm_token
+            const hasSub = !!member.push_subscription || !!member.push_token
+            console.log(`[Notification] ${member.full_name}: fcm=${hasFcm}, web_push=${hasSub}`)
+            return hasFcm || hasSub
+        })
+
+        if (targetStaff.length === 0) {
+            console.warn('[Notification] ❌ No staff with any push token found! Push not sent.')
+            console.warn('[Notification] Admin needs to open the admin PWA and allow notifications first.')
+            return
         }
 
         const orderId = data.id.slice(0, 8)
         const payload = {
-            title: type === 'order' ? 'Жаңа тапсырыс!' : 'Жаңа брондау!',
+            title: type === 'order' ? '🔔 Жаңа тапсырыс!' : '📅 Жаңа брондау!',
             body: type === 'order'
-                ? `#${orderId} тапсырыс - ${data.total_amount}₸`
-                : `${data.date} күні сағат ${data.time}-ге брондау (${data.guests_count} адам). Сомасы: ${data.total_amount}₸`,
-            url: type === 'order' ? '/orders' : '/reservations'
+                ? `#${orderId} · ${data.total_amount}₸`
+                : `${data.date} · ${data.time} · ${data.guests_count} адам · ${data.total_amount}₸`,
+            url: type === 'order' ? '/orders' : '/orders'
         }
 
         const pushPromises: Promise<any>[] = []
 
-        // Filter staff based on the "бәріне өз рөлдеріне сай" (everyone according to their role)
-        // For orders: notify all staff
-        // For bookings: notify only admins and managers
-        const targetStaff = staff?.filter(member => {
-            if (type === 'order') return true; // All roles get order notifications
-            if (type === 'booking') return ['admin', 'manager'].includes(member.role || '');
-            return false;
-        }) || [];
-
-        console.log(`[Notification] Found ${targetStaff.length} targets to notify`);
-
-        targetStaff.forEach(member => {
-            // Priority 1: Firebase FCM
+        for (const member of targetStaff) {
+            // 1. FCM (ең сенімді — фонда да жұмыс істейді)
             if (member.fcm_token) {
-                const message = {
-                    token: member.fcm_token,
-                    notification: {
-                        title: payload.title,
-                        body: payload.body,
-                    },
-                    data: {
-                        url: payload.url,
-                        orderId: data.id,
-                        click_action: payload.url, // For some background handlers
-                    },
-                    webpush: {
-                        fcm_options: {
-                            link: payload.url,
-                        },
-                        notification: {
-                            icon: '/favicon-32x32.png',
-                            badge: '/icon-192x192.png',
-                             vibrate: [200, 100, 200],
+                try {
+                    const { messaging } = await import('./firebase-admin')
+                    if (messaging) {
+                        const message = {
+                            token: member.fcm_token,
+                            notification: {
+                                title: payload.title,
+                                body: payload.body,
+                            },
+                            data: {
+                                url: payload.url,
+                                orderId: data.id,
+                            },
+                            webpush: {
+                                fcm_options: { link: payload.url },
+                                notification: {
+                                    icon: '/icon-192x192.png',
+                                    badge: '/icon-192x192.png',
+                                    vibrate: [200, 100, 200],
+                                    requireInteraction: true,
+                                }
+                            },
                         }
-                    },
+                        pushPromises.push(
+                            (messaging as any).send(message)
+                                .then((r: any) => console.log(`[FCM] ✅ Sent to ${member.full_name}:`, r))
+                                .catch((e: any) => console.error(`[FCM] ❌ Error for ${member.full_name}:`, e?.message))
+                        )
+                    }
+                } catch (e) {
+                    console.error('[FCM] Import error:', e)
                 }
-
-                pushPromises.push(
-                    (messaging as any).send(message)
-                        .then((response: any) => console.log(`[FCM] Success for ${member.full_name}:`, response))
-                        .catch((error: any) => {
-                            console.error(`[FCM] Error for ${member.full_name}:`, error);
-                            // If token is invalid, we might want to clear it (optional)
-                        })
-                )
             }
 
-            // Priority 2: Web-Push (Fallback)
-            if (member.push_subscription && !member.fcm_token && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+            // 2. Web-Push (FCM token жоқ болса немесе қосымша жіберу)
+            const subscription = member.push_subscription
+                || (member.push_token ? JSON.parse(member.push_token) : null)
+
+            if (subscription && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
                 pushPromises.push(
                     webpush.sendNotification(
-                        member.push_subscription as any,
-                        JSON.stringify(payload)
-                    ).catch(err => console.error(`[Web-Push] Error for ${member.full_name}:`, err))
+                        subscription as any,
+                        JSON.stringify({
+                            title: payload.title,
+                            body: payload.body,
+                            url: payload.url,
+                            icon: '/icon-192x192.png',
+                        })
+                    )
+                    .then(() => console.log(`[Web-Push] ✅ Sent to ${member.full_name}`))
+                    .catch((e: any) => console.error(`[Web-Push] ❌ Error for ${member.full_name}:`, e?.message))
                 )
             }
-        })
+        }
 
         await Promise.all(pushPromises)
-        console.log('[Notification] Finished sending all push promises');
+        console.log('[Notification] ✅ All push notifications sent');
     } catch (error) {
         console.error('[Notification] Fatal error notifying staff:', error)
     }
 }
+
 
 // Deprecated: keeping only for reference, but wont be called
 export async function notifyAdminTelegram(order: any, restaurant: any) {
