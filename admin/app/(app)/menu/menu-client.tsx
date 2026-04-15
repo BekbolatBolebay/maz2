@@ -293,7 +293,7 @@ export default function MenuClient({ initialItems, initialCategories, restaurant
 
       {/* Edit/Add modal */}
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4" onClick={() => setEditing(null)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 pb-24 sm:pb-4" onClick={() => setEditing(null)}>
           <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
           <div
             className="relative w-full max-w-md bg-card rounded-3xl p-6 shadow-2xl border border-border animate-in fade-in slide-in-from-bottom-8 duration-300"
@@ -522,7 +522,7 @@ export default function MenuClient({ initialItems, initialCategories, restaurant
 
       {/* Categories modal */}
       {managingCats && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 pb-24 sm:pb-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setManagingCats(false)} />
           <div className="relative w-full max-w-md bg-card rounded-3xl p-6 shadow-2xl border border-border animate-in fade-in slide-in-from-bottom-8 duration-300">
             <div className="flex items-center justify-between mb-6">
