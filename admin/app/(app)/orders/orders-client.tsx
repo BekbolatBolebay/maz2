@@ -307,14 +307,24 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
     if (restaurant?.id) fetchData()
   }, [restaurant?.id])
 
-  // Polling and visibility change fallback for missed realtime events
+  // Track known order IDs for detecting new ones via polling
+  const knownOrderIds = useRef<Set<string>>(new Set(initialOrders.map(o => o.id)))
+  const knownReservationIds = useRef<Set<string>>(new Set(initialReservations.map(r => r.id)))
+  const realtimeConnected = useRef(false)
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'live' | 'polling'>('connecting')
+
+  // Unified polling + realtime: 3s агрессивті polling негізгі механизм
   useEffect(() => {
     if (!restaurant?.id) return;
 
+    const supabase = createClient()
+    let intervalId: ReturnType<typeof setInterval>
+    let isPolling = false
+
     const fetchOrders = async () => {
+      if (isPolling) return // Алдыңғы сұрау аяқталмаған болса, қайталамау
+      isPolling = true
       try {
-        const supabase = createClient()
-        // We fetch the latest 50 orders just to sync missing ones
         const { data, error } = await supabase
           .from('orders')
           .select('*, restaurants!cafe_id(*), order_items(*, menu_items(*))')
@@ -324,11 +334,32 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
 
         if (error) {
           console.error('[Admin Orders] Sync error:', error)
+          isPolling = false
           return
         }
 
         if (data && data.length > 0) {
           const fetchedItems = mergeItems(data as unknown as Order[])
+          
+          // Жаңа тапсырыстарды анықтау (polling арқылы)
+          const newOrderIds = fetchedItems
+            .filter(item => !knownOrderIds.current.has(item.id) && item.status === 'new')
+            .map(item => item.id)
+          
+          if (newOrderIds.length > 0) {
+            console.log(`[Admin Orders] 🔔 ${newOrderIds.length} жаңа тапсырыс табылды (polling)!`)
+            newOrderIds.forEach(id => knownOrderIds.current.add(id))
+            playSound('new-order')
+            toast.success(
+              lang === 'kk' 
+                ? `${newOrderIds.length} жаңа тапсырыс!` 
+                : `${newOrderIds.length} ${newOrderIds.length === 1 ? 'новый заказ' : 'новых заказов'}!`
+            )
+          }
+          
+          // Барлық ID-ларды белгілеу
+          fetchedItems.forEach(item => knownOrderIds.current.add(item.id))
+
           setItems(prev => {
             const newArray = [...prev]
             let changed = false
@@ -353,39 +384,79 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       } catch (e) {
         console.error('[Admin Orders] Polling error:', e)
       }
+      isPolling = false
     }
 
-    // Бетке кірген кезде ДЕРЕУ жүктеу (кэш мәселесін шешу)
-    fetchOrders()
+    const fetchReservations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('reservations')
+          .select('*')
+          .eq('cafe_id', restaurant.id)
+          .order('created_at', { ascending: false })
+          .limit(30)
 
-    // 15 сек сайын жаңарту (бұрын 30 сек болатын)
-    const intervalId = setInterval(fetchOrders, 15000)
+        if (error) return
+
+        if (data && data.length > 0) {
+          // Жаңа брондауларды анықтау
+          const newResIds = data
+            .filter(r => !knownReservationIds.current.has(r.id))
+            .map(r => r.id)
+
+          if (newResIds.length > 0) {
+            console.log(`[Admin Orders] 🔔 ${newResIds.length} жаңа брондау табылды (polling)!`)
+            newResIds.forEach(id => knownReservationIds.current.add(id))
+            playSound('reservation')
+            toast.info(lang === 'kk' ? 'Жаңа брондау келді!' : 'Новое бронирование!')
+          }
+
+          data.forEach(r => knownReservationIds.current.add(r.id))
+          setReservations(data as Reservation[])
+        }
+      } catch (e) {
+        console.error('[Admin Orders] Reservation polling error:', e)
+      }
+    }
+
+    const pollAll = async () => {
+      await Promise.all([fetchOrders(), fetchReservations()])
+    }
+
+    // Бетке кірген кезде ДЕРЕУ жүктеу
+    pollAll()
+
+    // 3 сек сайын жаңарту — негізгі механизм
+    const FAST_POLL_MS = 3000
+    const SLOW_POLL_MS = 10000
+    
+    const startPolling = (ms: number) => {
+      if (intervalId) clearInterval(intervalId)
+      intervalId = setInterval(pollAll, ms)
+      console.log(`[Admin Orders] Polling интервал: ${ms}ms`)
+    }
+    
+    startPolling(FAST_POLL_MS)
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchOrders()
+        pollAll()
+        // Экран қайта ашылғанда жиі polling бастау
+        startPolling(FAST_POLL_MS)
+      } else {
+        // Экран жасырын — баяу polling
+        startPolling(SLOW_POLL_MS)
       }
     }
     
     const handleFocus = () => {
-      fetchOrders()
+      pollAll()
     }
 
     window.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
 
-    return () => {
-      clearInterval(intervalId)
-      window.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [restaurant?.id])
-
-  // Real-time subscription for Orders & Reservations
-  useEffect(() => {
-    if (!restaurant?.id) return
-
-    const supabase = createClient()
+    // Real-time subscription (бонус — қосылса жақсы, қосылмаса polling жұмыс істейді)
     const ordersChannel = supabase
       .channel(`orders-realtime-${restaurant.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${restaurant.id}` }, async (payload) => {
@@ -399,63 +470,28 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
           const o = payload.new as any
           if (!o) return
 
-          const fetchDetails = async (retryCount = 0) => {
-            try {
-              // Wait significantly less time (300ms) for the first attempt
-              if (retryCount === 0) await new Promise(resolve => setTimeout(resolve, 300))
-              
-              // Fetch items, customer name and reviews in parallel
-              const [itemsRes, clientRes, reviewsRes] = await Promise.all([
-                supabase.from('order_items').select('*, menu_items(*)').eq('order_id', o.id),
-                supabase.from('clients').select('full_name').eq('id', o.user_id).maybeSingle(),
-                supabase.from('reviews').select('*').eq('order_id', o.id).maybeSingle()
-              ])
-
-              // If items are missing and we haven't retried much, wait and try again
-              if ((!itemsRes.data || itemsRes.data.length === 0) && retryCount < 3) {
-                console.log(`[Admin Orders] Items not found for order ${o.id}, retrying... (${retryCount + 1})`)
-                setTimeout(() => fetchDetails(retryCount + 1), 1000)
-                return
-              }
-
-              const mappedItems = itemsRes.data?.map((item: any) => ({
-                ...item,
-                name_kk: item.menu_items?.name_kk || item.name_kk || 'Белгісіз тағам',
-                name_ru: item.menu_items?.name_ru || item.name_ru || 'Неизвестное блюдо'
-              }))
-
-              const newItem = { 
-                ...o, 
-                order_num: String(o.order_number), 
-                items_total: o.items_count, 
-                activity_type: o.type, 
-                status: o.status === 'delivered' ? 'completed' : o.status,
-                order_items: mappedItems || [],
-                customer_name: clientRes.data?.full_name || o.customer_name || 'Клиент',
-                review: reviewsRes.data || null
-              }
-              
-              setItems((prev) => {
-                const exists = prev.find(item => item.id === o.id)
-                if (exists) {
-                  return prev.map(item => item.id === o.id ? { ...item, ...newItem } : item)
-                }
-                return [newItem, ...prev]
-              })
-              
-              if (payload.eventType === 'INSERT') {
-                await playSound('new-order')
-                toast.success(t(lang, 'newOrderAlert'))
-              }
-            } catch (error) {
-              console.error('[Admin Orders] Error processing real-time order:', error)
-            }
+          // Realtime арқылы келген — бірден polling жасау
+          fetchOrders()
+          
+          if (payload.eventType === 'INSERT') {
+            knownOrderIds.current.add(o.id)
+            await playSound('new-order')
+            toast.success(t(lang, 'newOrderAlert'))
           }
-          fetchDetails()
       }).subscribe((status) => {
         console.log(`[Admin Orders] Channel Status: ${status}`)
         if (status === 'SUBSCRIBED') {
-          console.log('[Admin Orders] Successfully subscribed to real-time updates')
+          console.log('[Admin Orders] ✅ Realtime қосылды!')
+          realtimeConnected.current = true
+          setConnectionStatus('live')
+          // Realtime жұмыс істеп тұр — polling баяулату
+          startPolling(SLOW_POLL_MS)
+        }
+        if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+          console.log('[Admin Orders] ⚠️ Realtime қосылмады, polling 3с режимінде')
+          realtimeConnected.current = false
+          setConnectionStatus('polling')
+          startPolling(FAST_POLL_MS)
         }
       })
 
@@ -463,19 +499,9 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
         .channel(`reservations-realtime-${restaurant.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations', filter: `cafe_id=eq.${restaurant.id}` }, (payload) => {
             if (payload.eventType === 'INSERT') {
-                console.log('[Admin Orders] New reservation received:', { reservationId: payload.new.id })
-                
-                setReservations(prev => {
-                  const updated = [payload.new as Reservation, ...prev]
-                  console.log('[Admin Orders] Updated reservations list', { newCount: updated.length })
-                  return updated
-                })
-                
-                // Play sound for new reservation
-                console.log('[Admin Orders] Triggering sound for new reservation')
+                knownReservationIds.current.add(payload.new.id)
+                setReservations(prev => [payload.new as Reservation, ...prev])
                 playSound('reservation')
-                
-                // Show toast notification
                 toast.info(lang === 'kk' ? 'Жаңа брондау келді!' : 'Новое бронирование!')
             } else if (payload.eventType === 'UPDATE') {
                 setReservations(prev => prev.map(r => r.id === payload.new.id ? { ...r, ...(payload.new as Reservation) } : r))
@@ -485,7 +511,10 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
         }).subscribe()
 
     return () => { 
-        console.log('[Admin Orders] Unsubscribing from real-time channels')
+        console.log('[Admin Orders] Unsubscribing from channels')
+        clearInterval(intervalId)
+        window.removeEventListener('visibilitychange', handleVisibilityChange)
+        window.removeEventListener('focus', handleFocus)
         supabase.removeChannel(ordersChannel)
         supabase.removeChannel(resChannel)
     }
@@ -803,6 +832,21 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
               ? (restaurant?.name_kk || 'Мәзір')
               : (restaurant?.name_ru || 'Меню')}
           </h1>
+          {/* Connection status indicator */}
+          <div className="flex items-center gap-1 ml-1" title={
+            connectionStatus === 'live' ? 'Realtime қосылған' :
+            connectionStatus === 'polling' ? '3 сек сайын жаңарады' : 'Қосылуда...'
+          }>
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+              connectionStatus === 'live' && "bg-green-500",
+              connectionStatus === 'polling' && "bg-yellow-500 animate-pulse",
+              connectionStatus === 'connecting' && "bg-gray-400 animate-pulse"
+            )} />
+            <span className="text-[10px] text-muted-foreground hidden md:inline">
+              {connectionStatus === 'live' ? 'Live' : connectionStatus === 'polling' ? '3s' : '...'}
+            </span>
+          </div>
           <button
             onClick={() => { playSound() }}
             className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/10 transition-colors"
