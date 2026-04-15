@@ -297,12 +297,6 @@ export async function sendTestPushAction(manualSubscription?: any) {
         };
     }
 
-    // Parse push_subscription from various formats
-    let subscription = profile?.push_subscription;
-    if (!subscription && profile?.push_token) {
-        try {
-            subscription = JSON.parse(profile.push_token);
-        } catch (e) {
     try {
         const result = await sendPushNotification({ 
             push_subscription: subscription,
