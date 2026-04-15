@@ -443,7 +443,11 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const handleTestPush = async () => {
     setIsTestingPush(true);
     try {
-        const result = await sendTestPushAction();
+        // Find current subscription in storage if possible for instant testing
+        const registration = await navigator.serviceWorker.ready;
+        const currentSub = await registration.pushManager.getSubscription();
+        
+        const result = await sendTestPushAction(currentSub ? JSON.parse(JSON.stringify(currentSub)) : null);
         if (result.success) {
             toast.success(lang === 'kk' ? 'Push-хабарлама жіберілді!' : 'Push-уведомление отправлено!');
         } else {

@@ -254,18 +254,34 @@ export async function sendTestEmailAction() {
     });
 }
 
-export async function sendTestPushAction() {
+export async function sendTestPushAction(manualSubscription?: any) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    const { data: profile } = await supabase
-        .from('staff_profiles')
-        .select('push_subscription, push_token, fcm_token')
-        .eq('id', user.id)
-        .single();
+    let subscription = manualSubscription;
+    let fcmToken = null;
 
-    if (!profile?.push_subscription && !profile?.push_token && !profile?.fcm_token) {
+    if (!subscription) {
+        const { data: profile } = await supabase
+            .from('staff_profiles')
+            .select('push_subscription, push_token, fcm_token')
+            .eq('id', user.id)
+            .single();
+        
+        subscription = profile?.push_subscription;
+        fcmToken = profile?.fcm_token;
+
+        if (!subscription && profile?.push_token) {
+            try {
+                subscription = JSON.parse(profile.push_token);
+            } catch (e) {
+                subscription = profile.push_token;
+            }
+        }
+    }
+
+    if (!subscription && !fcmToken) {
         return { success: false, error: 'Push-хабарламаларға рұқсат берілмеген. Алдымен "Қосу" батырмасын басыңыз.' };
     }
 
@@ -287,14 +303,10 @@ export async function sendTestPushAction() {
         try {
             subscription = JSON.parse(profile.push_token);
         } catch (e) {
-            subscription = profile.push_token;
-        }
-    }
-
     try {
         const result = await sendPushNotification({ 
             push_subscription: subscription,
-            fcm_token: profile?.fcm_token
+            fcm_token: fcmToken
         }, {
             title: 'Тест хабарламасы',
             body: 'Native Web-Push сәтті қосылды! ✅',
