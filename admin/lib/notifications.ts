@@ -16,11 +16,15 @@ const transporter = nodemailer.createTransport({
 // VAPID Configuration
 if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:' + (process.env.SMTP_USER || 'admin@mazir.kz');
-  webpush.setVapidDetails(
-    vapidSubject,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
+  const pubKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY.trim();
+  const privKey = process.env.VAPID_PRIVATE_KEY.trim();
+
+  try {
+    webpush.setVapidDetails(vapidSubject, pubKey, privKey);
+    console.log('[Push] VAPID configured successfully. Public key starts with:', pubKey.substring(0, 10));
+  } catch (err) {
+    console.error('[Push] Error setting VAPID details:', err);
+  }
 } else {
   console.warn('[Push] VAPID keys not configured. Web-push notifications will not work.');
 }
