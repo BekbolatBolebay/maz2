@@ -355,7 +355,11 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       }
     }
 
-    const intervalId = setInterval(fetchOrders, 30000)
+    // Бетке кірген кезде ДЕРЕУ жүктеу (кэш мәселесін шешу)
+    fetchOrders()
+
+    // 15 сек сайын жаңарту (бұрын 30 сек болатын)
+    const intervalId = setInterval(fetchOrders, 15000)
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
