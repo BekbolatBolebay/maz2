@@ -389,7 +389,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       let fcmToken = null;
       try {
           const { getFcmToken } = await import('@/lib/firebase');
-          fcmToken = await getFcmToken();
+          fcmToken = await getFcmToken(registration);
           console.log('[AdminPush] FCM Token obtained:', fcmToken ? 'Success' : 'Failed');
       } catch (fcmErr) {
           console.warn('[AdminPush] FCM specific retrieval error:', fcmErr);

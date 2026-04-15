@@ -1,9 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-messaging-compat.js');
-
-// Initialize the Firebase app in the service worker by passing in the messagingSenderId.
-// These values will be filled by the user or from environment variables during build if using a bundler.
-// For a static file in /public, the user must update these values manually or we use a trick to pass them.
+importScripts('https://www.gstatic.com/firebasejs/11.3.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.3.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
   apiKey: "AIzaSyDHrnmjl7MJC0dz-SDHXDAgFoD2Dl8p60k",
