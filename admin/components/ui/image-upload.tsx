@@ -28,8 +28,8 @@ export default function ImageUpload({ value, onChange, onUploadStart, onUploadEn
                 img.src = event.target?.result as string
                 img.onload = () => {
                     const canvas = document.createElement('canvas')
-                    const MAX_WIDTH = 1200
-                    const MAX_HEIGHT = 1200
+                    const MAX_WIDTH = 1000
+                    const MAX_HEIGHT = 1000
                     let width = img.width
                     let height = img.height
 
@@ -57,13 +57,14 @@ export default function ImageUpload({ value, onChange, onUploadStart, onUploadEn
                                     type: 'image/jpeg',
                                     lastModified: Date.now(),
                                 })
+                                console.log(`[ImageUpload] Compressed: ${(file.size / 1024).toFixed(1)}KB -> ${(compressedFile.size / 1024).toFixed(1)}KB`);
                                 resolve(compressedFile)
                             } else {
                                 resolve(file)
                             }
                         },
                         'image/jpeg',
-                        0.8 // Quality
+                        0.7 // Quality reduced from 0.8 to 0.7 for better compression
                     )
                 }
             }
