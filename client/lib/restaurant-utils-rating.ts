@@ -15,6 +15,7 @@ export interface RestaurantWithRating {
   description_ru?: string
   description_en?: string
   description_kk?: string
+  image_url?: string
   banner_url?: string
   is_open?: boolean
   delivery_time_min?: number
@@ -53,6 +54,7 @@ export async function fetchRestaurantsWithRatings(options?: {
       description_ru,
       description_en,
       description_kk,
+      image_url,
       banner_url,
       is_open,
       delivery_time_min,
@@ -181,6 +183,7 @@ export async function fetchRestaurantsByCuisine(
       name_ru,
       name_en,
       name_kk,
+      image_url,
       banner_url,
       is_open,
       delivery_time_min,
