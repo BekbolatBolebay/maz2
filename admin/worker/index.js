@@ -4,6 +4,14 @@
  */
 
 // Listen for push notifications from backend
+self.addEventListener('install', (event) => {
+    self.skipWaiting()
+})
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim())
+})
+
 self.addEventListener('push', function (event) {
     try {
         let data = {}
