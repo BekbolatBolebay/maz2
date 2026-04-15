@@ -261,15 +261,29 @@ export async function sendTestPushAction() {
 
     const { data: profile } = await supabase
         .from('staff_profiles')
-        .select('push_subscription')
+        .select('push_subscription, push_token, fcm_token')
         .eq('id', user.id)
         .single();
 
-    if (!profile?.push_subscription) {
+    if (!profile?.push_subscription && !profile?.push_token && !profile?.fcm_token) {
         return { success: false, error: 'Push-хабарламаларға рұқсат берілмеген. Алдымен "Қосу" батырмасын басыңыз.' };
     }
 
-    return await sendPushNotification({ push_subscription: profile.push_subscription }, {
+    // Parse push_subscription from various formats
+    let subscription = profile?.push_subscription;
+    if (!subscription && profile?.push_token) {
+        try {
+            subscription = JSON.parse(profile.push_token);
+        } catch (e) {
+            // push_token might already be an object
+            subscription = profile.push_token;
+        }
+    }
+
+    return await sendPushNotification({ 
+        push_subscription: subscription,
+        fcm_token: profile?.fcm_token
+    }, {
         title: 'Тест хабарламасы',
         body: 'Push-хабарламалар сәтті қосылды! ✅',
         icon: '/logo.png'

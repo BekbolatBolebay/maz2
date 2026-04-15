@@ -15,11 +15,14 @@ const transporter = nodemailer.createTransport({
 
 // VAPID Configuration
 if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:' + (process.env.SMTP_USER || 'admin@mazir.kz');
   webpush.setVapidDetails(
-    'mailto:' + (process.env.SMTP_USER || 'admin@mazir.kz'),
+    vapidSubject,
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   );
+} else {
+  console.warn('[Push] VAPID keys not configured. Web-push notifications will not work.');
 }
 
 /**
@@ -72,7 +75,13 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
               }
             },
           };
-          pushPromises.push((messaging as any).send(message));
+          pushPromises.push(
+            (messaging as any).send(message)
+              .catch((e: any) => {
+                console.error('[Push] FCM error:', e?.message);
+                throw e;
+              })
+          );
         } else {
           console.warn('[Push] FCM messaging not initialized (missing credentials)');
         }
@@ -88,16 +97,30 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
         webpush.sendNotification(
           user.push_subscription,
           JSON.stringify(payload)
-        )
+        ).catch((e: any) => {
+          console.error('[Push] Web-Push error:', e?.statusCode, e?.body);
+          throw e;
+        })
       );
     }
 
     if (pushPromises.length === 0) {
+      console.warn('[Push] No subscription or token found for user');
       return { success: false, error: 'No subscription or token found' };
     }
 
-    await Promise.all(pushPromises);
-    console.log('[Push] Sent successfully via all available channels');
+    const results = await Promise.allSettled(pushPromises);
+    const failures = results.filter(r => r.status === 'rejected');
+    
+    if (failures.length > 0 && results.length === failures.length) {
+      // All channels failed
+      const errors = failures.map(f => (f as PromiseRejectedResult).reason?.message || 'Unknown error');
+      console.error('[Push] All delivery channels failed:', errors);
+      return { success: false, error: `Delivery failed: ${errors.join(', ')}` };
+    }
+    
+    const successes = results.filter(r => r.status === 'fulfilled');
+    console.log(`[Push] Delivered successfully via ${successes.length}/${results.length} channels`);
     return { success: true };
   } catch (error: any) {
     console.error('[Push] Error:', error);
