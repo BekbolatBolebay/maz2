@@ -8,11 +8,17 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ''
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:example@yourdomain.com'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    const pubKey = VAPID_PUBLIC_KEY.trim();
+    const privKey = VAPID_PRIVATE_KEY.trim();
+    
     webpush.setVapidDetails(
         VAPID_SUBJECT,
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
+        pubKey,
+        privKey
     )
+    console.log('[Push] Client VAPID configured successfully');
+} else {
+    console.warn('[Push] Client VAPID keys missing! Order notifications will fail.');
 }
 
 export async function notifyAdmin(data: any, type: 'order' | 'booking', restaurantId?: string) {
