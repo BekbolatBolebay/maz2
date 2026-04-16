@@ -227,8 +227,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Anonymous sign in error:', error)
       throw error
     }
-    // For anonymous users, we might want to ensure a profile exists
+    // For anonymous users, ensure a basic profile exists in the 'clients' table
     if (data.user) {
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', data.user.id)
+        .single()
+      
+      if (!existing) {
+        await supabase.from('clients').insert({
+          id: data.user.id,
+          full_name: 'Guest User',
+          is_anonymous: true,
+          updated_at: new Date().toISOString()
+        })
+      }
       await fetchProfile(data.user.id)
     }
   }
