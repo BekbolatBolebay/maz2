@@ -780,7 +780,6 @@ export function CheckoutClient() {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-6"
                         >
-                    <>
                         {/* Service Type Selection */}
                         <section className="space-y-3">
                             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">{t.cart.service_type}</h3>
