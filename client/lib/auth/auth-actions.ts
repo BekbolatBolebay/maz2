@@ -32,90 +32,78 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
     try {
         console.log(`[OTP] Preparing to send code ${code} to ${email}`);
         
-        if (process.env.MOCK_MAIL === 'true') {
+        if (process.env.MOCK_MAIL === 'true' || process.env.NODE_ENV === 'development' && !process.env.SMTP_USER) {
             console.log('--- MAIL MOCK MODE ACTIVE ---');
             console.log(`Target Email: ${email}`);
             console.log(`OTP Code: ${code}`);
-            console.log('------------------------------');
             return { success: true, mock: true };
         }
 
-        const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-        const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+        const smtpUser = (process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
+        const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
+        const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
         const smtpPort = Number(process.env.SMTP_PORT) || 465;
-
-        console.log(`[SMTP] Config: host=${smtpHost}, port=${smtpPort}, user=${smtpUser}, hasPass=${!!smtpPass}`);
 
         if (!smtpUser || !smtpPass) {
             console.error('[SMTP] Missing credentials!');
-            throw new Error('SMTP credentials missing. Set SMTP_USER and SMTP_PASS in .env');
+            throw new Error('SMTP баптаулары табылмады (.env тексеріңіз)');
         }
 
         const transporter = nodemailer.createTransport({
             host: smtpHost,
             port: smtpPort,
-            secure: smtpPort === 465, // true for 465, false for other ports
+            secure: smtpPort === 465, 
             auth: {
                 user: smtpUser,
                 pass: smtpPass,
             },
             tls: {
-                rejectUnauthorized: false
+                rejectUnauthorized: false,
+                // Some providers need this
+                minVersion: 'TLSv1.2'
             },
-            debug: true, // show debug output
-            logger: true // log information in console
+            connectionTimeout: 10000, // 10s
+            greetingTimeout: 10000,
+            socketTimeout: 15000,
+            debug: true,
+            logger: true
         });
 
-        console.log(`[SMTP] Verifying connection to ${smtpHost}...`);
-        try {
-            await transporter.verify();
-            console.log('[SMTP] Connection verified successfully');
-        } catch (verifyError) {
-            console.error('[SMTP] Verification failed:', verifyError);
-            throw verifyError;
-        }
-
-        console.log(`[SMTP] Sending mail from ${process.env.SMTP_FROM || smtpUser}...`);
+        console.log(`[SMTP] Sending from ${smtpUser}...`);
+        
         const info = await transporter.sendMail({
             from: process.env.SMTP_FROM || `Mazir App <${smtpUser}>`,
             to: email,
             subject: `Mazir App: Растау коды - ${code}`,
             html: `
-        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 40px auto; padding: 40px; border-radius: 24px; background-color: #ffffff; border: 1px solid #eef2f6; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-          <div style="text-align: center; margin-bottom: 32px;">
-            <div style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #ff385c 0%, #e31c5f 100%); border-radius: 16px; color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; box-shadow: 0 4px 12px rgba(227, 28, 95, 0.2);">
-              Mazir App
-            </div>
-          </div>
-          
-          <div style="color: #1a1f36; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-            ${fullName ? `Сәлеметсіз бе, <b>${fullName}</b>!<br>` : 'Сәлеметсіз бе!<br>'}
-            Жүйеге кіру үшін төмендегі растау кодын қолданыңыз:
-          </div>
-          
-          <div style="background: #f8fafc; padding: 32px; text-align: center; font-size: 36px; font-weight: 800; letter-spacing: 8px; border-radius: 20px; color: #ff385c; border: 2px dashed #e2e8f0; margin: 24px 0;">
+        <div style="font-family: sans-serif; max-width: 480px; margin: 20px auto; padding: 30px; border-radius: 20px; background-color: #ffffff; border: 1px solid #eee;">
+          <h2 style="color: #ff385c; text-align: center; font-size: 24px;">Mazir App</h2>
+          <p style="font-size: 16px; color: #333;">Жүйеге кіру коды:</p>
+          <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; border-radius: 12px; color: #ff385c; margin: 20px 0;">
             ${code}
           </div>
-          
-          <div style="color: #64748b; font-size: 13px; text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
-            Бұл код <b>10 минут</b> ішінде жарамды.<br>
-            <span style="color: #94a3b8;">Егер сіз бұл сұранысты жасамасаңыз, бұл хатқа мән бермеңіз.</span>
-          </div>
-          
-          <div style="text-align: center; margin-top: 24px;">
-            <p style="font-size: 11px; color: #cbd5e1; margin: 0;">&copy; ${new Date().getFullYear()} Mazir App. All rights reserved.</p>
-          </div>
+          <p style="font-size: 12px; color: #999; text-align: center;">Код 10 минут ішінде жарамды.</p>
         </div>
       `,
         });
-        console.log('[SMTP] Mail sent successfully:', info.messageId);
-    } catch (emailError: any) {
-        console.error('[SMTP] Fatal error sending email:', emailError);
-        throw new Error(emailError.message || 'Почта жіберу мүмкін болмады. SMTP параметрлерін тексеріңіз.');
-    }
 
-    return { success: true }
+        console.log('[SMTP] Mail sent successfully:', info.messageId);
+        return { success: true }
+    } catch (emailError: any) {
+        console.error('[SMTP] Fatal error:', emailError);
+        const errorMessage = emailError.message || 'Белгісіз қате';
+        
+        // Return a clean error message that can be shown in a toast
+        if (errorMessage.includes('Invalid login') || errorMessage.includes('AUTH')) {
+            throw new Error('SMTP: Логин немесе пароль қате (Gmail App Password тексеріңіз)');
+        }
+        if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('ECONNREFUSED')) {
+            throw new Error(`SMTP: Байланыс қатесі (${smtpHost}:${smtpPort})`);
+        }
+        
+        throw new Error(`Почта жіберу мүмкін болмады: ${errorMessage}`);
+    }
+}
 }
 
 export async function verifyCustomOtp(email: string, code: string) {
