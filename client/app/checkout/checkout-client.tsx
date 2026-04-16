@@ -1107,6 +1107,7 @@ export function CheckoutClient() {
                                     </div>
                                 </section>
                             </div>
+                        )}
                         </motion.div>
                 ) : (
                     /* Step 2: Summary */
@@ -1407,6 +1408,6 @@ export function CheckoutClient() {
                     )}
                 </AnimatePresence>
             </main>
-        </div >
+        </div>
     )
 }
