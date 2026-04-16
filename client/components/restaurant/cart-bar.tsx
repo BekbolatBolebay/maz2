@@ -22,28 +22,30 @@ export function CartBar({ restaurantId }: { restaurantId?: string }) {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 left-4 right-4 z-[90] md:hidden"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] w-[calc(100%-2rem)] max-w-md"
       >
         <Link href="/cart">
-          <div className="bg-primary text-primary-foreground rounded-2xl p-4 shadow-2xl shadow-primary/40 flex items-center justify-between active:scale-[0.98] transition-all border border-white/20 backdrop-blur-lg">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 rounded-xl p-2">
-                <ShoppingBag className="w-5 h-5 text-white" />
+          <div className="bg-primary/90 backdrop-blur-xl text-primary-foreground rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between active:scale-[0.98] transition-all border border-white/20 group">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 rounded-2xl p-2.5 shadow-inner">
+                <ShoppingBag className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80 leading-none mb-1">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] opacity-70 leading-none">
                   {locale === 'kk' ? 'Себетте' : 'В корзине'}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-black leading-none">{totalPrice.toLocaleString()} ₸</span>
-                  <span className="text-xs opacity-60">• {totalCount} {locale === 'kk' ? 'тағам' : 'блюдо'}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-black leading-none tracking-tight">{totalPrice.toLocaleString()} ₸</span>
+                  <span className="text-xs font-bold opacity-60 bg-white/10 px-2 py-0.5 rounded-full">
+                    {totalCount} {locale === 'kk' ? 'тағам' : 'блюдо'}
+                  </span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-1 font-black text-sm group">
-              <span>{locale === 'kk' ? 'СЕБЕТКЕ ӨТУ' : 'В КОРЗИНУ'}</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-2 bg-white text-primary px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg group-hover:bg-primary group-hover:text-white transition-all">
+              <span>{locale === 'kk' ? 'Өту' : 'Перейти'}</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </div>
         </Link>

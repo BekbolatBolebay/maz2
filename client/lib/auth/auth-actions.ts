@@ -30,39 +30,54 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
 
     // Send Email
     try {
+        console.log(`[OTP] Preparing to send code ${code} to ${email}`);
+        
         if (process.env.MOCK_MAIL === 'true') {
-            console.log('--- MAIL MOCK MODE ---')
-            console.log(`Target Email: ${email}`)
-            console.log(`OTP Code: ${code}`)
-            console.log('----------------------')
-            return { success: true, mock: true }
+            console.log('--- MAIL MOCK MODE ACTIVE ---');
+            console.log(`Target Email: ${email}`);
+            console.log(`OTP Code: ${code}`);
+            console.log('------------------------------');
+            return { success: true, mock: true };
         }
 
-        const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER
-        const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS
-        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
-        const smtpPort = Number(process.env.SMTP_PORT) || 465
+        const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+        const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+        const smtpPort = Number(process.env.SMTP_PORT) || 465;
+
+        console.log(`[SMTP] Config: host=${smtpHost}, port=${smtpPort}, user=${smtpUser}, hasPass=${!!smtpPass}`);
 
         if (!smtpUser || !smtpPass) {
-            throw new Error('SMTP credentials missing. Set SMTP_USER and SMTP_PASS in .env, or use MOCK_MAIL=true for testing.')
+            console.error('[SMTP] Missing credentials!');
+            throw new Error('SMTP credentials missing. Set SMTP_USER and SMTP_PASS in .env');
         }
 
         const transporter = nodemailer.createTransport({
             host: smtpHost,
             port: smtpPort,
-            secure: smtpPort === 465,
+            secure: smtpPort === 465, // true for 465, false for other ports
             auth: {
                 user: smtpUser,
                 pass: smtpPass,
             },
             tls: {
                 rejectUnauthorized: false
-            }
-        })
+            },
+            debug: true, // show debug output
+            logger: true // log information in console
+        });
 
-        console.log(`[SMTP] Attempting to send OTP to ${email} via ${smtpHost}:${smtpPort}...`);
+        console.log(`[SMTP] Verifying connection to ${smtpHost}...`);
+        try {
+            await transporter.verify();
+            console.log('[SMTP] Connection verified successfully');
+        } catch (verifyError) {
+            console.error('[SMTP] Verification failed:', verifyError);
+            throw verifyError;
+        }
 
-        await transporter.sendMail({
+        console.log(`[SMTP] Sending mail from ${process.env.SMTP_FROM || smtpUser}...`);
+        const info = await transporter.sendMail({
             from: process.env.SMTP_FROM || `Mazir App <${smtpUser}>`,
             to: email,
             subject: `Mazir App: Растау коды - ${code}`,
@@ -93,10 +108,11 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
           </div>
         </div>
       `,
-        })
+        });
+        console.log('[SMTP] Mail sent successfully:', info.messageId);
     } catch (emailError: any) {
-        console.error('Error sending email:', emailError)
-        throw new Error(emailError.message || 'Почта жіберу мүмкін болмады. SMTP параметрлерін тексеріңіз.')
+        console.error('[SMTP] Fatal error sending email:', emailError);
+        throw new Error(emailError.message || 'Почта жіберу мүмкін болмады. SMTP параметрлерін тексеріңіз.');
     }
 
     return { success: true }
