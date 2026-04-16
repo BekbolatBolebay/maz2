@@ -28,25 +28,33 @@ console.log('[Worker] Firebase Messaging initialized');
 messaging.onBackgroundMessage((payload) => {
     console.log('[Worker] 📥 Received background message (FCM):', payload);
     
-    const title = payload.notification?.title || payload.data?.title || 'Mazir Admin';
-    const body = payload.notification?.body || payload.data?.body || 'Жаңа хабарлама';
+    // Check if we already have a tag, otherwise create an order-based one
+    const orderId = payload.data?.orderId || '';
+    const tag = payload.data?.tag || (orderId ? `order-${orderId}` : `admin-notification-${Date.now()}`);
+    
+    const title = payload.notification?.title || payload.data?.title || '🔔 Mazir Admin';
+    const body = payload.notification?.body || payload.data?.body || 'Жаңа тапсырыс түсті!';
     
     const notificationOptions = {
         body: body,
         icon: payload.data?.icon || payload.notification?.icon || '/icon-192x192.png',
-        badge: '/icon-light-32x32.png',
+        badge: '/icon-192x192.png',
         vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40],
-        tag: payload.data?.tag || payload.notification?.tag || 'admin-notification',
+        tag: tag,
         timestamp: Date.now(),
-        requireInteraction: true,
-        silent: false,
+        requireInteraction: true, // Make it stay until clicked
+        renotify: true, // Vibrate even if the tag is the same
         data: {
             url: payload.data?.url || '/orders',
-            orderId: payload.data?.orderId
-        }
+            orderId: orderId
+        },
+        actions: [
+            { action: 'open', title: 'Тапсырысты көру' },
+            { action: 'close', title: 'Жабу' }
+        ]
     };
 
-    console.log('[Worker] Showing notification with options:', notificationOptions);
+    console.log('[Worker] Showing background notification:', title, tag);
     return self.registration.showNotification(title, notificationOptions);
 });
 
@@ -73,18 +81,19 @@ self.addEventListener('push', function (event) {
         const options = {
             body: body,
             icon: data.icon || data.notification?.icon || '/icon-192x192.png',
-            badge: '/icon-light-32x32.png',
-            vibrate: [200, 100, 200, 100, 200],
+            badge: data.badge || '/icon-192x192.png',
+            vibrate: data.vibrate || [500, 110, 500, 110, 450],
             tag: data.tag || data.notification?.tag || 'notification',
-            requireInteraction: true,
+            requireInteraction: data.requireInteraction !== undefined ? data.requireInteraction : true,
+            renotify: true, // Make sure it vibrates even for same tag
             data: {
                 dateOfArrival: Date.now(),
                 url: data.url || data.data?.url || '/orders',
                 orderId: data.orderId || data.data?.orderId,
             },
             actions: [
-                { action: 'open', title: 'Открыть' },
-                { action: 'close', title: 'Закрыть' }
+                { action: 'open', title: 'Ашу' },
+                { action: 'close', title: 'Жабу' }
             ]
         }
 
