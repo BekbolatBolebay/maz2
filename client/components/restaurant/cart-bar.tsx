@@ -13,11 +13,14 @@ export function CartBar({ restaurantId }: { restaurantId?: string }) {
   const { locale } = useI18n()
   const pathname = usePathname()
 
-  // Only show if items exist and (optionally) if they belong to this restaurant
+  // Visibility logic
+  const isRestaurantPage = pathname?.startsWith('/restaurant/')
+  const isCartOrCheckout = pathname?.startsWith('/cart') || pathname?.startsWith('/checkout')
   const hasItems = totalCount > 0
   const isCorrectRestaurant = !restaurantId || cart.some(item => item.cafe_id === restaurantId)
 
-  if (!hasItems || !isCorrectRestaurant) return null
+  // Only show on restaurant pages, when not on cart/checkout, and when items exist
+  if (!isRestaurantPage || isCartOrCheckout || !hasItems || !isCorrectRestaurant) return null
 
   // Check if BottomNav is visible (inverse logic of BottomNav's hideOn)
   const hideBottomNavOn = ['/checkout', '/login', '/register', '/booking', '/restaurant/']

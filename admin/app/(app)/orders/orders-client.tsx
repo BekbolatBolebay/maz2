@@ -1051,9 +1051,13 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                           setActiveModal('prep')
                           setModalValue('20')
                         } else if (ns === 'on_the_way') {
-                          setModalItem(item)
-                          setActiveModal('courier')
-                          setAssignMode('permanent')
+                          if (item.type === 'pickup') {
+                            updateStatus(item, 'delivered')
+                          } else {
+                            setModalItem(item)
+                            setActiveModal('courier')
+                            setAssignMode('permanent')
+                          }
                         } else {
                           updateStatus(item, ns)
                         }

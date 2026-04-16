@@ -703,7 +703,17 @@ export function CheckoutClient() {
             <Header
                 title={step === 'summary' ? t.cart.summary_title : t.cart.title}
                 backButton={true}
-                onBack={() => step === 'summary' ? setStep('form') : router.push('/cart')}
+                onBack={() => {
+                    if (step === 'summary') {
+                        setStep('form')
+                    } else if (orderType === 'booking') {
+                        if (bookingSubStep === 2) setBookingSubStep(1)
+                        else if (bookingSubStep === 3) setBookingSubStep(2)
+                        else router.push('/cart')
+                    } else {
+                        router.push('/cart')
+                    }
+                }}
             />
 
             <main className="max-w-screen-md mx-auto px-4 py-6 space-y-6 pb-32">
@@ -833,14 +843,7 @@ export function CheckoutClient() {
                                             </div>
                                         </div>
 
-                                        <Button
-                                            className="w-full mt-2 h-14 rounded-2xl font-black text-lg gap-2"
-                                            disabled={!selectedTableId || !bookingTime || !bookingDate}
-                                            onClick={() => setBookingSubStep(2)}
-                                        >
-                                            {locale === 'kk' ? 'Әрі қарай' : 'Продолжить'}
-                                            <ArrowRight className="w-5 h-5" />
-                                        </Button>
+                                        {/* Inline button removed and moved to fixed bottom bar for consistency */}
                                     </CardContent>
                                 </Card>
                             </section>
@@ -874,21 +877,7 @@ export function CheckoutClient() {
                                     ))}
                                 </Tabs>
 
-                                <div className="pt-4 sticky bottom-2 z-10">
-                                    <Button
-                                        className="w-full h-14 rounded-2xl font-black text-lg gap-2 shadow-2xl"
-                                        onClick={() => {
-                                            if (orderType === 'booking') {
-                                                setBookingSubStep(3)
-                                            }
-                                        }}
-                                    >
-                                        {cartItems.length > 0 
-                                            ? (locale === 'kk' ? 'Таңдалған тағамдармен жалғастыру' : 'Продолжить с выбранными блюдами')
-                                            : (locale === 'kk' ? 'Тағамсыз жалғастыру' : 'Продолжить без предзаказа')}
-                                        <ArrowRight className="w-5 h-5" />
-                                    </Button>
-                                </div>
+                                <div className="h-20" /> {/* Spacer for fixed bottom bar */}
                             </section>
                         )}
 
@@ -1237,12 +1226,25 @@ export function CheckoutClient() {
                     </div>
                 )}
 
-                {step !== 'auth' && (orderType !== 'booking' || bookingSubStep === 3) && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-muted z-50">
+                {step !== 'auth' && (
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-muted z-50 flex flex-col gap-2">
                         <Button
-                            className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            onClick={step === 'form' ? handleContinueToSummary : handleCheckout}
-                            disabled={checkoutLoading}
+                            className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2"
+                            onClick={() => {
+                                if (step === 'summary') {
+                                    handleCheckout()
+                                } else if (orderType === 'booking') {
+                                    if (bookingSubStep === 1) setBookingSubStep(2)
+                                    else if (bookingSubStep === 2) setBookingSubStep(3)
+                                    else handleContinueToSummary()
+                                } else {
+                                    handleContinueToSummary()
+                                }
+                            }}
+                            disabled={
+                                checkoutLoading || 
+                                (orderType === 'booking' && bookingSubStep === 1 && (!selectedTableId || !bookingTime || !bookingDate))
+                            }
                         >
                             {checkoutLoading ? (
                                 <div className="flex items-center gap-2">
@@ -1250,7 +1252,19 @@ export function CheckoutClient() {
                                     <span>{t.cart.sending}</span>
                                 </div>
                             ) : (
-                                step === 'form' ? t.cart.continue_label : t.cart.confirm_and_pay
+                                <>
+                                    {step === 'summary' ? t.cart.confirm_and_pay : (
+                                        orderType === 'booking' ? (
+                                            bookingSubStep === 1 ? (locale === 'kk' ? 'Әрі қарай' : 'Продолжить') :
+                                            bookingSubStep === 2 ? (
+                                                cartItems.length > 0 
+                                                    ? (locale === 'kk' ? 'Мәзірмен жалғастыру' : 'Продолжить с меню')
+                                                    : (locale === 'kk' ? 'Мәзірсіз жалғастыру' : 'Продолжить без предзаказа')
+                                            ) : t.cart.continue_label
+                                        ) : t.cart.continue_label
+                                    )}
+                                    <ArrowRight className="w-5 h-5" />
+                                </>
                             )}
                         </Button>
                     </div>
