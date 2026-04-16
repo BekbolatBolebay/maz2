@@ -10,6 +10,32 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes
 
+    // --- DIAGNOSTIC START ---
+    console.log('[DEBUG-ENV] Process ENV keys:', Object.keys(process.env).filter(k => k.includes('SMTP') || k.includes('EMAIL')));
+    
+    // Explicit manual loading fallback if Next.js loader failed
+    if (!process.env.SMTP_USER) {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const envPath = path.join(process.cwd(), '.env');
+            if (fs.existsSync(envPath)) {
+                console.log('[DEBUG-ENV] Manually loading .env from:', envPath);
+                const envContent = fs.readFileSync(envPath, 'utf8');
+                envContent.split('\n').forEach(line => {
+                    const [key, ...v] = line.split('=');
+                    if (key && v.length) {
+                        const val = v.join('=').trim().replace(/["']/g, '');
+                        process.env[key.trim()] = val;
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('[DEBUG-ENV] Fallback loader failed:', e);
+        }
+    }
+    // --- DIAGNOSTIC END ---
+
     const supabase = createAdminClient()
 
     // Save OTP to DB
@@ -32,17 +58,20 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
     try {
         console.log(`[OTP] Preparing to send code ${code} to ${email}`);
         
-        if (process.env.MOCK_MAIL === 'true' || process.env.NODE_ENV === 'development' && !process.env.SMTP_USER) {
-            console.log('--- MAIL MOCK MODE ACTIVE ---');
-            console.log(`Target Email: ${email}`);
-            console.log(`OTP Code: ${code}`);
-            return { success: true, mock: true };
-        }
-
         const smtpUser = (process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
         const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
         const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
         const smtpPort = Number(process.env.SMTP_PORT) || 465;
+
+        // Enhanced Mock check: ONLY mock if explicitly requested OR we are in dev AND truly have NO credentials
+        const isMockActive = process.env.MOCK_MAIL === 'true' || (process.env.NODE_ENV === 'development' && !smtpUser && !process.env.SMTP_PASS);
+
+        if (isMockActive) {
+            console.log('⚠️ --- MAIL MOCK MODE ACTIVE --- ⚠️');
+            console.log(`[MOCK] Target Email: ${email}`);
+            console.log(`[MOCK] OTP Code: ${code}`);
+            return { success: true, mock: true };
+        }
 
         if (!smtpUser || !smtpPass) {
             console.error('[SMTP] Missing credentials!');
