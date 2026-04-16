@@ -111,7 +111,7 @@ export default function LoginPage() {
                     </form>
 
                     <div className="mt-8 pt-6 border-t border-border text-center">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mb-4">
                             {t(lang, 'noAccount')}{' '}
                             <Link
                                 href="/register"
@@ -120,6 +120,15 @@ export default function LoginPage() {
                                 {t(lang, 'register')}
                             </Link>
                         </p>
+                        
+                        <a 
+                            href="/mazir-admin.apk"
+                            className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl hover:bg-emerald-500/20 active:scale-[0.98] transition-all border border-emerald-500/20"
+                            download
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+                            Android қосымшасын жүктеу
+                        </a>
                     </div>
                 </div>
             </div>

@@ -40,14 +40,26 @@ jobs:
           touch out/index.html
           npx cap sync android
 
-      - name: Build APK with Gradle
+      - name: Build unsigned Release APK
         run: |
           cd admin/android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with:
-          name: mazir-admin-app
-          path: admin/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Sign APK
+        run: |
+          cd admin/android/app/build/outputs/apk/release
+          keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias release -dname "CN=Mazir, OU=Admin, O=Mazir, L=Almaty, C=KZ" -storepass password -keypass password
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -r | head -n 1)
+          $APKSIGNER sign --ks release.jks --ks-pass pass:password --ks-key-alias release --key-pass pass:password --out app-release-signed.apk app-release-unsigned.apk
+
+      - name: Commit and Host APK on Site
+        run: |
+          mkdir -p admin/public
+          cp admin/android/app/build/outputs/apk/release/app-release-signed.apk admin/public/mazir-admin.apk
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin/public/mazir-admin.apk
+          git commit -m "chore: host latest Android App on site [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF}
+
