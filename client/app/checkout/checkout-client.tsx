@@ -47,7 +47,7 @@ export function CheckoutClient() {
     const router = useRouter()
     const cartItems = useLocalCart()
     const { t, locale } = useI18n()
-    const { user: authUser, profile, loading: authLoading } = useAuth()
+    const { user: authUser, profile, loading: authLoading, signInAnonymous } = useAuth()
     const [checkoutLoading, setCheckoutLoading] = useState(false)
     const [restaurantSettings, setRestaurantSettings] = useState<any>(null)
     const [workingHours, setWorkingHours] = useState<any[]>([])
@@ -452,7 +452,20 @@ export function CheckoutClient() {
                 return
             }
 
-            const { data: { user } } = await supabase.auth.getUser()
+            let user = (await supabase.auth.getUser()).data.user
+            if (!user) {
+                try {
+                    console.log('[Checkout] No user found, attempting anonymous sign-in for guest checkout');
+                    await signInAnonymous();
+                    user = (await supabase.auth.getUser()).data.user;
+                } catch (anonError) {
+                    console.error('[Checkout] Anonymous sign-in failed:', anonError);
+                    toast.error(t.cart.please_signin)
+                    router.push('/login?next=/checkout')
+                    return
+                }
+            }
+            
             if (!user) {
                 toast.error(t.cart.please_signin)
                 router.push('/login?next=/checkout')

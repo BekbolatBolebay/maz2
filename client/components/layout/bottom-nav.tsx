@@ -16,7 +16,7 @@ export function BottomNav() {
   const favoritesCount = useFavoritesCount()
 
   // Hide BottomNav on certain pages
-  const hideOn = ['/checkout', '/login', '/register', '/booking', '/restaurant/']
+  const hideOn = ['/checkout', '/login', '/register', '/booking', '/restaurant/', '/cart']
   if (hideOn.some(path => pathname?.startsWith(path))) {
     return null
   }

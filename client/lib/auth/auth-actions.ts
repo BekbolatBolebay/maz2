@@ -10,31 +10,52 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes
 
-    // --- DIAGNOSTIC START ---
-    console.log('[DEBUG-ENV] Process ENV keys:', Object.keys(process.env).filter(k => k.includes('SMTP') || k.includes('EMAIL')));
-    
+    const fs = require('fs');
+    const path = require('path');
+    const logFile = path.join(process.cwd(), 'scratch/smtp_debug.log');
+    const log = (msg: string) => {
+        const timestamp = new Date().toISOString();
+        const line = `[${timestamp}] ${msg}\n`;
+        try {
+            if (!fs.existsSync(path.dirname(logFile))) fs.mkdirSync(path.dirname(logFile), { recursive: true });
+            fs.appendFileSync(logFile, line);
+        } catch (e) {}
+        console.log(msg);
+    };
+
+    log(`--- START OTP REQUEST [${email}] ---`);
+    log(`[ENV] Initial SMTP_USER: ${process.env.SMTP_USER ? 'PRESENT' : 'MISSING'}`);
+
     // Explicit manual loading fallback if Next.js loader failed
     if (!process.env.SMTP_USER) {
         try {
-            const fs = require('fs');
-            const path = require('path');
             const envPath = path.join(process.cwd(), '.env');
             if (fs.existsSync(envPath)) {
-                console.log('[DEBUG-ENV] Manually loading .env from:', envPath);
+                log(`[ENV] Manually loading from: ${envPath}`);
                 const envContent = fs.readFileSync(envPath, 'utf8');
-                envContent.split('\n').forEach(line => {
-                    const [key, ...v] = line.split('=');
-                    if (key && v.length) {
-                        const val = v.join('=').trim().replace(/["']/g, '');
-                        process.env[key.trim()] = val;
+                envContent.split(/\r?\n/).forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine || trimmedLine.startsWith('#')) return;
+                    
+                    const match = trimmedLine.match(/^([^=]+)=(.*)$/);
+                    if (match) {
+                        const key = match[1].trim();
+                        let val = match[2].trim();
+                        // Remove surrounding quotes if they exist
+                        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                            val = val.substring(1, val.length - 1);
+                        }
+                        process.env[key] = val;
                     }
                 });
+                log(`[ENV] After manual load: ${process.env.SMTP_USER ? 'PRESENT' : 'STILL MISSING'}`);
+            } else {
+                log(`[ENV] .env file NOT FOUND at ${envPath}`);
             }
-        } catch (e) {
-            console.error('[DEBUG-ENV] Fallback loader failed:', e);
+        } catch (e: any) {
+            log(`[ENV] Error during manual load: ${e.message}`);
         }
     }
-    // --- DIAGNOSTIC END ---
 
     const supabase = createAdminClient()
 
@@ -56,25 +77,25 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
 
     // Send Email
     try {
-        console.log(`[OTP] Preparing to send code ${code} to ${email}`);
+        log(`[OTP] Preparing to send code ${code} to ${email}`);
         
         const smtpUser = (process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
         const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
         const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
         const smtpPort = Number(process.env.SMTP_PORT) || 465;
 
-        // Enhanced Mock check: ONLY mock if explicitly requested OR we are in dev AND truly have NO credentials
+        log(`[SMTP] Attempting config: ${smtpHost}:${smtpPort} (User: ${smtpUser ? 'OK' : 'MISSING'})`);
+
+        // Enhanced Mock check
         const isMockActive = process.env.MOCK_MAIL === 'true' || (process.env.NODE_ENV === 'development' && !smtpUser && !process.env.SMTP_PASS);
 
         if (isMockActive) {
-            console.log('⚠️ --- MAIL MOCK MODE ACTIVE --- ⚠️');
-            console.log(`[MOCK] Target Email: ${email}`);
-            console.log(`[MOCK] OTP Code: ${code}`);
+            log('⚠️ --- MAIL MOCK MODE ACTIVE --- ⚠️');
             return { success: true, mock: true };
         }
 
         if (!smtpUser || !smtpPass) {
-            console.error('[SMTP] Missing credentials!');
+            log('[SMTP] Error: Missing credentials in ENV');
             throw new Error('SMTP баптаулары табылмады (.env тексеріңіз)');
         }
 
@@ -88,17 +109,14 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
             },
             tls: {
                 rejectUnauthorized: false,
-                // Some providers need this
                 minVersion: 'TLSv1.2'
             },
-            connectionTimeout: 10000, // 10s
+            connectionTimeout: 10000, 
             greetingTimeout: 10000,
             socketTimeout: 15000,
-            debug: true,
-            logger: true
         });
 
-        console.log(`[SMTP] Sending from ${smtpUser}...`);
+        log(`[SMTP] Created transporter. Sending mail...`);
         
         const info = await transporter.sendMail({
             from: process.env.SMTP_FROM || `Mazir App <${smtpUser}>`,
@@ -116,13 +134,14 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
       `,
         });
 
-        console.log('[SMTP] Mail sent successfully:', info.messageId);
+        log(`[SMTP] ✅ SUCCESS! MessageId: ${info.messageId}`);
         return { success: true }
     } catch (emailError: any) {
-        console.error('[SMTP] Fatal error:', emailError);
+        log(`[SMTP] ❌ FATAL ERROR: ${emailError.message}`);
+        if (emailError.stack) log(`[SMTP] Stack: ${emailError.stack}`);
+        
         const errorMessage = emailError.message || 'Белгісіз қате';
         
-        // Return a clean error message that can be shown in a toast
         if (errorMessage.includes('Invalid login') || errorMessage.includes('AUTH')) {
             throw new Error('SMTP: Логин немесе пароль қате (Gmail App Password тексеріңіз)');
         }

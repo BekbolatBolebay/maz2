@@ -105,6 +105,8 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
             title: t.profile?.helpSupport || 'Көмек және Қолдау',
             items: [
                 { label: t.profile?.helpSupport || 'Көмек орталығы', icon: HelpCircle, href: '/profile/help', badge: undefined },
+                { label: locale === 'kk' ? 'Пайдалану шарттары' : 'Условия использования', icon: VerifiedIcon, href: '/terms', badge: undefined },
+                { label: locale === 'kk' ? 'Құпиялылық саясаты' : 'Политика конфиденциальности', icon: Sparkles, href: '/privacy', badge: undefined },
                 { label: t.profile?.about || 'Қолданба туралы', icon: Settings, href: '/profile/about', badge: undefined },
             ]
         }

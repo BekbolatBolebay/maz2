@@ -23,7 +23,8 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 
 export async function notifyAdmin(data: any, type: 'order' | 'booking', restaurantId?: string) {
     try {
-        console.log(`[Notification] Starting notifyAdmin for type: ${type}, restaurantId: ${restaurantId}`);
+        const timestamp = new Date().toISOString();
+        console.log(`[Notification][${timestamp}] Starting notifyAdmin for type: ${type}, restaurantId: ${restaurantId}`);
         const supabase = await createClient()
 
         // Step 1: restaurants.owner_id → staff_profiles.id арқылы байланыстыру
@@ -63,9 +64,11 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         const targetStaff = (staff || []).filter(member => !!member.fcm_token || !!member.push_subscription || !!member.push_token)
 
         if (targetStaff.length === 0) {
-            console.warn('[Notification] ❌ No staff with push tokens found.');
+            console.warn(`[Notification][${timestamp}] ❌ No staff with push tokens found for restaurant ${restaurantId}`);
             return
         }
+        
+        console.log(`[Notification][${timestamp}] 🚀 Sending to ${targetStaff.length} recipients`);
 
         const orderId = data.id.slice(0, 8)
         const tag = `${type}-${data.id}`
@@ -136,12 +139,18 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                             body: payload.body,
                             url: payload.url,
                             icon: '/icon-192x192.png',
+                            badge: '/icon-192x192.png',
                             tag: tag
                         }),
-                        { headers: { 'Urgency': 'high', 'TTL': '86400' } }
+                        { 
+                            headers: { 
+                                'Urgency': 'high', 
+                                'TTL': '86400' 
+                            } 
+                        }
                     )
-                    .then(() => console.log(`[Web-Push] ✅ Sent to ${member.full_name}`))
-                    .catch((e: any) => console.error(`[Web-Push] ❌ Error for ${member.full_name}:`, e?.message))
+                    .then(() => console.log(`[Web-Push] ✅ Sent successfully to ${member.full_name}`))
+                    .catch((e: any) => console.error(`[Web-Push] ❌ Delivery failed for ${member.full_name}:`, e?.message))
                 )
             }
         }

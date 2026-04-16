@@ -3,9 +3,9 @@
  * Handles push events and notification clicks
  */
 
-// 1. Import Firebase scripts
-importScripts('https://www.gstatic.com/firebasejs/11.3.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/11.3.0/firebase-messaging-compat.js');
+// 1. Import Firebase scripts (latest stable compat versions)
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
 // 2. Initialize Firebase in the worker
 const firebaseConfig = {
@@ -22,10 +22,11 @@ if (firebase.apps.length === 0) {
 }
 
 const messaging = firebase.messaging();
+console.log('[Worker] Firebase Messaging initialized');
 
 // 3. Handle background messages (FCM specific)
 messaging.onBackgroundMessage((payload) => {
-    console.log('[Worker] Received background message (FCM):', payload);
+    console.log('[Worker] 📥 Received background message (FCM):', payload);
     
     const title = payload.notification?.title || payload.data?.title || 'Mazir Admin';
     const body = payload.notification?.body || payload.data?.body || 'Жаңа хабарлама';
@@ -58,7 +59,7 @@ self.addEventListener('push', function (event) {
             }
         }
 
-        console.log('[Worker] Push notification received payload:', data)
+        console.log('[Worker] 📥 Push event received payload:', data)
 
         const title = data.notification?.title || data.title || 'Mazir Admin'
         const body = data.notification?.body || data.body || 'Жаңа хабарлама'
