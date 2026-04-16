@@ -27,31 +27,19 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         console.log(`[Notification][${timestamp}] Starting notifyAdmin for type: ${type}, restaurantId: ${restaurantId}`);
         const supabase = await createClient()
 
-        // Step 1: restaurants.owner_id → staff_profiles.id арқылы байланыстыру
-        let ownerIds: string[] = []
+        // Step 1: Find staff linked to this restaurant OR global admins
+        let staffQuery = supabase
+            .from('staff_profiles')
+            .select('id, full_name, role, push_subscription, fcm_token, push_token, cafe_id')
 
         if (restaurantId) {
-            const { data: restaurant } = await supabase
-                .from('restaurants')
-                .select('owner_id')
-                .eq('id', restaurantId)
-                .single()
-
-            if (restaurant?.owner_id) {
-                ownerIds.push(restaurant.owner_id)
-                console.log(`[Notification] Found owner_id: ${restaurant.owner_id}`)
-            }
-        }
-
-        // Step 2: FCM token немесе push_subscription бар staff-ты табу
-        const staffQuery = supabase
-            .from('staff_profiles')
-            .select('id, full_name, role, push_subscription, fcm_token, push_token')
-
-        if (ownerIds.length > 0) {
-            staffQuery.in('id', ownerIds)
+            // Find staff assigned to this cafe OR global admins
+            staffQuery = staffQuery.or(`cafe_id.eq.${restaurantId},role.eq.admin`)
+            console.log(`[Notification] Filtering for cafe_id: ${restaurantId} or global admins`);
         } else {
-            staffQuery.eq('role', 'admin')
+            // Fallback: Notify all admins
+            staffQuery = staffQuery.eq('role', 'admin')
+            console.log(`[Notification] Falling back to all global admins`);
         }
 
         const { data: staff, error: staffError } = await staffQuery
@@ -61,14 +49,15 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
             return
         }
 
+        // Step 2: Filter only those with at least one push target
         const targetStaff = (staff || []).filter(member => !!member.fcm_token || !!member.push_subscription || !!member.push_token)
 
         if (targetStaff.length === 0) {
-            console.warn(`[Notification][${timestamp}] ❌ No staff with push tokens found for restaurant ${restaurantId}`);
+            console.warn(`[Notification][${timestamp}] ❌ No staff candidates found (Total staff checked: ${staff?.length || 0})`);
             return
         }
         
-        console.log(`[Notification][${timestamp}] 🚀 Sending to ${targetStaff.length} recipients`);
+        console.log(`[Notification][${timestamp}] 🚀 Found ${targetStaff.length} recipients with active tokens`);
 
         const orderId = data.id.slice(0, 8)
         const tag = `${type}-${data.id}`
