@@ -110,8 +110,9 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                                 notification: {
                                     icon: '/icon-192x192.png',
                                     badge: '/icon-192x192.png',
-                                    vibrate: [200, 100, 200],
+                                    vibrate: [500, 110, 500, 110, 450],
                                     requireInteraction: true,
+                                    silent: false,
                                     tag: tag
                                 }
                             },

@@ -108,7 +108,7 @@ export function PushPrompt() {
             console.log('[PushPrompt] Service worker ready, subscribing to push...')
 
             // Step 5: Subscribe to push notifications
-            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+            const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
             if (!vapidKey) {
                 const errorMsg = lang === 'ru' ? 'VAPID ключ не настроен' : 'VAPID кілт орнатылмаған'
                 console.error('[PushPrompt]', errorMsg)

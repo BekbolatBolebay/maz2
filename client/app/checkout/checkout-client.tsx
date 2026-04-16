@@ -729,10 +729,57 @@ export function CheckoutClient() {
                 }}
             />
 
-            <main className="max-w-screen-md mx-auto px-4 py-6 space-y-6 pb-32">
-                {step === 'auth' ? (
-                    <CheckoutAuth onLogin={() => setStep('form')} />
-                ) : step === 'form' ? (
+            <main className="max-w-screen-md mx-auto px-4 py-6 space-y-6 pb-32 overflow-hidden">
+                {/* Progress Stepper */}
+                {step !== 'auth' && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center justify-center gap-2 mb-8 px-4"
+                    >
+                        {[
+                            { id: 'form', label: locale === 'kk' ? 'Мәліметтер' : 'Данные', icon: <MapPin className="w-4 h-4" /> },
+                            { id: 'summary', label: locale === 'kk' ? 'Тексеру' : 'Проверка', icon: <CreditCard className="w-4 h-4" /> }
+                        ].map((s, idx) => (
+                            <div key={s.id} className="flex items-center">
+                                <div className={cn(
+                                    "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all duration-500",
+                                    step === s.id 
+                                        ? "bg-primary text-white shadow-lg shadow-primary/25 scale-105" 
+                                        : (idx === 0 && step === 'summary' ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground")
+                                )}>
+                                    {idx === 0 && step === 'summary' ? <CheckCircle2 className="w-4 h-4" /> : s.icon}
+                                    <span>{s.label}</span>
+                                </div>
+                                {idx === 0 && (
+                                    <div className={cn(
+                                        "w-8 h-0.5 mx-2 rounded-full transition-all duration-700",
+                                        step === 'summary' ? "bg-green-500" : "bg-muted"
+                                    )} />
+                                )}
+                            </div>
+                        ))}
+                    </motion.div>
+                )}
+
+                <AnimatePresence mode="wait">
+                    {step === 'auth' ? (
+                        <motion.div
+                            key="auth"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                        >
+                            <CheckoutAuth onLogin={() => setStep('form')} />
+                        </motion.div>
+                    ) : step === 'form' ? (
+                        <motion.div
+                            key="form"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-6"
+                        >
                     <>
                         {/* Service Type Selection */}
                         <section className="space-y-3">
@@ -1061,11 +1108,16 @@ export function CheckoutClient() {
                                     </div>
                                 </section>
                             </div>
-                        )}
-                    </>
+                        </motion.div>
                 ) : (
                     /* Step 2: Summary */
-                    <div className="space-y-6 animate-in fade-in slide-in-from-right duration-500">
+                    <motion.div
+                        key="summary"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-6"
+                    >
                         <section className="text-center py-4">
                             <h2 className="text-2xl font-black text-foreground">{t.cart.review_details}</h2>
                             <p className="text-sm text-muted-foreground">{t.cart.summary_title}</p>
@@ -1236,8 +1288,9 @@ export function CheckoutClient() {
                             <ArrowLeft className="w-4 h-4" />
                             {locale === 'kk' ? 'Артқа оралу' : 'Вернуться назад'}
                         </button>
-                    </div>
+                        </motion.div>
                 )}
+            </AnimatePresence>
 
                 {step !== 'auth' && (
                     <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-muted z-50 flex flex-col gap-2">

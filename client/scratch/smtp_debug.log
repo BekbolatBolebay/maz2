@@ -1,0 +1,24 @@
+[2026-04-16T10:13:29.847Z] --- START OTP REQUEST [bolebay.bekbolat.25@gmail.com] ---
+[2026-04-16T10:13:29.850Z] [ENV] Initial SMTP_USER: PRESENT
+[2026-04-16T10:13:30.722Z] [OTP] Preparing to send code 461009 to bolebay.bekbolat.25@gmail.com
+[2026-04-16T10:13:30.723Z] [SMTP] Attempting config: smtp.gmail.com:465 (User: OK)
+[2026-04-16T10:13:30.729Z] [SMTP] Created transporter. Sending mail...
+[2026-04-16T10:13:33.183Z] [SMTP] ✅ SUCCESS! MessageId: <0374a285-3380-7bec-3e58-00e44699ad25@gmail.com>
+[2026-04-16T10:14:49.714Z] --- START OTP REQUEST [test-otp@example.com] ---
+[2026-04-16T10:14:49.717Z] [ENV] Initial SMTP_USER: PRESENT
+[2026-04-16T10:14:50.484Z] [OTP] Preparing to send code 439866 to test-otp@example.com
+[2026-04-16T10:14:50.485Z] [SMTP] Attempting config: smtp.gmail.com:465 (User: OK)
+[2026-04-16T10:14:50.490Z] [SMTP] Created transporter. Sending mail...
+[2026-04-16T10:14:52.155Z] [SMTP] ✅ SUCCESS! MessageId: <77c892df-2866-a258-4522-6c62690bf404@gmail.com>
+[2026-04-16T10:22:54.399Z] --- START OTP REQUEST [boleebay.bekbolat.25@gmail.com] ---
+[2026-04-16T10:22:54.401Z] [ENV] Initial SMTP_USER: PRESENT
+[2026-04-16T10:22:55.726Z] [OTP] Preparing to send code 448241 to boleebay.bekbolat.25@gmail.com
+[2026-04-16T10:22:55.727Z] [SMTP] Attempting config: smtp.gmail.com:465 (User: OK)
+[2026-04-16T10:22:55.731Z] [SMTP] Created transporter. Sending mail...
+[2026-04-16T10:22:58.284Z] [SMTP] ✅ SUCCESS! MessageId: <7a29d403-37e5-6c83-0a22-067f6e567b63@gmail.com>
+[2026-04-16T10:23:02.759Z] --- START OTP REQUEST [bolebay.bekbolat.25@gmail.com] ---
+[2026-04-16T10:23:02.807Z] [ENV] Initial SMTP_USER: PRESENT
+[2026-04-16T10:23:03.946Z] [OTP] Preparing to send code 750578 to bolebay.bekbolat.25@gmail.com
+[2026-04-16T10:23:03.947Z] [SMTP] Attempting config: smtp.gmail.com:465 (User: OK)
+[2026-04-16T10:23:03.948Z] [SMTP] Created transporter. Sending mail...
+[2026-04-16T10:23:05.979Z] [SMTP] ✅ SUCCESS! MessageId: <d87047e9-004e-2794-6c4a-caa29ca89262@gmail.com>

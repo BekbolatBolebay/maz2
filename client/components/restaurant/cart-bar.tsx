@@ -14,13 +14,12 @@ export function CartBar({ restaurantId }: { restaurantId?: string }) {
   const pathname = usePathname()
 
   // Visibility logic
-  const isRestaurantPage = pathname?.startsWith('/restaurant/')
-  const isCartOrCheckout = pathname?.startsWith('/cart') || pathname?.startsWith('/checkout')
+  const isHomeOrRestaurant = pathname === '/' || pathname?.startsWith('/restaurant/')
+  const isExcludedPage = ['/cart', '/checkout', '/login', '/register', '/profile', '/orders', '/reservations'].some(path => pathname?.startsWith(path))
   const hasItems = totalCount > 0
-  const isCorrectRestaurant = !restaurantId || cart.some(item => item.cafe_id === restaurantId)
-
-  // Only show on restaurant pages, when not on cart/checkout, and when items exist
-  if (!isRestaurantPage || isCartOrCheckout || !hasItems || !isCorrectRestaurant) return null
+  
+  // Show only on Home or Restaurant pages, never on excluded pages, and only if items exist
+  if (!isHomeOrRestaurant || isExcludedPage || !hasItems) return null
 
   // Check if BottomNav is visible (inverse logic of BottomNav's hideOn)
   const hideBottomNavOn = ['/checkout', '/login', '/register', '/booking', '/restaurant/']

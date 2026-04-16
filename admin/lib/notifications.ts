@@ -83,7 +83,9 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
                 icon: payload.icon || '/favicon-32x32.png',
                 badge: '/icon-light-32x32.png',
                 tag: notificationTag,
-                requireInteraction: true
+                vibrate: [500, 110, 500, 110, 450],
+                requireInteraction: true,
+                silent: false
               }
             },
           };

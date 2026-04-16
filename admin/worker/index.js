@@ -35,13 +35,18 @@ messaging.onBackgroundMessage((payload) => {
         body: body,
         icon: payload.data?.icon || payload.notification?.icon || '/icon-192x192.png',
         badge: '/icon-light-32x32.png',
+        vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40],
         tag: payload.data?.tag || payload.notification?.tag || 'admin-notification',
+        timestamp: Date.now(),
+        requireInteraction: true,
+        silent: false,
         data: {
             url: payload.data?.url || '/orders',
             orderId: payload.data?.orderId
         }
     };
 
+    console.log('[Worker] Showing notification with options:', notificationOptions);
     return self.registration.showNotification(title, notificationOptions);
 });
 
