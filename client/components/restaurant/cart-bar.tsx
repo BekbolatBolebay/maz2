@@ -5,10 +5,13 @@ import { useCart } from '@/hooks/use-cart'
 import { ShoppingBag, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/i18n-context'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 export function CartBar({ restaurantId }: { restaurantId?: string }) {
   const { totalCount, totalPrice, cart } = useCart()
   const { locale } = useI18n()
+  const pathname = usePathname()
 
   // Only show if items exist and (optionally) if they belong to this restaurant
   const hasItems = totalCount > 0
@@ -16,15 +19,22 @@ export function CartBar({ restaurantId }: { restaurantId?: string }) {
 
   if (!hasItems || !isCorrectRestaurant) return null
 
+  // Check if BottomNav is visible (inverse logic of BottomNav's hideOn)
+  const hideBottomNavOn = ['/checkout', '/login', '/register', '/booking', '/restaurant/']
+  const isBottomNavVisible = !hideBottomNavOn.some(path => pathname?.startsWith(path))
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] w-[calc(100%-2rem)] max-w-md"
+        className={cn(
+          "fixed left-0 right-0 z-[90] p-4 pb-[env(safe-area-inset-bottom)] pointer-events-none",
+          isBottomNavVisible ? "bottom-20" : "bottom-0"
+        )}
       >
-        <Link href="/cart">
+        <Link href="/cart" className="block max-w-lg mx-auto pointer-events-auto">
           <div className="bg-primary/90 backdrop-blur-xl text-primary-foreground rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between active:scale-[0.98] transition-all border border-white/20 group">
             <div className="flex items-center gap-4">
               <div className="bg-white/20 rounded-2xl p-2.5 shadow-inner">

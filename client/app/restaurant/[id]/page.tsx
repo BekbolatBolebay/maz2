@@ -12,7 +12,6 @@ import { ShareButton } from '@/components/restaurant/share-button'
 import { Metadata } from 'next'
 import RestaurantMap from '@/components/restaurant/restaurant-map'
 import { isRestaurantOpen } from '@/lib/restaurant-utils'
-import { CartBar } from '@/components/restaurant/cart-bar'
 import { fetchRestaurantWithRating } from '@/lib/restaurant-utils-rating'
 
 export default async function RestaurantPage({ params }: { params: Promise<{ id: string }> }) {
@@ -257,7 +256,6 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
         </div>
       </main>
 
-      <CartBar restaurantId={id} />
     </div>
   )
 }

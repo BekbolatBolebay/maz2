@@ -48,6 +48,7 @@ export const viewport: Viewport = {
 
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { PushPrompt } from '@/components/pwa/push-prompt'
+import { CartBar } from '@/components/restaurant/cart-bar'
 
 export default function RootLayout({
   children,
@@ -69,6 +70,7 @@ export default function RootLayout({
                 {children}
                 <InstallPrompt />
                 <PushPrompt />
+                <CartBar />
                 <BottomNav />
                 <OrderStatusListener />
                 <FCMHandler />

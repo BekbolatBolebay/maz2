@@ -9,7 +9,6 @@ import { FoodSection } from '@/components/home/food-section'
 import { createClient } from '@/lib/supabase/server'
 import { getGlobalCategories } from '@/lib/supabase/categories'
 import { fetchRestaurantsWithRatings } from '@/lib/restaurant-utils-rating'
-import { CartBar } from '@/components/restaurant/cart-bar'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -60,7 +59,7 @@ export default async function HomePage() {
           )}
         </div>
       </main>
-      <CartBar />
+      </main>
     </div>
   )
 }
