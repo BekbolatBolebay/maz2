@@ -206,17 +206,27 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
+          {/* Sticky Categories Navigation */}
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full justify-start gap-2 h-auto p-1 bg-muted/50 overflow-x-auto">
-              <TabsTrigger value="all" className="rounded-lg">
-                Барлығы
-              </TabsTrigger>
-              {categories?.map((cat) => (
-                <TabsTrigger key={cat.id} value={cat.id} className="rounded-lg whitespace-nowrap">
-                  {cat.name_ru}
+            <div className="sticky top-0 z-40 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-b border-border/10 shadow-sm transition-all duration-300">
+              <TabsList className="w-full justify-start gap-2 h-auto p-1.5 bg-muted/40 rounded-2xl overflow-x-auto scrollbar-hide no-scrollbar">
+                <TabsTrigger 
+                  value="all" 
+                  className="rounded-xl px-5 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/20 transition-all font-bold"
+                >
+                  Барлығы
                 </TabsTrigger>
-              ))}
-            </TabsList>
+                {categories?.map((cat) => (
+                  <TabsTrigger 
+                    key={cat.id} 
+                    value={cat.id} 
+                    className="rounded-xl px-5 py-2.5 whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/20 transition-all font-bold"
+                  >
+                    {cat.name_ru}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="mt-4">
               <div className="grid grid-cols-1 gap-3">

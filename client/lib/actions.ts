@@ -27,7 +27,6 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         const supabase = await createClient()
 
         // Step 1: restaurants.owner_id → staff_profiles.id арқылы байланыстыру
-        // (staff_profiles-та cafe_id жоқ)
         let ownerIds: string[] = []
 
         if (restaurantId) {
@@ -41,10 +40,6 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                 ownerIds.push(restaurant.owner_id)
                 console.log(`[Notification] Found owner_id: ${restaurant.owner_id}`)
             }
-        }
-
-        if (ownerIds.length === 0) {
-            console.log('[Notification] No owner found — looking for all admins')
         }
 
         // Step 2: FCM token немесе push_subscription бар staff-ты табу
@@ -65,40 +60,38 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
             return
         }
 
-        console.log(`[Notification] Found ${staff?.length || 0} staff members`)
-
-        const targetStaff = (staff || []).filter(member => {
-            const hasFcm = !!member.fcm_token
-            const hasSub = !!member.push_subscription || !!member.push_token
-            console.log(`[Notification] ${member.full_name}: fcm=${hasFcm}, web_push=${hasSub}`)
-            return hasFcm || hasSub
-        })
+        const targetStaff = (staff || []).filter(member => !!member.fcm_token || !!member.push_subscription || !!member.push_token)
 
         if (targetStaff.length === 0) {
-            console.warn('[Notification] ❌ No staff with any push token found! Push not sent.')
-            console.warn('[Notification] Admin needs to open the admin PWA and allow notifications first.')
+            console.warn('[Notification] ❌ No staff with push tokens found.');
             return
         }
 
         const orderId = data.id.slice(0, 8)
+        const tag = `${type}-${data.id}`
         const payload = {
             title: type === 'order' ? '🔔 Жаңа тапсырыс!' : '📅 Жаңа брондау!',
             body: type === 'order'
                 ? `#${orderId} · ${data.total_amount}₸`
                 : `${data.date} · ${data.time} · ${data.guests_count} адам · ${data.total_amount}₸`,
-            url: type === 'order' ? '/orders' : '/orders'
+            url: type === 'order' ? '/orders' : '/orders',
+            tag: tag
         }
 
         const pushPromises: Promise<any>[] = []
 
         for (const member of targetStaff) {
-            // 1. FCM (ең сенімді — фонда да жұмыс істейді)
+            // 1. FCM (High priority for background delivery)
             if (member.fcm_token) {
                 try {
                     const { messaging } = await import('./firebase-admin')
                     if (messaging) {
                         const message = {
                             token: member.fcm_token,
+                            android: {
+                                priority: 'high',
+                                notification: { sound: 'default' }
+                            },
                             notification: {
                                 title: payload.title,
                                 body: payload.body,
@@ -106,20 +99,23 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                             data: {
                                 url: payload.url,
                                 orderId: data.id,
+                                tag: tag
                             },
                             webpush: {
                                 fcm_options: { link: payload.url },
+                                headers: { Urgency: 'high' },
                                 notification: {
                                     icon: '/icon-192x192.png',
                                     badge: '/icon-192x192.png',
                                     vibrate: [200, 100, 200],
                                     requireInteraction: true,
+                                    tag: tag
                                 }
                             },
                         }
                         pushPromises.push(
                             (messaging as any).send(message)
-                                .then((r: any) => console.log(`[FCM] ✅ Sent to ${member.full_name}:`, r))
+                                .then((r: any) => console.log(`[FCM] ✅ Sent to ${member.full_name}`))
                                 .catch((e: any) => console.error(`[FCM] ❌ Error for ${member.full_name}:`, e?.message))
                         )
                     }
@@ -128,9 +124,8 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                 }
             }
 
-            // 2. Web-Push (FCM token жоқ болса немесе қосымша жіберу)
-            const subscription = member.push_subscription
-                || (member.push_token ? JSON.parse(member.push_token) : null)
+            // 2. Web-Push fallback
+            const subscription = member.push_subscription || (member.push_token ? JSON.parse(member.push_token) : null)
 
             if (subscription && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
                 pushPromises.push(
@@ -141,7 +136,9 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                             body: payload.body,
                             url: payload.url,
                             icon: '/icon-192x192.png',
-                        })
+                            tag: tag
+                        }),
+                        { headers: { 'Urgency': 'high', 'TTL': '86400' } }
                     )
                     .then(() => console.log(`[Web-Push] ✅ Sent to ${member.full_name}`))
                     .catch((e: any) => console.error(`[Web-Push] ❌ Error for ${member.full_name}:`, e?.message))
@@ -150,9 +147,9 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         }
 
         await Promise.all(pushPromises)
-        console.log('[Notification] ✅ All push notifications sent');
+        console.log('[Notification] ✅ All push notifications processed');
     } catch (error) {
-        console.error('[Notification] Fatal error notifying staff:', error)
+        console.error('[Notification] Fatal error:', error)
     }
 }
 

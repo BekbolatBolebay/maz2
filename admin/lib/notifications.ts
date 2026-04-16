@@ -51,9 +51,10 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 /**
  * Sends a Web Push notification to a specific user subscription.
  */
-export async function sendPushNotification(user: { fcm_token?: string; push_subscription?: any }, payload: { title: string; body: string; icon?: string; url?: string }) {
+export async function sendPushNotification(user: { fcm_token?: string; push_subscription?: any }, payload: { title: string; body: string; icon?: string; url?: string; tag?: string }) {
   try {
     const pushPromises: Promise<any>[] = [];
+    const notificationTag = payload.tag || `msg-${Date.now()}`;
 
     // 1. Firebase FCM (High priority)
     if (user.fcm_token) {
@@ -63,19 +64,26 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
         if (messaging) {
           const message = {
             token: user.fcm_token,
+            android: {
+              priority: 'high',
+              notification: { sound: 'default' }
+            },
             notification: {
               title: payload.title,
               body: payload.body,
             },
             data: {
               url: payload.url || '/',
+              tag: notificationTag
             },
             webpush: {
-              fcm_options: {
-                link: payload.url || '/',
-              },
+              fcm_options: { link: payload.url || '/' },
+              headers: { Urgency: 'high' },
               notification: {
                 icon: payload.icon || '/favicon-32x32.png',
+                badge: '/icon-light-32x32.png',
+                tag: notificationTag,
+                requireInteraction: true
               }
             },
           };
@@ -86,28 +94,27 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
                 throw e;
               })
           );
-        } else {
-          console.warn('[Push] FCM messaging not initialized (missing credentials)');
         }
       } catch (e) {
-        console.error('[Push] FCM processing error:', e);
+        console.error('[Push] FCM error:', e);
       }
     }
 
-    // 2. Standard Web-Push (Reliable fallback/complement)
+    // 2. Standard Web-Push
     if (user.push_subscription) {
-      console.log('[Push] Attempting Web-Push delivery for endpoint:', user.push_subscription.endpoint?.slice(0, 30) + '...');
       pushPromises.push(
         webpush.sendNotification(
           user.push_subscription,
-          JSON.stringify(payload)
+          JSON.stringify({
+            title: payload.title,
+            body: payload.body,
+            url: payload.url || '/',
+            icon: payload.icon || '/favicon-32x32.png',
+            tag: notificationTag
+          }),
+          { headers: { 'Urgency': 'high', 'TTL': '86400' } }
         ).catch((e: any) => {
-          console.error('[Push] Web-Push error:', {
-              statusCode: e?.statusCode,
-              body: e?.body,
-              message: e?.message,
-              hint: e?.statusCode === 401 || e?.statusCode === 403 ? 'Check VAPID keys in .env' : 'Check network/endpoint'
-          });
+          console.error('[Push] Web-Push error:', e?.message);
           throw e;
         })
       );

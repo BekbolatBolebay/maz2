@@ -2,12 +2,52 @@
  * Service Worker for client app - handles push notifications
  */
 
-// Listen for push notifications from backend
+// 1. Import Firebase scripts (Compatible versions)
+importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-messaging-compat.js');
+
+// 2. Initialize Firebase in the worker
+const firebaseConfig = {
+    apiKey: "AIzaSyDHrnmjl7MJC0dz-SDHXDAgFoD2Dl8p60k",
+    authDomain: "mazirapp.firebaseapp.com",
+    projectId: "mazirapp",
+    storageBucket: "mazirapp.firebasestorage.app",
+    messagingSenderId: "1018433182095",
+    appId: "1:1018433182095:web:6aa27626b3ec44bf1953fa"
+};
+
+if (firebase.apps.length === 0) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const messaging = firebase.messaging();
+
+// 3. Handle background messages (FCM specific)
+messaging.onBackgroundMessage((payload) => {
+    console.log('[Worker] Received background message (FCM):', payload);
+    
+    const title = payload.notification?.title || payload.data?.title || 'Mazir App';
+    const body = payload.notification?.body || payload.data?.body || 'Жаңа хабарлама';
+    
+    const notificationOptions = {
+        body: body,
+        icon: payload.data?.icon || payload.notification?.icon || '/icon-192x192.png',
+        badge: '/icon-light-32x32.png',
+        tag: payload.data?.tag || payload.notification?.tag || 'order-update',
+        data: {
+            url: payload.data?.url || '/',
+            orderId: payload.data?.orderId
+        }
+    };
+
+    return self.registration.showNotification(title, notificationOptions);
+});
+
+// 4. Listen for push notifications (Standard Web-Push fallback)
 self.addEventListener('push', function (event) {
     try {
         let data = {}
 
-        // Parse push event data
         if (event.data) {
             try {
                 data = event.data.json()
@@ -19,112 +59,58 @@ self.addEventListener('push', function (event) {
 
         console.log('[Worker] Push notification received payload:', data)
         
-        // Extract title and body from flattened or nested (FCM) structure
-        const title = data.notification?.title || data.title || 'Order Update'
+        // If it's an FCM payload that the system didn't catch, or standard Web-Push
+        const title = data.notification?.title || data.title || 'Mazir App'
         const body = data.notification?.body || data.body || 'Жаңа хабарлама'
-
-        console.log('[Worker] Processing notification:', {
-            title,
-            body,
-            status: data.status,
-            orderNumber: data.orderNumber,
-            timestamp: new Date().toISOString(),
-        })
 
         // Build notification options
         const options = {
-            body: body || 'Order status update',
+            body: body,
             icon: data.icon || data.notification?.icon || '/icon-192x192.png',
             badge: '/icon-light-32x32.png',
             vibrate: [100, 50, 100],
-            tag: data.tag || data.notification?.tag || `order-notification-${Date.now()}`,
-            requireInteraction: data.requireInteraction || false,
+            tag: data.tag || data.notification?.tag || `order-${Date.now()}`,
+            requireInteraction: true,
             data: {
                 dateOfArrival: Date.now(),
-                primaryKey: data.tag || 'order-notification',
                 url: data.url || data.data?.url || '/',
-                orderId: data.orderId,
-                orderNumber: data.orderNumber,
-                status: data.status,
+                orderId: data.orderId || data.data?.orderId,
             },
             actions: [
-                {
-                    action: 'open',
-                    title: 'Посмотреть'
-                },
-                {
-                    action: 'close',
-                    title: 'Закрыть'
-                }
+                { action: 'open', title: 'Посмотреть' },
+                { action: 'close', title: 'Закрыть' }
             ]
         }
 
-        console.log('[Worker] Showing notification:', { title, status: data.status, tag: options.tag })
-
         event.waitUntil(
             self.registration.showNotification(title, options)
-                .then(() => {
-                    console.log('[Worker] Notification displayed successfully for order:', data.orderNumber)
-                })
-                .catch((error) => {
-                    console.error('[Worker] Failed to show notification:', error)
-                })
         )
     } catch (error) {
         console.error('[Worker] Error handling push event:', error)
     }
 })
 
-// Handle notification clicks
+// 5. Handle notification clicks
 self.addEventListener('notificationclick', function (event) {
-    console.log('[Worker] Notification clicked:', {
-        action: event.action,
-        url: event.notification.data?.url,
-        orderNumber: event.notification.data?.orderNumber,
-    })
-
     event.notification.close()
 
-    // Don't open window if user clicked 'close'
-    if (event.action === 'close') {
-        console.log('[Worker] Close action selected')
-        return
-    }
+    if (event.action === 'close') return
 
     const url = event.notification.data?.url || '/'
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then(function (clientList) {
-                console.log('[Worker] Found open client windows:', clientList.length)
-
-                // Try to find an existing window
                 for (let i = 0; i < clientList.length; i++) {
                     const client = clientList[i]
                     if (client.url && 'focus' in client) {
-                        console.log('[Worker] Focusing existing window')
                         return client.focus()
                     }
                 }
-
-                // Open new window if none found
                 if (clients.openWindow) {
-                    console.log('[Worker] Opening new window with URL:', url)
                     return clients.openWindow(url)
                 }
             })
-            .catch(error => {
-                console.error('[Worker] Error handling notification click:', error)
-            })
     )
-})
-
-// Handle notification close events
-self.addEventListener('notificationclose', function (event) {
-    console.log('[Worker] Notification closed:', {
-        tag: event.notification.tag,
-        orderNumber: event.notification.data?.orderNumber,
-        timestamp: new Date().toISOString(),
-    })
 })
 

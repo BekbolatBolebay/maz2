@@ -113,20 +113,20 @@ export function MenuItemCard({
       {/* ── Card ── */}
       <div
         className={cn(
-          "bg-card rounded-2xl border border-muted/50 overflow-hidden cursor-pointer active:scale-[0.98] transition-all shadow-sm hover:shadow-md",
-          isHorizontal ? "flex h-36" : "flex flex-col",
+          "bg-card border border-muted/50 overflow-hidden cursor-pointer active:scale-[0.97] transition-all shadow-sm hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5 group",
+          isHorizontal ? "flex h-40 rounded-[2rem]" : "flex flex-col rounded-3xl",
           !isOpen && "opacity-80"
         )}
         onClick={() => { setOpen(true); setQty(1) }}
       >
         {/* Image */}
-        <div className={cn("relative bg-muted/30", isHorizontal ? "w-36 h-36 shrink-0" : "aspect-square")}>
+        <div className={cn("relative bg-muted/30 overflow-hidden", isHorizontal ? "w-40 h-40 shrink-0" : "aspect-square")}>
           {item.image_url ? (
             <Image
               src={item.image_url}
               alt={name}
               fill
-              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
               unoptimized
             />
           ) : (
@@ -139,9 +139,9 @@ export function MenuItemCard({
             <button
               onClick={e => { e.stopPropagation(); addToCart(1) }}
               disabled={!item.is_available || !isOpen}
-              className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-40"
+              className="absolute bottom-3 right-3 w-11 h-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-2xl shadow-primary/40 active:scale-90 transition-all disabled:opacity-40"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </button>
           )}
         </div>
