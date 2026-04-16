@@ -33,13 +33,6 @@ jobs:
           cd admin
           npm install
           
-      - name: Sync Capacitor
-        run: |
-          cd admin
-          mkdir -p out
-          touch out/index.html
-          npx cap sync android
-
       - name: Build unsigned Release APK
         run: |
           cd admin/android
