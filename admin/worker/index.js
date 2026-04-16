@@ -26,24 +26,31 @@ self.addEventListener('push', function (event) {
             }
         }
 
-        console.log('[Worker] Push notification received:', {
-            title: data.title,
+        console.log('[Worker] Push notification received payload:', data)
+
+        // Extract title and body from flattened or nested (FCM) structure
+        const title = data.notification?.title || data.title || 'Mazir Admin'
+        const body = data.notification?.body || data.body || 'Жаңа хабарлама'
+        
+        console.log('[Worker] Processing notification:', {
+            title,
+            body,
             status: data.status,
             timestamp: new Date().toISOString(),
         })
 
         // Build notification options
         const options = {
-            body: data.body || 'Нет сообщения',
-            icon: data.icon || '/icon-192x192.png',
+            body: body || 'Нет сообщения',
+            icon: data.icon || data.notification?.icon || '/icon-192x192.png',
             badge: '/icon-light-32x32.png',
             vibrate: [200, 100, 200, 100, 200],
-            tag: data.tag || 'notification', // Use tag to prevent duplicates
+            tag: data.tag || data.notification?.tag || 'notification',
             requireInteraction: data.requireInteraction || false,
             data: {
                 dateOfArrival: Date.now(),
                 primaryKey: data.tag || 'admin-notification',
-                url: data.url || '/orders',
+                url: data.url || data.data?.url || '/orders',
                 orderNumber: data.orderNumber,
                 orderId: data.orderId,
                 status: data.status,
@@ -59,8 +66,6 @@ self.addEventListener('push', function (event) {
                 }
             ]
         }
-
-        const title = data.title || 'Mazir Admin'
 
         console.log('[Worker] Showing notification:', { title, ...options })
 

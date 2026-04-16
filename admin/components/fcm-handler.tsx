@@ -14,7 +14,8 @@ export function FCMHandler() {
                 
                 if (!user) return
 
-                const token = await getFcmToken()
+                const registration = await navigator.serviceWorker.ready
+                const token = await getFcmToken(registration)
                 
                 if (token) {
                     // Update token in database if it exists
