@@ -13,7 +13,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-export const getFcmToken = async () => {
+export const getFcmToken = async (registration?: ServiceWorkerRegistration) => {
   try {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const messaging = getMessaging(app);
@@ -22,6 +22,7 @@ export const getFcmToken = async () => {
       if (permission === 'granted') {
         const token = await getToken(messaging, {
           vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+          serviceWorkerRegistration: registration,
         });
         return token;
       }

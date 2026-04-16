@@ -309,7 +309,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       let fcmToken = null;
       try {
         const { getFcmToken } = await import('@/lib/firebase');
-        fcmToken = await getFcmToken();
+        fcmToken = await getFcmToken(registration);
         console.log('[Push] FCM Token obtained:', fcmToken ? 'Success' : 'Failed');
       } catch (fcmError) {
         console.error('[Push] FCM specific error:', fcmError);

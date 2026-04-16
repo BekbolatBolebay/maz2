@@ -36,5 +36,6 @@
             "sizes": "180x180",
             "type": "image/png"
         }
-    ]
+    ],
+    "gcm_sender_id": "1018433182095"
 }

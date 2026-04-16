@@ -17,8 +17,15 @@ self.addEventListener('push', function (event) {
             }
         }
 
-        console.log('[Worker] Push notification received:', {
-            title: data.title,
+        console.log('[Worker] Push notification received payload:', data)
+        
+        // Extract title and body from flattened or nested (FCM) structure
+        const title = data.notification?.title || data.title || 'Order Update'
+        const body = data.notification?.body || data.body || 'Жаңа хабарлама'
+
+        console.log('[Worker] Processing notification:', {
+            title,
+            body,
             status: data.status,
             orderNumber: data.orderNumber,
             timestamp: new Date().toISOString(),
@@ -26,16 +33,16 @@ self.addEventListener('push', function (event) {
 
         // Build notification options
         const options = {
-            body: data.body || 'Order status update',
-            icon: data.icon || '/icon-192x192.png',
+            body: body || 'Order status update',
+            icon: data.icon || data.notification?.icon || '/icon-192x192.png',
             badge: '/icon-light-32x32.png',
             vibrate: [100, 50, 100],
-            tag: data.tag || `order-notification-${Date.now()}`, // Use tag to group notifications
+            tag: data.tag || data.notification?.tag || `order-notification-${Date.now()}`,
             requireInteraction: data.requireInteraction || false,
             data: {
                 dateOfArrival: Date.now(),
                 primaryKey: data.tag || 'order-notification',
-                url: data.url || '/',
+                url: data.url || data.data?.url || '/',
                 orderId: data.orderId,
                 orderNumber: data.orderNumber,
                 status: data.status,
@@ -43,16 +50,14 @@ self.addEventListener('push', function (event) {
             actions: [
                 {
                     action: 'open',
-                    title: 'Посмотреть' // Russian: "View"
+                    title: 'Посмотреть'
                 },
                 {
                     action: 'close',
-                    title: 'Закрыть' // Russian: "Close"
+                    title: 'Закрыть'
                 }
             ]
         }
-
-        const title = data.title || 'Order Update'
 
         console.log('[Worker] Showing notification:', { title, status: data.status, tag: options.tag })
 
