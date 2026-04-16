@@ -10,52 +10,13 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes
 
-    const fs = require('fs');
-    const path = require('path');
-    const logFile = path.join(process.cwd(), 'scratch/smtp_debug.log');
     const log = (msg: string) => {
         const timestamp = new Date().toISOString();
-        const line = `[${timestamp}] ${msg}\n`;
-        try {
-            if (!fs.existsSync(path.dirname(logFile))) fs.mkdirSync(path.dirname(logFile), { recursive: true });
-            fs.appendFileSync(logFile, line);
-        } catch (e) {}
-        console.log(msg);
+        console.log(`[SMTP DEBUG ${timestamp}] ${msg}`);
     };
 
     log(`--- START OTP REQUEST [${email}] ---`);
-    log(`[ENV] Initial SMTP_USER: ${process.env.SMTP_USER ? 'PRESENT' : 'MISSING'}`);
-
-    // Explicit manual loading fallback if Next.js loader failed
-    if (!process.env.SMTP_USER) {
-        try {
-            const envPath = path.join(process.cwd(), '.env');
-            if (fs.existsSync(envPath)) {
-                log(`[ENV] Manually loading from: ${envPath}`);
-                const envContent = fs.readFileSync(envPath, 'utf8');
-                envContent.split(/\r?\n/).forEach(line => {
-                    const trimmedLine = line.trim();
-                    if (!trimmedLine || trimmedLine.startsWith('#')) return;
-                    
-                    const match = trimmedLine.match(/^([^=]+)=(.*)$/);
-                    if (match) {
-                        const key = match[1].trim();
-                        let val = match[2].trim();
-                        // Remove surrounding quotes if they exist
-                        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-                            val = val.substring(1, val.length - 1);
-                        }
-                        process.env[key] = val;
-                    }
-                });
-                log(`[ENV] After manual load: ${process.env.SMTP_USER ? 'PRESENT' : 'STILL MISSING'}`);
-            } else {
-                log(`[ENV] .env file NOT FOUND at ${envPath}`);
-            }
-        } catch (e: any) {
-            log(`[ENV] Error during manual load: ${e.message}`);
-        }
-    }
+    log(`[ENV] STAGE: ${process.env.NODE_ENV}`);
 
     const supabase = createAdminClient()
 
@@ -71,8 +32,8 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
         })
 
     if (dbError) {
-        console.error('Error saving OTP:', dbError)
-        throw new Error('Қате орын алды. Қайта көріңіз.')
+        console.error('Error saving OTP to database:', dbError)
+        throw new Error('Қате орын алды (Database Error). Қайта көріңіз.')
     }
 
     // Send Email
@@ -84,19 +45,18 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
         const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
         const smtpPort = Number(process.env.SMTP_PORT) || 465;
 
-        log(`[SMTP] Attempting config: ${smtpHost}:${smtpPort} (User: ${smtpUser ? 'OK' : 'MISSING'})`);
+        log(`[SMTP] Checking credentials: Host=${smtpHost}, User=${smtpUser ? 'PRESENT' : 'MISSING'}, Pass=${smtpPass ? 'PRESENT' : 'MISSING'}`);
 
-        // Enhanced Mock check
-        const isMockActive = process.env.MOCK_MAIL === 'true' || (process.env.NODE_ENV === 'development' && !smtpUser && !process.env.SMTP_PASS);
-
-        if (isMockActive) {
-            log('⚠️ --- MAIL MOCK MODE ACTIVE --- ⚠️');
+        // Mock mode only in development
+        if (process.env.NODE_ENV === 'development' && (!smtpUser || !smtpPass)) {
+            log('⚠️ --- DEVELOPMENT MOCK MODE ACTIVE (No credentials) --- ⚠️');
+            log(`[MOCK] Code for ${email} is ${code}`);
             return { success: true, mock: true };
         }
 
         if (!smtpUser || !smtpPass) {
-            log('[SMTP] Error: Missing credentials in ENV');
-            throw new Error('SMTP баптаулары табылмады (.env тексеріңіз)');
+            log('[SMTP] Error: Missing credentials in Production Environment');
+            throw new Error('Баптау қатесі: Hosting панелінде SMTP_USER және SMTP_PASS айнымалыларын тексеріңіз.');
         }
 
         const transporter = nodemailer.createTransport({
