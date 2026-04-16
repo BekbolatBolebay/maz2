@@ -104,7 +104,6 @@ export async function sendCustomOtp(email: string, fullName: string = '', phone:
         throw new Error(`Почта жіберу мүмкін болмады: ${errorMessage}`);
     }
 }
-}
 
 export async function verifyCustomOtp(email: string, code: string) {
     const supabase = createAdminClient()
