@@ -524,27 +524,6 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                 </div>
                 
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                    <Button 
-                      onClick={() => {
-                        // Detect platform
-                        const ua = navigator.userAgent.toLowerCase();
-                        const isIosDevice = /iphone|ipad|ipod/.test(ua);
-                        
-                        if (isIosDevice) {
-                          setShowInstallGuide(true);
-                        } else {
-                          // For Android/Other: Always try to use installApp directly
-                          if (typeof installApp === 'function') {
-                            installApp();
-                          }
-                        }
-                      }}
-                      className="flex-1 md:flex-none h-12 px-6 rounded-2xl bg-white text-slate-950 hover:bg-slate-100 font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all"
-                    >
-                     <Smartphone className="w-4 h-4 mr-2 text-primary" />
-                     {lang === 'kk' ? 'Android-қа жүктеу' : 'Скачать на Android'}
-                   </Button>
-
                    <Button 
                      onClick={subscribeToPush}
                      variant="outline"
