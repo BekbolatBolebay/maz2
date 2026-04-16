@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { AppProvider } from '@/lib/app-context'
 import { Toaster } from 'sonner'
 import { SWRegistration } from '@/components/pwa/sw-registration'
+import { NativePushHandler } from '@/components/native-push-handler'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -64,6 +65,7 @@ export default function RootLayout({
         <AppProvider>
           {children}
           <SWRegistration />
+          <NativePushHandler />
           <Toaster position="top-center" />
         </AppProvider>
         <Analytics />
