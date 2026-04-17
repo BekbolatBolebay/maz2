@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   server: {
     // === МЫНА ЖЕРГЕ ӨЗ СІЛТЕМЕҢІЗДІ ЖАЗЫҢЫЗ ===
     // Мысалы: https://admin.mazir.kz немесе https://mazir-admin.vercel.app
-    url: 'https://admin.mazir.kz',
+    url: "https://cafeadminis.mazirapp.kz" ,
     cleartext: true
   },
   plugins: {
