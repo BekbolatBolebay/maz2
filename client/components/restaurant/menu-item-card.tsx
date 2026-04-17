@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Plus, Minus, X, ShoppingCart, MapPin, Utensils, Star, Clock, Info, ChevronRight, Share2, Plus as PlusIcon } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/i18n-context'
@@ -42,6 +43,11 @@ export function MenuItemCard({
   const [pendingAddToCart, setPendingAddToCart] = useState<{ quantity: number, force: boolean } | null>(null)
 
   const isHorizontal = layout === 'horizontal'
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // -- Hash-based auto-open --
   useEffect(() => {
@@ -179,15 +185,15 @@ export function MenuItemCard({
       </div>
 
       {/* ── Modal (bottom sheet) ── */}
-      {open && (
-        <>
+      {open && mounted && createPortal(
+        <div className="fixed inset-0 z-[100]">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 z-[60] backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
           {/* Sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 pb-20">
+          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 pb-20">
             {/* Close button */}
             <div className="flex justify-end p-4 pb-0">
               <button
@@ -330,12 +336,13 @@ export function MenuItemCard({
               )}
             </div>
           </div>
-        </>
+        </div>,
+        document.body
       )}
 
       {/* ── Mismatch Dialog ── */}
-      {mismatchOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+      {mismatchOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
           <div className="bg-card w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold mb-2">
               {locale === 'ru' ? 'Сменить кафе?' : 'Кафені ауыстыру?'}
@@ -362,7 +369,8 @@ export function MenuItemCard({
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* ── Auth Modal ── */}
       <AuthModal
