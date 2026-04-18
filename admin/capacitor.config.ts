@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   server: {
     // === МЫНА ЖЕРГЕ ӨЗ СІЛТЕМЕҢІЗДІ ЖАЗЫҢЫЗ ===
-    // Мысалы: https://admin.mazir.kz немесе https://mazir-admin.vercel.app
+    // Мысалы: https://cafeadminis.mazirapp.kz 
     url: 'https://cafeadminis.mazirapp.kz',
     cleartext: true
   },
