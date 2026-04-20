@@ -27,28 +27,39 @@ export function NativePushHandler() {
 
       PushNotifications.addListener('registration', async (token) => {
         console.log('[Native Push] Token received:', token.value);
+        toast.info('🔔 Пуш-токен алынды!');
         
         try {
           const supabase = createClient();
           const { data: { user } } = await supabase.auth.getUser();
           
           if (user) {
-            await supabase
+            const { error } = await supabase
               .from('staff_profiles')
               .update({ 
-                // We save it to fcm_token as well so the backend script sends it via FCM logic
                 fcm_token: token.value 
               })
               .eq('id', user.id);
-            console.log('[Native Push] Token saved to Supabase');
+            
+            if (error) {
+              console.error('[Native Push] Error saving token', error);
+              toast.error('❌ Базаға сақтау қатесі: ' + error.message);
+            } else {
+              console.log('[Native Push] Token saved to Supabase');
+              toast.success('✅ Пуш хабарлама іске қосылды!');
+            }
+          } else {
+            toast.warning('⚠️ Токенді сақтау үшін жүйеге кіріңіз');
           }
-        } catch (e) {
+        } catch (e: any) {
             console.error('[Native Push] Error saving token', e);
+            toast.error('❌ Қате: ' + e.message);
         }
       });
 
       PushNotifications.addListener('registrationError', (err: any) => {
         console.error('[Native Push] Registration error:', err);
+        toast.error('❌ Тіркелу қатесі: ' + JSON.stringify(err));
       });
 
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
