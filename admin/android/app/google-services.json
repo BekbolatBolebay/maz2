@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1018433182095",
+    "project_id": "mazirapp",
+    "storage_bucket": "mazirapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1018433182095:android:8263b4d40e1fc13a1953fa",
+        "android_client_info": {
+          "package_name": "kz.mazir.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhRVqlb030qRgB-CmgidG_8jjn_R4IL_k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1018433182095:android:6c5cb46cd681bfff1953fa",
+        "android_client_info": {
+          "package_name": "mazirapp.kz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhRVqlb030qRgB-CmgidG_8jjn_R4IL_k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
