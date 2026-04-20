@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 android {
     namespace "kz.mazir.admin"
     compileSdk rootProject.ext.compileSdkVersion
+    ndkVersion "27.0.12077973"
     defaultConfig {
         applicationId "kz.mazir.admin"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,7 +21,7 @@ android {
         abi {
             enable true
             reset()
-            include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            include 'arm64-v8a', 'x86_64'
             universalApk true
         }
     }
