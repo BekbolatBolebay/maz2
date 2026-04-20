@@ -29,10 +29,10 @@ import {
   Sparkles,
   LogOut
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
+import { PushNotifications } from '@capacitor/push-notifications'
 import ImageUpload from '@/components/ui/image-upload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -334,6 +334,30 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   }
 
   const subscribeToPush = async () => {
+    // 1. Native Android Handling (Capacitor)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+        
+        if (permStatus.receive !== 'granted') {
+          toast.error(lang === 'kk' ? 'Хабарламаларға рұқсат берілмеді' : 'Разрешение не получено');
+          return;
+        }
+
+        await PushNotifications.register();
+        toast.success(lang === 'kk' ? '🔔 Пуш хабарлама тіркелуде...' : '🔔 Регистрация пуш-уведомлений...');
+        return;
+      } catch (err: any) {
+        console.error('[NativePush] Error:', err);
+        toast.error('Native Push Error: ' + err.message);
+        return;
+      }
+    }
+
+    // 2. Web Handling (Standard PWA)
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       toast.error(lang === 'kk' ? 'Браузер хабарламаларды қолдамайды' : 'Браузер не поддерживает уведомления')
       return
