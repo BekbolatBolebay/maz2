@@ -29,6 +29,8 @@ import {
   Sparkles,
   LogOut
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Capacitor } from '@capacitor/core'
