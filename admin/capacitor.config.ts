@@ -3,7 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'kz.mazir.admin',
   appName: 'Mazir Admin',
-  webDir: 'out',
+  webDir: 'public',
   bundledWebRuntime: false,
   server: {
     // === МЫНА ЖЕРГЕ ӨЗ СІЛТЕМЕҢІЗДІ ЖАЗЫҢЫЗ ===

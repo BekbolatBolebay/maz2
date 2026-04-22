@@ -1078,6 +1078,41 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                 </span>
             </button>
           </div>
+
+          {/* Diagnostic Info */}
+          <div className="mt-8 p-6 rounded-2xl border bg-slate-50/50 dark:bg-slate-900/50 space-y-4">
+              <div className="flex items-center gap-2 text-slate-500">
+                  <Hash className="w-4 h-4" />
+                  <span className="text-xs font-black uppercase tracking-widest">Диагностика (Debug)</span>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border shadow-sm">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Platform</p>
+                      <p className="text-sm font-bold">{Capacitor.isNativePlatform() ? 'Android APK (Native)' : 'Web Browser (PWA)'}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border shadow-sm">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">FCM Status</p>
+                      <p className={cn(
+                          "text-sm font-bold",
+                          profile?.fcm_token ? "text-green-600" : "text-red-500"
+                      )}>
+                          {profile?.fcm_token ? 'Registered ✅' : 'Not Found ❌'}
+                      </p>
+                  </div>
+              </div>
+
+              {Capacitor.isNativePlatform() && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-[10px] font-black uppercase tracking-widest h-10 rounded-xl"
+                    onClick={subscribeToPush}
+                  >
+                    {lang === 'kk' ? 'Токенді қайта тіркеу (Refresh)' : 'Перерегистрировать токен'}
+                  </Button>
+              )}
+          </div>
         </section>
 
         {/* Install Guide Modal (iOS ONLY) */}

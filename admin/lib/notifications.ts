@@ -70,15 +70,21 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
             },
             android: {
               priority: 'high',
+              ttl: 3600 * 1000, // 1 hour
               notification: { 
                 sound: 'default',
                 channelId: 'fcm_default_channel',
-                icon: 'ic_stat_name' // We will add this in the next step
+                icon: 'ic_stat_name',
+                color: '#FF5722',
+                priority: 'max',
+                visibility: 'public',
+                vibrateTimingsMillis: [0, 500, 200, 500, 200, 500],
               }
             },
             data: {
               url: payload.url || '/',
-              tag: notificationTag
+              tag: notificationTag,
+              order_id: (payload as any).order_id || ''
             },
             webpush: {
               fcm_options: { link: payload.url || '/' },
@@ -182,10 +188,16 @@ export async function notifyAdminAllChannels(data: any, restaurant: any, type: '
 
   // 2. Push Notifications (for staff in staff_profiles)
   const supabase = await createClient();
-  const { data: staff } = await supabase
+  const { data: staff, error: staffError } = await supabase
     .from('staff_profiles')
     .select('role, fcm_token, push_subscription, full_name')
     .eq('cafe_id', restaurant.id);
+
+  if (staffError) {
+      console.error('[Notification] Error fetching staff:', staffError);
+  }
+
+  console.log(`[Notification] Found ${staff?.length || 0} staff members for cafe: ${restaurant.name_ru || restaurant.id}`);
 
   if (staff && staff.length > 0) {
     const pushPayload = {
@@ -199,11 +211,15 @@ export async function notifyAdminAllChannels(data: any, restaurant: any, type: '
     
     // Notify everyone in the restaurant staff
     for (const member of staff) {
-        await sendPushNotification({ 
+        console.log(`[Notification] Sending push to: ${member.full_name} (Has Token: ${!!member.fcm_token})`);
+        const result = await sendPushNotification({ 
             fcm_token: member.fcm_token, 
             push_subscription: member.push_subscription 
         }, pushPayload);
+        console.log(`[Notification] Result for ${member.full_name}:`, result.success ? '✅ Success' : `❌ Failed: ${result.error}`);
     }
+  } else {
+      console.warn('[Notification] No staff members found to notify');
   }
 }
 
