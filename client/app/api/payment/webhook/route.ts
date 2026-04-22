@@ -101,6 +101,12 @@ export async function POST(req: Request) {
             .update(updates)
             .eq('id', orderId)
 
+        // 5. Notify Admin via bridge API if it was a paid order
+        if (isPaid) {
+            const { triggerAdminNotification } = await import('@/lib/admin-notify')
+            await triggerAdminNotification(orderId)
+        }
+
         // 4. Respond to Freedom Pay (they expect XML response usually)
         return new Response(`
             <?xml version="1.0" encoding="utf-8"?>
