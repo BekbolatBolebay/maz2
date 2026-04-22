@@ -302,16 +302,21 @@ export async function sendTestPushAction(manualSubscription?: any) {
             push_subscription: subscription,
             fcm_token: fcmToken
         }, {
-            title: 'Тест хабарламасы',
-            body: 'Native Web-Push сәтті қосылды! ✅',
-            icon: '/icon-192x192.png'
+            title: 'Mazir Test Push 🔔',
+            body: `Жүйе тексерілді: ${fcmToken ? 'FCM (Native)' : 'Web-Push'} арқылы жіберілді. ✅`,
+            icon: '/icon-192x192.png',
+            tag: `test-${Date.now()}`
         });
         
         if (!result.success) {
             return { success: false, error: `Жіберу сәтсіз: ${result.error}` };
         }
         
-        return result;
+        return { 
+            ...result, 
+            channel: fcmToken ? 'FCM (Android/Native)' : 'Web-Push (Browser)',
+            timestamp: new Date().toISOString()
+        };
     } catch (e: any) {
         console.error('[Push Action Error]:', e);
         return { success: false, error: `Жүйелік қате: ${e.message || 'Unknown server error'}` };

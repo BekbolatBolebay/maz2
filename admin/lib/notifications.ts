@@ -64,13 +64,17 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
         if (messaging) {
           const message = {
             token: user.fcm_token,
-            android: {
-              priority: 'high',
-              notification: { sound: 'default' }
-            },
             notification: {
               title: payload.title,
               body: payload.body,
+            },
+            android: {
+              priority: 'high',
+              notification: { 
+                sound: 'default',
+                channelId: 'fcm_default_channel',
+                icon: 'ic_stat_name' // We will add this in the next step
+              }
             },
             data: {
               url: payload.url || '/',
@@ -149,15 +153,29 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
 /**
  * Helper to notify admin via all enabled channels.
  */
-export async function notifyAdminAllChannels(order: any, restaurant: any) {
+export async function notifyAdminAllChannels(data: any, restaurant: any, type: 'order' | 'booking' = 'order') {
+  const isOrder = type === 'order';
+  const idPrefix = isOrder ? '#' : 'Res #';
+  const idDisplay = data.id.slice(0, 8);
+  const customerName = data.customer_name || 'Клиент';
+  
   // 1. Email Notification
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    const subject = `Новый заказ #${order.id.slice(0, 8)}`;
-    const html = `
+    const subject = isOrder 
+        ? `Новый заказ #${idDisplay}` 
+        : `Новое бронирование #${idDisplay}`;
+    
+    const html = isOrder ? `
       <h1>Новый заказ!</h1>
-      <p>Клиент: ${order.customer_name}</p>
-      <p>Сумма: ${order.total_amount} ₸</p>
-      <p>Тип: ${order.type}</p>
+      <p>Клиент: ${customerName}</p>
+      <p>Сумма: ${data.total_amount} ₸</p>
+      <p>Тип: ${data.type}</p>
+    ` : `
+      <h1>Новое бронирование!</h1>
+      <p>Клиент: ${customerName}</p>
+      <p>Дата: ${data.date}</p>
+      <p>Время: ${data.time}</p>
+      <p>Гостей: ${data.guests_count}</p>
     `;
     await sendEmail({ to: restaurant.email || process.env.SMTP_USER, subject, html });
   }
@@ -171,10 +189,12 @@ export async function notifyAdminAllChannels(order: any, restaurant: any) {
 
   if (staff && staff.length > 0) {
     const pushPayload = {
-      title: 'Жаңа тапсырыс!',
-      body: `${order.customer_name}-дан ${order.total_amount} ₸ сомасына тапсырыс түсті.`,
+      title: isOrder ? 'Жаңа тапсырыс!' : '📅 Жаңа брондау!',
+      body: isOrder 
+        ? `${customerName}-дан ${data.total_amount} ₸ сомасына тапсырыс түсті.`
+        : `${customerName}-дан ${data.date} күніне, сағат ${data.time}-қа брондау түсті.`,
       icon: restaurant.image_url || '/icon-192x192.png',
-      url: '/orders'
+      url: isOrder ? '/orders' : '/orders?tab=reservations'
     };
     
     // Notify everyone in the restaurant staff

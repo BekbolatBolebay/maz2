@@ -469,16 +469,30 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const handleTestPush = async () => {
     setIsTestingPush(true);
     try {
-        // Find current subscription in storage if possible for instant testing
-        const registration = await navigator.serviceWorker.ready;
-        const currentSub = await registration.pushManager.getSubscription();
+        let result;
         
-        const result = await sendTestPushAction(currentSub ? JSON.parse(JSON.stringify(currentSub)) : null);
+        if (Capacitor.isNativePlatform()) {
+            // On native platforms, we don't use Service Workers for push
+            // The server will use the stored fcm_token from staff_profiles
+            result = await sendTestPushAction();
+        } else {
+            // Web Handling
+            if (!('serviceWorker' in navigator)) {
+                throw new Error('Service Worker not supported in this browser');
+            }
+            const registration = await navigator.serviceWorker.ready;
+            const currentSub = await registration.pushManager.getSubscription();
+            result = await sendTestPushAction(currentSub ? JSON.parse(JSON.stringify(currentSub)) : null);
+        }
+
         if (result.success) {
             toast.success(lang === 'kk' ? 'Push-хабарлама жіберілді!' : 'Push-уведомление отправлено!');
         } else {
             toast.error(result.error);
         }
+    } catch (err: any) {
+        console.error('[TestPush] Error:', err);
+        toast.error(err.message || 'Error testing push');
     } finally {
         setIsTestingPush(false);
     }

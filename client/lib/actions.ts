@@ -24,8 +24,23 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 export async function notifyAdmin(data: any, type: 'order' | 'booking', restaurantId?: string) {
     try {
         const timestamp = new Date().toISOString();
-        console.log(`[Notification][${timestamp}] Starting notifyAdmin for type: ${type}, restaurantId: ${restaurantId}`);
+        console.log(`[Notification][${timestamp}] Starting notifyAdmin via Bridge for type: ${type}, id: ${data.id}`);
+
+        // Use the new bridge API to trigger notifications in the Admin app
+        // This is more reliable as the Admin app is already configured for native push
+        const { triggerAdminNotification } = await import('./admin-notify');
+        const result = await triggerAdminNotification(data.id);
+
+        if (result.success) {
+            console.log(`[Notification][${timestamp}] ✅ Bridge notification triggered successfully`);
+            return;
+        }
+
+        console.warn(`[Notification][${timestamp}] ⚠️ Bridge failed, falling back to direct delivery:`, result.error);
+
+        // --- FALLBACK: Direct delivery from Client app (requires Client to have Firebase Admin keys) ---
         const supabase = await createClient()
+        // ... (rest of existing logic)
 
         // Step 1: Find staff linked to this restaurant OR global admins
         let staffQuery = supabase
