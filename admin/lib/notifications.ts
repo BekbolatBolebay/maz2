@@ -157,6 +157,43 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
 }
 
 /**
+ * Sends a Telegram notification.
+ */
+export async function sendTelegramNotification(payload: { text: string, chat_id?: string }) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = payload.chat_id || process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId) {
+    console.warn('[Telegram] Bot token or chat ID not configured. Skipping.');
+    return { success: false, error: 'Not configured' };
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: payload.text,
+        parse_mode: 'HTML',
+      }),
+    });
+
+    const result = await response.json();
+    if (!result.ok) {
+      throw new Error(result.description || 'Unknown Telegram error');
+    }
+
+    console.log('[Telegram] Notification sent successfully to:', chatId);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Telegram] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Helper to notify admin via all enabled channels.
  */
 export async function notifyAdminAllChannels(data: any, restaurant: any, type: 'order' | 'booking' = 'order') {
@@ -164,6 +201,7 @@ export async function notifyAdminAllChannels(data: any, restaurant: any, type: '
   const idPrefix = isOrder ? '#' : 'Res #';
   const idDisplay = data.id.slice(0, 8);
   const customerName = data.customer_name || 'Клиент';
+  const adminUrl = 'https://cafeadminis.mazirapp.kz/orders';
   
   // 1. Email Notification
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -176,17 +214,39 @@ export async function notifyAdminAllChannels(data: any, restaurant: any, type: '
       <p>Клиент: ${customerName}</p>
       <p>Сумма: ${data.total_amount} ₸</p>
       <p>Тип: ${data.type}</p>
+      <p><a href="${adminUrl}">Перейти в панель</a></p>
     ` : `
       <h1>Новое бронирование!</h1>
       <p>Клиент: ${customerName}</p>
       <p>Дата: ${data.date}</p>
       <p>Время: ${data.time}</p>
       <p>Гостей: ${data.guests_count}</p>
+      <p><a href="${adminUrl}?tab=reservations">Перейти в панель</a></p>
     `;
     await sendEmail({ to: restaurant.email || process.env.SMTP_USER, subject, html });
   }
 
-  // 2. Push Notifications (for staff in staff_profiles)
+  // 2. Telegram Notification
+  const telegramText = isOrder 
+    ? `<b>🛍 ЖАҢА ТАПСЫРЫС ${idPrefix}${idDisplay}</b>\n\n` +
+      `👤 Клиент: ${customerName}\n` +
+      `💰 Сомасы: ${data.total_amount} ₸\n` +
+      `📍 Ресторан: ${restaurant.name_ru || 'Mazir'}\n\n` +
+      `<a href="${adminUrl}">👉 Панельге өту</a>`
+    : `<b>📅 ЖАҢА БРОНДАУ ${idPrefix}${idDisplay}</b>\n\n` +
+      `👤 Клиент: ${customerName}\n` +
+      `📅 Күні: ${data.date}\n` +
+      `⏰ Уақыты: ${data.time}\n` +
+      `👥 Қонақтар: ${data.guests_count}\n\n` +
+      `<a href="${adminUrl}?tab=reservations">👉 Панельге өту</a>`;
+  
+  // Use restaurant-specific Chat ID if available, otherwise global fallback
+  await sendTelegramNotification({ 
+      text: telegramText, 
+      chat_id: restaurant.telegram_chat_id 
+  });
+
+  // 3. Push Notifications (for staff in staff_profiles)
   const supabase = await createClient();
   const { data: staff, error: staffError } = await supabase
     .from('staff_profiles')

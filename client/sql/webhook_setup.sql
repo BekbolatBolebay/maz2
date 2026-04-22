@@ -1,8 +1,8 @@
--- SQL to set up automated Push Notifications via Supabase Triggers
--- This script enables automated notifications when a new order or reservation is created.
+-- 1. Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "pg_net";
 
--- 1. Enable the HTTP extension if not already enabled
--- CREATE EXTENSION IF NOT EXISTS "http" WITH SCHEMA "extensions";
+-- 2. Add Telegram Chat ID support to restaurants table (for multi-cafe support)
+ALTER TABLE IF EXISTS public.restaurants ADD COLUMN IF NOT EXISTS telegram_chat_id TEXT;
 
 -- 2. Create the notification function
 CREATE OR REPLACE FUNCTION public.notify_admin_on_new_record()
