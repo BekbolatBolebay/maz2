@@ -1,21 +1,22 @@
-import { getCafeSettings, getWorkingHours, getUserProfile } from '@/lib/db'
+import { getCafeSettings, getWorkingHours, getUserProfile, getCurrentRestaurantId } from '@/lib/db'
 import ProfileClient from './profile-client'
 import { getMerchantConfig, getRestaurantStatus } from '@/lib/vps'
 
 export default async function ProfilePage() {
-  const [settings, hours, userProfile] = await Promise.all([
-    getCafeSettings(),
-    getWorkingHours(),
-    getUserProfile()
+  // 1. Get the restaurant ID first (needed for VPS calls)
+  const restaurantId = await getCurrentRestaurantId()
+
+  // 2. Fetch EVERYTHING else in parallel
+  const [settings, hours, userProfile, rawConfig, vpsStatus] = await Promise.all([
+    getCafeSettings(restaurantId || undefined),
+    getWorkingHours(restaurantId || undefined),
+    getUserProfile(),
+    restaurantId ? getMerchantConfig(restaurantId) : Promise.resolve(null),
+    restaurantId ? getRestaurantStatus(restaurantId) : Promise.resolve(null)
   ])
 
-  // Hydrate with VPS data if restaurant exists
-  if (settings) {
-    const [rawConfig, vpsStatus] = await Promise.all([
-      getMerchantConfig(settings.id),
-      getRestaurantStatus(settings.id)
-    ]);
-    
+  // Hydrate with VPS data if restaurant and settings exist
+  if (settings && restaurantId) {
     const config = rawConfig as any;
     if (config) {
       if (config.freedom_merchant_id !== undefined) settings.freedom_merchant_id = config.freedom_merchant_id;
