@@ -26,7 +26,9 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         const timestamp = new Date().toISOString();
         const supabase = await createClient()
 
-        // --- Step 0: Telegram Notification (ONLY PRIORITY NOW) ---
+        console.log(`[Notification][${timestamp}] Starting Telegram-only notification for type: ${type}`);
+
+        // --- Step 0: Telegram Notification ---
         if (restaurantId) {
             const { data: restaurant } = await supabase
                 .from('restaurants')
@@ -49,17 +51,7 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
             }
         }
 
-        /* 
-        // --- Step 1: Bridge Notification (Native App) - Temporarily Disabled ---
-        const { triggerAdminNotification } = await import('./admin-notify');
-        await triggerAdminNotification(data.id);
-        */
-
         console.log(`[Notification][${timestamp}] ✅ Telegram notification process completed`);
-    } catch (error) {
-        console.error('[Notification] Fatal error:', error)
-    }
-}
     } catch (error) {
         console.error('[Notification] Fatal error:', error)
     }
