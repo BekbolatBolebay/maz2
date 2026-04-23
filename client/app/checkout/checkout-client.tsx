@@ -435,6 +435,7 @@ export function CheckoutClient() {
 
         try {
             // Check if restaurant is open if auto_reject_when_closed is true
+            // Check if restaurant is open if auto_reject_when_closed is true
             if (restaurantSettings?.auto_reject_when_closed) {
                 const { isOpen, message } = isRestaurantOpen(restaurantSettings.status, workingHours)
                 if (!isOpen) {
@@ -445,6 +446,22 @@ export function CheckoutClient() {
                     return
                 }
             }
+
+            // --- PRIORITY 0: NOTIFY TELEGRAM IMMEDIATELY (Via API Route) ---
+            const mockOrder = {
+                id: 'PENDING',
+                total_amount: total,
+                items_count: cartItems.length,
+                customer_name: name,
+                customer_phone: phone,
+                address: orderType === 'delivery' ? address : 'Pickup'
+            };
+            console.log('[Checkout] 🚀 Immediate priority notification (API)...');
+            fetch('/api/notify-telegram', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: mockOrder, type: 'order', restaurantId })
+            }).catch(e => console.error('[Notify] API failed:', e));
 
             if (orderType === 'booking' && !selectedTableId) {
                 toast.error(locale === 'kk' ? 'Үстел таңдаңыз' : 'Выберите столик')
@@ -631,8 +648,7 @@ export function CheckoutClient() {
 
             if (itemsError) throw itemsError
 
-            // Notify Admin via Push
-            await notifyAdmin(order, 'order', restaurantId || undefined)
+            // Original notifyAdmin location (removed to prevent double notifications)
 
             if (paymentMethod === 'freedom') {
                 const payRes = await fetch('/api/payment/init', {
