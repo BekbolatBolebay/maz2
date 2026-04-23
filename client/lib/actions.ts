@@ -164,6 +164,19 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
 
         await Promise.all(pushPromises)
         console.log('[Notification] ✅ All push notifications processed');
+
+        // Step 3: Telegram Notification
+        if (restaurantId) {
+            const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select('telegram_bot_token, telegram_chat_id, name_ru')
+                .eq('id', restaurantId)
+                .single()
+
+            if (restaurant?.telegram_bot_token && restaurant?.telegram_chat_id) {
+                await notifyAdminTelegram(data, type, restaurant)
+            }
+        }
     } catch (error) {
         console.error('[Notification] Fatal error:', error)
     }
@@ -171,9 +184,44 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
 
 
 // Deprecated: keeping only for reference, but wont be called
-export async function notifyAdminTelegram(order: any, restaurant: any) {
-    // Disabled
-    return
+export async function notifyAdminTelegram(data: any, type: 'order' | 'booking', restaurant: any) {
+    try {
+        const orderId = data.id.slice(0, 8)
+        const title = type === 'order' ? '🔔 *Жаңа тапсырыс!*' : '📅 *Жаңа брондау!*'
+        
+        let message = `${title}\n\n`
+        message += `📍 Мейрамхана: ${restaurant.name_ru}\n`
+        message += `🆔 ID: #${orderId}\n`
+        
+        if (type === 'order') {
+            message += `💰 Сомасы: *${data.total_amount} ₸*\n`
+            message += `📦 Тауар саны: ${data.items_count}\n`
+            message += `👤 Клиент: ${data.customer_name || 'Көрсетілмеген'}\n`
+            message += `📞 Тел: ${data.customer_phone || 'Көрсетілмеген'}\n`
+            if (data.address) message += `🏠 Мекен-жай: ${data.address}\n`
+        } else {
+            message += `📅 Күні: ${data.date}\n`
+            message += `⏰ Уақыты: ${data.time}\n`
+            message += `👥 Адам саны: ${data.guests_count}\n`
+            message += `👤 Клиент: ${data.customer_name}\n`
+            message += `📞 Тел: ${data.customer_phone}\n`
+        }
+
+        message += `\n🔗 [Админ панельге өту](https://cafeadminis.mazirapp.kz/orders)`
+
+        await fetch(`https://api.telegram.org/bot${restaurant.telegram_bot_token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: restaurant.telegram_chat_id,
+                text: message,
+                parse_mode: 'Markdown',
+            }),
+        })
+        console.log(`[Telegram] ✅ Sent successfully to restaurant: ${restaurant.name_ru}`)
+    } catch (error) {
+        console.error('[Telegram] Error:', error)
+    }
 }
 
 /**
