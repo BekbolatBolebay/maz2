@@ -167,14 +167,29 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
 
         // Step 3: Telegram Notification
         if (restaurantId) {
-            const { data: restaurant } = await supabase
+            const { data: restaurant, error: resError } = await supabase
                 .from('restaurants')
                 .select('telegram_bot_token, telegram_chat_id, name_ru')
                 .eq('id', restaurantId)
                 .single()
 
-            if (restaurant?.telegram_bot_token && restaurant?.telegram_chat_id) {
-                await notifyAdminTelegram(data, type, restaurant)
+            if (resError) {
+                console.warn(`[Notification] Restaurant info not found for Telegram:`, resError.message)
+            }
+
+            // Fallback to global token if restaurant-specific one is missing
+            const botToken = restaurant?.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN
+            const chatId = restaurant?.telegram_chat_id || process.env.TELEGRAM_CHAT_ID
+
+            if (botToken && chatId) {
+                console.log(`[Telegram] 🚀 Attempting to send to ${restaurant?.name_ru || 'Unknown'} (${chatId})`)
+                await notifyAdminTelegram(data, type, {
+                    ...restaurant,
+                    telegram_bot_token: botToken,
+                    telegram_chat_id: chatId
+                })
+            } else {
+                console.warn(`[Telegram] ⚠️ Skipping: Bot token or Chat ID missing (Token: ${!!botToken}, ChatID: ${!!chatId})`)
             }
         }
     } catch (error) {
@@ -217,10 +232,15 @@ export async function notifyAdminTelegram(data: any, type: 'order' | 'booking', 
                 text: message,
                 parse_mode: 'Markdown',
             }),
+        }).then(res => res.json()).then(res => {
+            if (res.ok) {
+                console.log(`[Telegram] ✅ Sent successfully to restaurant: ${restaurant.name_ru || 'Unknown'}`)
+            } else {
+                console.error(`[Telegram] ❌ API Error:`, res.description)
+            }
         })
-        console.log(`[Telegram] ✅ Sent successfully to restaurant: ${restaurant.name_ru}`)
-    } catch (error) {
-        console.error('[Telegram] Error:', error)
+    } catch (error: any) {
+        console.error('[Telegram] ❌ Fatal Error:', error.message)
     }
 }
 
