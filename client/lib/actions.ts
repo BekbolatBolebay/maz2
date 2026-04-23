@@ -24,10 +24,30 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 export async function notifyAdmin(data: any, type: 'order' | 'booking', restaurantId?: string) {
     try {
         const timestamp = new Date().toISOString();
-        console.log(`[Notification][${timestamp}] Starting notifyAdmin via Bridge for type: ${type}, id: ${data.id}`);
+        const supabase = await createClient()
 
-        // Use the new bridge API to trigger notifications in the Admin app
-        // This is more reliable as the Admin app is already configured for native push
+        // --- Step 0: Telegram Notification (PRIORITY) ---
+        if (restaurantId) {
+            const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select('telegram_bot_token, telegram_chat_id, name_ru')
+                .eq('id', restaurantId)
+                .single()
+
+            const botToken = restaurant?.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN
+            const chatId = restaurant?.telegram_chat_id || process.env.TELEGRAM_CHAT_ID
+
+            if (botToken && chatId) {
+                console.log(`[Telegram] 🚀 Priority send to ${restaurant?.name_ru || 'Unknown'}`)
+                notifyAdminTelegram(data, type, {
+                    ...restaurant,
+                    telegram_bot_token: botToken,
+                    telegram_chat_id: chatId
+                })
+            }
+        }
+
+        // --- Step 1: Bridge Notification (Native App) ---
         const { triggerAdminNotification } = await import('./admin-notify');
         const result = await triggerAdminNotification(data.id);
 
@@ -164,34 +184,6 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
 
         await Promise.all(pushPromises)
         console.log('[Notification] ✅ All push notifications processed');
-
-        // Step 3: Telegram Notification
-        if (restaurantId) {
-            const { data: restaurant, error: resError } = await supabase
-                .from('restaurants')
-                .select('telegram_bot_token, telegram_chat_id, name_ru')
-                .eq('id', restaurantId)
-                .single()
-
-            if (resError) {
-                console.warn(`[Notification] Restaurant info not found for Telegram:`, resError.message)
-            }
-
-            // Fallback to global token if restaurant-specific one is missing
-            const botToken = restaurant?.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN
-            const chatId = restaurant?.telegram_chat_id || process.env.TELEGRAM_CHAT_ID
-
-            if (botToken && chatId) {
-                console.log(`[Telegram] 🚀 Attempting to send to ${restaurant?.name_ru || 'Unknown'} (${chatId})`)
-                await notifyAdminTelegram(data, type, {
-                    ...restaurant,
-                    telegram_bot_token: botToken,
-                    telegram_chat_id: chatId
-                })
-            } else {
-                console.warn(`[Telegram] ⚠️ Skipping: Bot token or Chat ID missing (Token: ${!!botToken}, ChatID: ${!!chatId})`)
-            }
-        }
     } catch (error) {
         console.error('[Notification] Fatal error:', error)
     }
