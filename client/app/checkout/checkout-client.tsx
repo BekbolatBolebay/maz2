@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { notifyAdmin } from '@/lib/actions'
+import { notifyAdmin, savePIIServer } from '@/lib/actions'
 import { useLocalCart } from '@/hooks/use-local-cart'
 import { clearLocalCart } from '@/lib/storage/local-storage'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
-import { savePII, getRestaurantStatus, subscribeToVPS } from '@/lib/vps'
+import { getRestaurantStatus, subscribeToVPS } from '@/lib/vps'
 import { getSecureMerchantConfig } from '@/lib/actions'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -482,7 +482,7 @@ export function CheckoutClient() {
                 }
 
                 // 2. Save PII to VPS
-                const vpsId = await savePII('profiles', {
+                const vpsId = await savePIIServer('profiles', {
                     full_name: name,
                     phone: phone,
                     address: '', // Inside booking block, address is not relevant
@@ -579,7 +579,7 @@ export function CheckoutClient() {
 
 
             // 0. Save PII to VPS for Order
-            const vpsId = await savePII('profiles', {
+            const vpsId = await savePIIServer('profiles', {
                 full_name: name,
                 phone: phone,
                 address: orderType === 'delivery' ? address : '',
