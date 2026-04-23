@@ -10,7 +10,7 @@ const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:example@yourdomain.co
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
     const pubKey = VAPID_PUBLIC_KEY.trim();
     const privKey = VAPID_PRIVATE_KEY.trim();
-    
+
     webpush.setVapidDetails(
         VAPID_SUBJECT,
         pubKey,
@@ -57,17 +57,16 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
     }
 }
 
-
 // Deprecated: keeping only for reference, but wont be called
 export async function notifyAdminTelegram(data: any, type: 'order' | 'booking', restaurant: any) {
     try {
         const orderId = data.id.slice(0, 8)
         const title = type === 'order' ? '🔔 *Жаңа тапсырыс!*' : '📅 *Жаңа брондау!*'
-        
+
         let message = `${title}\n\n`
         message += `📍 Мейрамхана: ${restaurant.name_ru}\n`
         message += `🆔 ID: #${orderId}\n`
-        
+
         if (type === 'order') {
             message += `💰 Сомасы: *${data.total_amount} ₸*\n`
             message += `📦 Тауар саны: ${data.items_count}\n`
@@ -186,7 +185,7 @@ export async function getSecureMerchantConfig(restaurantId: string) {
             }
             return null;
         }
-        
+
         return {
             kaspi_link: restaurant.kaspi_link,
             accept_kaspi: restaurant.accept_kaspi,

@@ -1260,24 +1260,7 @@ export function CheckoutClient() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-4">
-                                    <Button
-                                        size="lg"
-                                        className="w-full h-16 rounded-[2rem] text-lg font-black shadow-xl shadow-primary/20 active:scale-95 transition-all group"
-                                        onClick={handleCheckout}
-                                        disabled={checkoutLoading}
-                                    >
-                                        {checkoutLoading ? (
-                                            <Loader2 className="w-6 h-6 animate-spin" />
-                                        ) : (
-                                            <>
-                                                {locale === 'kk' ? 'Тапсырысты растау' : 'Подтвердить заказ'}
-                                                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                                            </>
-                                        )}
-                                    </Button>
 
-                                </div>
                             </CardContent>
                         </Card>
 
@@ -1319,7 +1302,7 @@ export function CheckoutClient() {
                                 </div>
                             ) : (
                                 <>
-                                    {step === 'summary' ? t.cart.confirm_and_pay : (
+                                    {step === 'summary' ? t.cart.checkout : (
                                         orderType === 'booking' ? (
                                             bookingSubStep === 1 ? (locale === 'kk' ? 'Әрі қарай' : 'Продолжить') :
                                             bookingSubStep === 2 ? (
