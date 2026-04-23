@@ -104,30 +104,32 @@ export async function savePIIServer(collection: string, data: Record<string, any
 // Deprecated: keeping only for reference, but wont be called
 export async function notifyAdminTelegram(data: any, type: 'order' | 'booking', restaurant: any) {
     try {
-        const orderId = data.id.slice(0, 8)
+        const orderId = (data?.id || 'NEW').slice(0, 8)
         const title = type === 'order' ? '🔔 *Жаңа тапсырыс!*' : '📅 *Жаңа брондау!*'
 
         let message = `${title}\n\n`
-        message += `📍 Мейрамхана: ${restaurant.name_ru}\n`
+        message += `📍 Мейрамхана: ${restaurant?.name_ru || 'Unknown'}\n`
         message += `🆔 ID: #${orderId}\n`
 
         if (type === 'order') {
-            message += `💰 Сомасы: *${data.total_amount} ₸*\n`
-            message += `📦 Тауар саны: ${data.items_count}\n`
-            message += `👤 Клиент: ${data.customer_name || 'Көрсетілмеген'}\n`
-            message += `📞 Тел: ${data.customer_phone || 'Көрсетілмеген'}\n`
-            if (data.address) message += `🏠 Мекен-жай: ${data.address}\n`
+            message += `💰 Сомасы: *${data?.total_amount || 0} ₸*\n`
+            message += `📦 Тауар саны: ${data?.items_count || 0}\n`
+            message += `👤 Клиент: ${data?.customer_name || 'Көрсетілмеген'}\n`
+            message += `📞 Тел: ${data?.customer_phone || 'Көрсетілмеген'}\n`
+            if (data?.address) message += `🏠 Мекен-жай: ${data.address}\n`
         } else {
-            message += `📅 Күні: ${data.date}\n`
-            message += `⏰ Уақыты: ${data.time}\n`
-            message += `👥 Адам саны: ${data.guests_count}\n`
-            message += `👤 Клиент: ${data.customer_name}\n`
-            message += `📞 Тел: ${data.customer_phone}\n`
+            message += `📅 Күні: ${data?.date || '---'}\n`
+            message += `⏰ Уақыты: ${data?.time || '---'}\n`
+            message += `👥 Адам саны: ${data?.guests_count || 0}\n`
+            message += `👤 Клиент: ${data?.customer_name || 'Көрсетілмеген'}\n`
+            message += `📞 Тел: ${data?.customer_phone || 'Көрсетілмеген'}\n`
         }
 
         message += `\n🔗 [Админ панельге өту](https://cafeadminis.mazirapp.kz/orders)`
 
-        await fetch(`https://api.telegram.org/bot${restaurant.telegram_bot_token}/sendMessage`, {
+        console.log(`[Telegram] Payload check:`, JSON.stringify(data).substring(0, 100))
+
+        const response = await fetch(`https://api.telegram.org/bot${restaurant.telegram_bot_token}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -135,13 +137,14 @@ export async function notifyAdminTelegram(data: any, type: 'order' | 'booking', 
                 text: message,
                 parse_mode: 'Markdown',
             }),
-        }).then(res => res.json()).then(res => {
-            if (res.ok) {
-                console.log(`[Telegram] ✅ Sent successfully to restaurant: ${restaurant.name_ru || 'Unknown'}`)
-            } else {
-                console.error(`[Telegram] ❌ API Error:`, res.description)
-            }
-        })
+        });
+
+        const res = await response.json();
+        if (res.ok) {
+            console.log(`[Telegram] ✅ Sent successfully to: ${restaurant.name_ru || 'Unknown'}`)
+        } else {
+            console.error(`[Telegram] ❌ API Error:`, res.description)
+        }
     } catch (error: any) {
         console.error('[Telegram] ❌ Fatal Error:', error.message)
     }
