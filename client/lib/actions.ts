@@ -26,9 +26,13 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         const timestamp = new Date().toISOString();
         const supabase = await createClient()
 
-        console.log(`[Notification][${timestamp}] Starting Telegram-only notification for type: ${type}`);
+        console.log(`[Notification][${timestamp}] Starting notification process for type: ${type}`);
 
-        // --- Step 0: Telegram Notification ---
+        // --- Step 0: Telegram Notification (ULTIMATE FALLBACK) ---
+        let botToken = process.env.TELEGRAM_BOT_TOKEN
+        let chatId = process.env.TELEGRAM_CHAT_ID
+        let restaurantName = 'Unknown'
+
         if (restaurantId) {
             const { data: restaurant } = await supabase
                 .from('restaurants')
@@ -36,22 +40,25 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                 .eq('id', restaurantId)
                 .single()
 
-            const botToken = restaurant?.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN
-            const chatId = restaurant?.telegram_chat_id || process.env.TELEGRAM_CHAT_ID
-
-            if (botToken && chatId) {
-                console.log(`[Telegram] 🚀 Sending to ${restaurant?.name_ru || 'Unknown'}`)
-                await notifyAdminTelegram(data, type, {
-                    ...restaurant,
-                    telegram_bot_token: botToken,
-                    telegram_chat_id: chatId
-                })
-            } else {
-                console.warn(`[Telegram] ⚠️ Missing config for ${restaurant?.name_ru || 'Unknown'}`)
+            if (restaurant) {
+                if (restaurant.telegram_bot_token) botToken = restaurant.telegram_bot_token
+                if (restaurant.telegram_chat_id) chatId = restaurant.telegram_chat_id
+                restaurantName = restaurant.name_ru || 'Unknown'
             }
         }
 
-        console.log(`[Notification][${timestamp}] ✅ Telegram notification process completed`);
+        if (botToken && chatId) {
+            console.log(`[Telegram] 🚀 Attempting send to ${restaurantName} (${chatId})`)
+            await notifyAdminTelegram(data, type, {
+                name_ru: restaurantName,
+                telegram_bot_token: botToken,
+                telegram_chat_id: chatId
+            })
+        } else {
+            console.warn(`[Telegram] ❌ No configuration found (Restaurant: ${restaurantName}, GlobalToken: ${!!process.env.TELEGRAM_BOT_TOKEN})`)
+        }
+
+        console.log(`[Notification][${timestamp}] ✅ Notification process completed`);
     } catch (error) {
         console.error('[Notification] Fatal error:', error)
     }
