@@ -14,20 +14,9 @@ export async function GET() {
 
         const config = {
             name_ru: 'Test Restaurant',
-            telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN,
-            telegram_chat_id: process.env.TELEGRAM_CHAT_ID
+            telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN || '8787137858:AAGOad9s8JPdKmaPg4gw-i3Ls1I_Mz4tkXI',
+            telegram_chat_id: process.env.TELEGRAM_CHAT_ID || '5328427875'
         };
-
-        if (!config.telegram_bot_token || !config.telegram_chat_id) {
-            return NextResponse.json({
-                success: false,
-                error: 'Missing environment variables',
-                details: {
-                    hasToken: !!config.telegram_bot_token,
-                    hasChatId: !!config.telegram_chat_id
-                }
-            });
-        }
 
         console.log('[Test] Sending telegram message...');
         
