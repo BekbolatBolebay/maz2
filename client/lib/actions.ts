@@ -26,7 +26,7 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
         const timestamp = new Date().toISOString();
         const supabase = await createClient()
 
-        // --- Step 0: Telegram Notification (PRIORITY) ---
+        // --- Step 0: Telegram Notification (ONLY PRIORITY NOW) ---
         if (restaurantId) {
             const { data: restaurant } = await supabase
                 .from('restaurants')
@@ -38,152 +38,28 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
             const chatId = restaurant?.telegram_chat_id || process.env.TELEGRAM_CHAT_ID
 
             if (botToken && chatId) {
-                console.log(`[Telegram] 🚀 Priority send to ${restaurant?.name_ru || 'Unknown'}`)
-                notifyAdminTelegram(data, type, {
+                console.log(`[Telegram] 🚀 Sending to ${restaurant?.name_ru || 'Unknown'}`)
+                await notifyAdminTelegram(data, type, {
                     ...restaurant,
                     telegram_bot_token: botToken,
                     telegram_chat_id: chatId
                 })
+            } else {
+                console.warn(`[Telegram] ⚠️ Missing config for ${restaurant?.name_ru || 'Unknown'}`)
             }
         }
 
-        // --- Step 1: Bridge Notification (Native App) ---
+        /* 
+        // --- Step 1: Bridge Notification (Native App) - Temporarily Disabled ---
         const { triggerAdminNotification } = await import('./admin-notify');
-        const result = await triggerAdminNotification(data.id);
+        await triggerAdminNotification(data.id);
+        */
 
-        if (result.success) {
-            console.log(`[Notification][${timestamp}] ✅ Bridge notification triggered successfully`);
-            return;
-        }
-
-        console.warn(`[Notification][${timestamp}] ⚠️ Bridge failed, falling back to direct delivery:`, result.error);
-
-        // --- FALLBACK: Direct delivery from Client app (requires Client to have Firebase Admin keys) ---
-        const supabase = await createClient()
-        // ... (rest of existing logic)
-
-        // Step 1: Find staff linked to this restaurant OR global admins
-        let staffQuery = supabase
-            .from('staff_profiles')
-            .select('id, full_name, role, push_subscription, fcm_token, push_token, cafe_id')
-
-        if (restaurantId) {
-            // Find staff assigned to this cafe OR global admins
-            staffQuery = staffQuery.or(`cafe_id.eq.${restaurantId},role.eq.admin`)
-            console.log(`[Notification] Filtering for cafe_id: ${restaurantId} or global admins`);
-        } else {
-            // Fallback: Notify all admins
-            staffQuery = staffQuery.eq('role', 'admin')
-            console.log(`[Notification] Falling back to all global admins`);
-        }
-
-        const { data: staff, error: staffError } = await staffQuery
-
-        if (staffError) {
-            console.error('[Notification] Error fetching staff:', staffError)
-            return
-        }
-
-        // Step 2: Filter only those with at least one push target
-        const targetStaff = (staff || []).filter(member => !!member.fcm_token || !!member.push_subscription || !!member.push_token)
-
-        if (targetStaff.length === 0) {
-            console.warn(`[Notification][${timestamp}] ❌ No staff candidates found (Total staff checked: ${staff?.length || 0})`);
-            return
-        }
-        
-        console.log(`[Notification][${timestamp}] 🚀 Found ${targetStaff.length} recipients with active tokens`);
-
-        const orderId = data.id.slice(0, 8)
-        const tag = `${type}-${data.id}`
-        const payload = {
-            title: type === 'order' ? '🔔 Жаңа тапсырыс!' : '📅 Жаңа брондау!',
-            body: type === 'order'
-                ? `#${orderId} · ${data.total_amount}₸`
-                : `${data.date} · ${data.time} · ${data.guests_count} адам · ${data.total_amount}₸`,
-            url: type === 'order' ? '/orders' : '/orders',
-            tag: tag
-        }
-
-        const pushPromises: Promise<any>[] = []
-
-        for (const member of targetStaff) {
-            // 1. FCM (High priority for background delivery)
-            if (member.fcm_token) {
-                try {
-                    const { messaging } = await import('./firebase-admin')
-                    if (messaging) {
-                        const message = {
-                            token: member.fcm_token,
-                            android: {
-                                priority: 'high',
-                                notification: { sound: 'default' }
-                            },
-                            notification: {
-                                title: payload.title,
-                                body: payload.body,
-                            },
-                            data: {
-                                url: payload.url,
-                                orderId: data.id,
-                                tag: tag
-                            },
-                            webpush: {
-                                fcm_options: { link: payload.url },
-                                headers: { Urgency: 'high' },
-                                notification: {
-                                    icon: '/icon-192x192.png',
-                                    badge: '/icon-192x192.png',
-                                    vibrate: [500, 110, 500, 110, 450],
-                                    requireInteraction: true,
-                                    silent: false,
-                                    tag: tag
-                                }
-                            },
-                        }
-                        pushPromises.push(
-                            (messaging as any).send(message)
-                                .then((r: any) => console.log(`[FCM] ✅ Sent to ${member.full_name}`))
-                                .catch((e: any) => console.error(`[FCM] ❌ Error for ${member.full_name}:`, e?.message))
-                        )
-                    }
-                } catch (e) {
-                    console.error('[FCM] Import error:', e)
-                }
-            }
-
-            // 2. Web-Push fallback
-            const subscription = member.push_subscription || (member.push_token ? JSON.parse(member.push_token) : null)
-
-            if (subscription && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-                pushPromises.push(
-                    webpush.sendNotification(
-                        subscription as any,
-                        JSON.stringify({
-                            title: payload.title,
-                            body: payload.body,
-                            url: payload.url,
-                            icon: '/icon-192x192.png',
-                            badge: '/icon-192x192.png',
-                            tag: tag,
-                            vibrate: [500, 110, 500, 110, 450],
-                            requireInteraction: true
-                        }),
-                        { 
-                            headers: { 
-                                'Urgency': 'high', 
-                                'TTL': '86400' 
-                            } 
-                        }
-                    )
-                    .then(() => console.log(`[Web-Push] ✅ Sent successfully to ${member.full_name}`))
-                    .catch((e: any) => console.error(`[Web-Push] ❌ Delivery failed for ${member.full_name}:`, e?.message))
-                )
-            }
-        }
-
-        await Promise.all(pushPromises)
-        console.log('[Notification] ✅ All push notifications processed');
+        console.log(`[Notification][${timestamp}] ✅ Telegram notification process completed`);
+    } catch (error) {
+        console.error('[Notification] Fatal error:', error)
+    }
+}
     } catch (error) {
         console.error('[Notification] Fatal error:', error)
     }
