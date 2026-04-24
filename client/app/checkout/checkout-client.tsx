@@ -1292,7 +1292,7 @@ export function CheckoutClient() {
             </AnimatePresence>
 
                 {step !== 'auth' && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-muted z-50 flex flex-col gap-2">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] bg-background/90 backdrop-blur-xl border-t border-border/10 z-50 flex flex-col gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
                         <Button
                             className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2"
                             onClick={() => {

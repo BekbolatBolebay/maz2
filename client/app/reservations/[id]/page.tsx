@@ -115,6 +115,16 @@ export default function ReservationDetailsPage({ params }: { params: Promise<{ i
 
             <main className="flex-1 overflow-auto pb-10">
                 <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+                    {reservation.status === 'awaiting_payment' && reservation.payment_url && (
+                        <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+                            <Button className="w-full bg-amber-500 text-white hover:bg-amber-600 h-16 rounded-[2rem] text-lg font-black shadow-lg shadow-amber-500/20 transition-all gap-3" asChild>
+                                <a href={reservation.payment_url} target="_blank" rel="noopener noreferrer">
+                                    <CreditCard className="w-6 h-6" />
+                                    <span>{locale === 'ru' ? 'ОПЛАТИТЬ СЕЙЧАС' : 'ҚАЗІР ТӨЛЕУ'}</span>
+                                </a>
+                            </Button>
+                        </div>
+                    )}
                     {/* Status Card */}
                     <Card className="overflow-hidden border-none shadow-xl rounded-[2.5rem] bg-card text-center p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className={cn(
@@ -244,15 +254,7 @@ export default function ReservationDetailsPage({ params }: { params: Promise<{ i
                         </Button>
                     </div>
 
-                    {/* Actions */}
-                    {reservation.status === 'awaiting_payment' && reservation.payment_url && (
-                        <Button className="w-full bg-black text-white h-16 rounded-[2rem] text-base font-black shadow-xl hover:bg-zinc-800 transition-all gap-3" asChild>
-                            <a href={reservation.payment_url} target="_blank" rel="noopener noreferrer">
-                                <CreditCard className="w-5 h-5" />
-                                <span>{locale === 'ru' ? 'ОПЛАТИТЬ СЕЙЧАС' : 'ҚАЗІР ТӨЛЕУ'}</span>
-                            </a>
-                        </Button>
-                    )}
+                    {/* Removed payment button from bottom */}
                 </div>
             </main>
         </div>

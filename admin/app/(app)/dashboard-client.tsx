@@ -9,11 +9,23 @@ import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
 interface Props {
   settings: CafeSettings | null
   stats: { todayRevenue: number; todayOrders: number; newOrders: number }
   recentOrders: Order[]
 }
+
+const mockChartData = [
+  { name: 'Mon', revenue: 45000 },
+  { name: 'Tue', revenue: 52000 },
+  { name: 'Wed', revenue: 48000 },
+  { name: 'Thu', revenue: 61000 },
+  { name: 'Fri', revenue: 55000 },
+  { name: 'Sat', revenue: 78000 },
+  { name: 'Sun', revenue: 85000 },
+]
 
 const mgmtItems = [
   { href: '/menu', icon: UtensilsCrossed, label_kk: 'Мәзір', label_ru: 'Меню', color: 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400' },
@@ -81,16 +93,64 @@ export default function DashboardClient({ settings, stats, recentOrders }: Props
 
       <div className="flex-1 px-4 py-3 space-y-5">
         {/* Revenue card */}
-        <div className="bg-primary rounded-2xl p-4 flex items-center justify-between text-primary-foreground">
+        <div className="bg-primary rounded-2xl p-4 flex items-center justify-between text-primary-foreground shadow-lg shadow-primary/20">
           <div>
-            <p className="text-xs opacity-80 font-medium">{t(lang, 'todayRevenue')}</p>
-            <p className="text-2xl font-bold mt-0.5">
+            <p className="text-xs opacity-80 font-medium tracking-wide uppercase">{t(lang, 'todayRevenue')}</p>
+            <p className="text-3xl font-black mt-0.5">
               {stats.todayRevenue.toLocaleString()} ₸
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs opacity-80 font-medium">{t(lang, 'todayOrders')}</p>
-            <p className="text-2xl font-bold mt-0.5">{stats.todayOrders}</p>
+            <p className="text-xs opacity-80 font-medium tracking-wide uppercase">{t(lang, 'todayOrders')}</p>
+            <p className="text-3xl font-black mt-0.5">{stats.todayOrders}</p>
+          </div>
+        </div>
+
+        {/* Revenue Chart */}
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-base font-bold text-foreground">
+              {lang === 'kk' ? 'Табыс шолуы (7 күн)' : 'Обзор выручки (7 дней)'}
+            </p>
+            <BarChart3 className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={mockChartData}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+                  dy={10}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    backgroundColor: 'var(--card)',
+                    fontSize: '12px'
+                  }}
+                  itemStyle={{ color: 'var(--primary)', fontWeight: 'bold' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="var(--primary)" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorRevenue)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

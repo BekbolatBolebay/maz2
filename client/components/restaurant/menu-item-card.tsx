@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Plus, Minus, X, ShoppingCart, MapPin, Utensils, Star, Clock, Info, ChevronRight, Share2, Plus as PlusIcon } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { addToLocalCart, LocalCartItem } from '@/lib/storage/local-storage'
 import { Database } from '@/lib/supabase/types'
@@ -117,9 +118,14 @@ export function MenuItemCard({
   return (
     <>
       {/* ── Card ── */}
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        whileTap={{ scale: 0.98 }}
         className={cn(
-          "bg-card border border-muted/50 overflow-hidden cursor-pointer active:scale-[0.97] transition-all shadow-sm hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5 group",
+          "bg-card border border-muted/50 overflow-hidden cursor-pointer transition-all shadow-sm hover:shadow-xl hover:shadow-black/5 group",
           isHorizontal ? "flex h-40 rounded-[2rem]" : "flex flex-col rounded-3xl",
           !isOpen && "opacity-80"
         )}
@@ -182,163 +188,132 @@ export function MenuItemCard({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Modal (bottom sheet) ── */}
-      {open && mounted && createPortal(
-        <div className="fixed inset-0 z-[100]">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
-          {/* Sheet */}
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 pb-20">
-            {/* Close button */}
-            <div className="flex justify-end p-4 pb-0">
-              <button
-                onClick={() => setOpen(false)}
-                className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center active:scale-90 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Image */}
-            {item.image_url && (
-              <div className="relative h-52 mx-4 rounded-2xl overflow-hidden bg-muted">
-                <Image src={item.image_url} alt={name} fill className="object-cover" unoptimized />
+      <AnimatePresence>
+        {open && mounted && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-end justify-center">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              onClick={() => setOpen(false)}
+            />
+            {/* Sheet */}
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-screen-md bg-card rounded-t-[3rem] shadow-2xl max-h-[92vh] overflow-y-auto pb-20 no-scrollbar"
+            >
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-4 pb-2">
+                <div className="w-12 h-1.5 bg-muted rounded-full opacity-20" />
               </div>
-            )}
 
-            <div className="px-5 py-4">
-              {/* Cafe name */}
-              {cafeName && (
-                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  {cafeName}
-                </p>
+              {/* Close button */}
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-10 h-10 rounded-full bg-secondary/80 backdrop-blur-md flex items-center justify-center active:scale-90 transition-all shadow-sm"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Image */}
+              {item.image_url && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="relative h-64 mx-4 mt-2 rounded-[2rem] overflow-hidden bg-muted shadow-lg"
+                >
+                  <Image src={item.image_url} alt={name} fill className="object-cover" unoptimized />
+                </motion.div>
               )}
 
-              {/* Name */}
-              <h2 className="text-xl font-bold text-foreground mb-2">{name}</h2>
-
-              {/* Description */}
-              {desc && (
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{desc}</p>
-              )}
-
-              {/* Price */}
-              <div className="flex items-end justify-between mb-5">
-                <div>
-                  <p className="text-2xl font-bold text-primary relative">
-                    {item.type === 'rental' && (
-                      <Badge variant="secondary" className="absolute -top-6 left-0 bg-blue-500/80 text-white border-none text-[10px]">
-                        {locale === 'ru' ? 'Аренда' : 'Аренда'}
-                      </Badge>
-                    )}
-                    {item.original_price && (
-                      <span className="text-base text-muted-foreground line-through mr-2">
-                        {(item.original_price * qty).toFixed(0)}₸
-                      </span>
-                    )}
-                    {(item.price * qty).toFixed(0)}₸
+              <div className="px-6 py-6">
+                {/* Cafe name */}
+                {cafeName && (
+                  <p className="text-xs text-primary font-bold mb-1 flex items-center gap-1.5 uppercase tracking-wider">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    {cafeName}
                   </p>
-                  {item.type === 'rental' && (
-                    <p className="text-[10px] text-muted-foreground font-medium">
-                      {locale === 'ru' ? 'За аренду' : 'Жалға алу үшін'}
+                )}
+
+                {/* Name */}
+                <h2 className="text-2xl font-black text-foreground mb-2 leading-tight">{name}</h2>
+
+                {/* Description */}
+                {desc && (
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed font-medium opacity-80">{desc}</p>
+                )}
+
+                {/* Price */}
+                <div className="flex items-end justify-between mb-8 p-4 bg-muted/30 rounded-3xl border border-muted/50">
+                  <div>
+                    <p className="text-3xl font-black text-primary flex items-baseline gap-1">
+                      {item.original_price && (
+                        <span className="text-base text-muted-foreground line-through font-bold opacity-50 mr-1">
+                          {(item.original_price * qty).toFixed(0)}₸
+                        </span>
+                      )}
+                      {(item.price * qty).toFixed(0)}<span className="text-sm font-black uppercase ml-0.5">₸</span>
                     </p>
+                    {item.type === 'rental' && (
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-tighter">
+                        {locale === 'ru' ? 'За аренду' : 'Жалға алу үшін'}
+                      </p>
+                    )}
+                  </div>
+                  {item.type === 'rental' && item.rental_deposit && (
+                    <div className="text-right">
+                      <p className="text-sm font-black text-foreground">+{item.rental_deposit.toFixed(0)}₸</p>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-tighter">{locale === 'ru' ? 'Залог' : 'Кепілақы'}</p>
+                    </div>
                   )}
                 </div>
-                {item.type === 'rental' && item.rental_deposit && (
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-foreground">+{item.rental_deposit.toFixed(0)}₸</p>
-                    <p className="text-[10px] text-muted-foreground">{locale === 'ru' ? 'Залог' : 'Кепілақы'}</p>
+
+                {/* Quantity + Add to cart */}
+                <div className="flex items-center gap-4">
+                  {/* Qty stepper */}
+                  <div className="flex items-center gap-4 bg-secondary/50 rounded-3xl px-4 py-2 border border-secondary">
+                    <button
+                      onClick={() => setQty(q => Math.max(1, q - 1))}
+                      className="w-10 h-10 rounded-2xl bg-card flex items-center justify-center active:scale-90 transition-all shadow-sm border border-border/50"
+                    >
+                      <Minus className="w-5 h-5" />
+                    </button>
+                    <span className="text-xl font-black w-8 text-center">{qty}</span>
+                    <button
+                      onClick={() => setQty(q => q + 1)}
+                      className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center active:scale-90 transition-all shadow-2xl shadow-primary/30"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </button>
                   </div>
-                )}
-              </div>
 
-              {/* Combo Items */}
-              {isCombo && item.combo_items && Array.isArray(item.combo_items) && (item.combo_items.length > 0) && (
-                <div className="mb-6 space-y-3">
-                  <h3 className="text-sm font-bold text-foreground border-b pb-2">
-                    {locale === 'ru' ? 'В набор входит:' : 'Комбо құрамы:'}
-                  </h3>
-                  <div className="space-y-2">
-                    {(item.combo_items as any[]).map((subItem, idx) => {
-                      const subItemId = subItem.item_id || subItem.id
-                      return (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-3 p-2 rounded-xl bg-secondary/30 border border-border/50 transition-all hover:bg-secondary/50 cursor-pointer active:scale-[0.98]"
-                          onClick={() => {
-                            if (subItemId) {
-                              window.location.hash = `item-${subItemId}`
-                            }
-                          }}
-                        >
-                          {subItem.image_url && (
-                            <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-                              <Image src={subItem.image_url} alt={subItem.name} fill className="object-cover" unoptimized />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">{subItem.name}</p>
-                            {subItem.description && (
-                              <p className="text-[10px] text-muted-foreground line-clamp-1">{subItem.description}</p>
-                            )}
-                          </div>
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Plus className="w-4 h-4 text-primary" />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Quantity + Add to cart */}
-              <div className="flex items-center gap-3 mb-4">
-                {/* Qty stepper */}
-                <div className="flex items-center gap-3 bg-secondary rounded-2xl px-3 py-2">
-                  <button
-                    onClick={() => setQty(q => Math.max(1, q - 1))}
-                    className="w-8 h-8 rounded-xl bg-card flex items-center justify-center active:scale-90 transition-all shadow-sm"
+                  {/* Add to cart */}
+                  <Button
+                    className="flex-1 h-14 gap-3 rounded-[1.5rem] font-black text-lg shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={!item.is_available || !isOpen}
+                    onClick={() => addToCart(qty)}
                   >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="text-lg font-bold w-6 text-center">{qty}</span>
-                  <button
-                    onClick={() => setQty(q => q + 1)}
-                    className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-90 transition-all shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                    <ShoppingCart className="w-6 h-6" />
+                    {isOpen ? (locale === 'ru' ? 'В корзину' : 'Себетке қосу') : (locale === 'ru' ? 'Закрыто' : 'Жабық')}
+                  </Button>
                 </div>
-
-                {/* Add to cart */}
-                <Button
-                  className="flex-1 h-12 gap-2 rounded-2xl font-bold text-base"
-                  disabled={!item.is_available || !isOpen}
-                  onClick={() => addToCart(qty)}
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  {isOpen ? (locale === 'ru' ? 'В корзину' : 'Себетке қосу') : (locale === 'ru' ? 'Закрыто' : 'Жабық')}
-                </Button>
               </div>
-
-              {!item.is_available && (
-                <p className="text-center text-xs text-destructive font-medium">{locale === 'ru' ? 'Временно нет' : 'Уақытша жоқ'}</p>
-              )}
-              {!isOpen && item.is_available && (
-                <p className="text-center text-xs text-destructive font-medium">{locale === 'ru' ? 'Кафе сейчас закрыто' : 'Кафе қазір жабық'}</p>
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+            </motion.div>
+          </div>,
+          document.body
+        )}
+      </AnimatePresence>
 
       {/* ── Mismatch Dialog ── */}
       {mismatchOpen && mounted && createPortal(

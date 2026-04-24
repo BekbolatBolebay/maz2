@@ -192,21 +192,34 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
       <main className="flex-1 overflow-auto bg-zinc-900 pb-10">
         <div className="max-w-md mx-auto px-4 py-8">
+          {order.status === 'awaiting_payment' && order.payment_url && (
+            <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+              <Button className="w-full bg-amber-500 text-white hover:bg-amber-600 h-16 rounded-[2rem] text-lg font-black shadow-lg shadow-amber-500/20 transition-all gap-3" asChild>
+                <a href={order.payment_url} target="_blank" rel="noopener noreferrer">
+                  <CreditCard className="w-6 h-6" />
+                  <span>{locale === 'ru' ? 'ОПЛАТИТЬ СЕЙЧАС' : 'ҚАЗІР ТӨЛЕУ'}</span>
+                </a>
+              </Button>
+            </div>
+          )}
+
           <Card className="overflow-hidden border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-[3rem] bg-zinc-950 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CardContent className="p-8 relative">
               {/* Decorative Glow */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-              {/* Status Header */}
-              <div className="flex flex-col items-center text-center mb-10">
-                <div className="w-20 h-20 bg-primary/20 rounded-[2.5rem] flex items-center justify-center mb-4 text-primary animate-pulse shadow-[0_0_30px_-5px_rgba(var(--primary-rgb),0.3)]">
-                   <Clock className="w-10 h-10" />
-                </div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-white">
-                  {(t.orders.status as any)[order.status] || order.status}
-                </h2>
-                <p className="text-sm font-medium text-zinc-400 mt-1">
-                  {format(new Date(order.updated_at), 'dd MMM, HH:mm')}
-                </p>
+              
+              {/* Removed payment button from here, moved outside */}
+              {/* Order Tracker */}
+              <div className="mb-10 -mt-2">
+                <OrderTracker
+                    orderId={order.id}
+                    initialStatus={order.status}
+                    initialUpdatedAt={order.updated_at}
+                    initialEstimatedReadyAt={order.estimated_ready_at}
+                    orderType={order.type || 'delivery'}
+                    deliveryFee={order.delivery_fee}
+                    totalAmount={order.total_amount}
+                />
               </div>
 
               {/* Order Info Grid */}
@@ -287,14 +300,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
               {/* Dynamic Actions Based on Status */}
               <div className="space-y-4">
-                {order.status === 'awaiting_payment' && order.payment_url && (
-                  <Button className="w-full bg-black text-white h-16 rounded-2xl text-base font-black shadow-xl hover:bg-zinc-800 transition-all gap-3" asChild>
-                    <a href={order.payment_url} target="_blank" rel="noopener noreferrer">
-                      <CreditCard className="w-5 h-5" />
-                      <span>{locale === 'ru' ? 'ОПЛАТИТЬ СЕЙЧАС' : 'ҚАЗІР ТӨЛЕУ'}</span>
-                    </a>
-                  </Button>
-                )}
 
                 {order.status === 'on_the_way' && order.one_time_courier_phone && (
                    <Button className="w-full bg-blue-600 text-white h-16 rounded-2xl text-base font-black shadow-xl hover:bg-blue-700 transition-all gap-3" asChild>
