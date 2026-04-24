@@ -27,7 +27,8 @@ import {
   MoreVertical,
   PlusSquare,
   Sparkles,
-  LogOut
+  LogOut,
+  Hash
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
