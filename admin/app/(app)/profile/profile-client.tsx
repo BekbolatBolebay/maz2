@@ -33,8 +33,6 @@ import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Capacitor } from '@capacitor/core'
-import { PushNotifications } from '@capacitor/push-notifications'
 import ImageUpload from '@/components/ui/image-upload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -231,15 +229,6 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
         const { error } = await updateCafeSettings(updates, settings?.id)
         if (error) throw error
       }
-      
-      // Attempt to update VPS for backward compatibility, but don't fail if it's down
-      if (['accept_freedom', 'accept_kaspi'].includes(field) && settings?.id) {
-        try {
-          await saveMerchantConfigAction(settings.id, { [field]: newValue, freedom_test_mode: freedomTestMode });
-        } catch (e) {
-          console.warn('VPS Update failed (offline), but Supabase is updated:', e);
-        }
-      }
 
       toast.success(lang === 'kk' ? 'Сақталды' : 'Сохранено', { duration: 1000 })
     } catch (err: any) {
@@ -256,11 +245,6 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     try {
       const { error } = await updateCafeSettings({ status: newStatus }, settings?.id)
       if (error) throw error
-      
-      // Update VPS for real-time sync
-      if (settings?.id) {
-        await updateRestaurantStatusAction(settings.id, newStatus);
-      }
 
       toast.success(lang === 'kk' ? 'Мәртебе жаңартылды' : 'Статус обновлен', { duration: 1000 })
     } catch (err: any) {
@@ -299,32 +283,9 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       }, settings?.id)
       if (settingsError) throw settingsError
 
-      // 2. Attempt to Update VPS for backward compatibility (Don't fail if VPS is blocked due to unpaid bill)
-      if (settings?.id) {
-        try {
-          await saveMerchantConfigAction(settings.id, {
-            freedom_merchant_id: freedomMerchantId,
-            freedom_payment_secret_key: freedomSecretKey,
-            freedom_receipt_secret_key: freedomReceiptSecretKey,
-            freedom_test_mode: freedomTestMode,
-            kaspi_link: kaspiLink,
-            accept_freedom: acceptFreedom,
-            accept_kaspi: acceptKaspi
-          });
-          await updateRestaurantStatusAction(settings.id, cafeStatus);
-        } catch (vpsError) {
-          console.warn('VPS Update failed, but Supabase is updated successfully:', vpsError);
-        }
-      }
-
-      // 2. Update working hours
-      const { error: hoursError } = await updateWorkingHours(localHours, settings?.id)
-      if (hoursError) throw hoursError
-
-      toast.success(lang === 'kk' ? 'Мәліметтер сақталды ✅' : 'Данные сохранены ✅')
-    } catch (err: any) {
-      toast.error(err.message)
-    } finally {
+      } catch (err: any) {
+        toast.error(err.message)
+      } finally {
       setIsSaving(false)
     }
   }
@@ -337,8 +298,14 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
 
   const subscribeToPush = async () => {
     // 1. Native Android Handling (Capacitor)
-    if (Capacitor.isNativePlatform()) {
+    let Capacitor: any;
+    try {
+      Capacitor = (await import('@capacitor/core')).Capacitor;
+    } catch (e) {}
+
+    if (Capacitor && Capacitor.isNativePlatform()) {
       try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt') {
           permStatus = await PushNotifications.requestPermissions();
@@ -469,9 +436,12 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const handleTestPush = async () => {
     setIsTestingPush(true);
     try {
-        let result;
+        let Capacitor: any;
+        try {
+          Capacitor = (await import('@capacitor/core')).Capacitor;
+        } catch (e) {}
         
-        if (Capacitor.isNativePlatform()) {
+        if (Capacitor && Capacitor.isNativePlatform()) {
             // On native platforms, we don't use Service Workers for push
             // The server will use the stored fcm_token from staff_profiles
             result = await sendTestPushAction();
@@ -1089,7 +1059,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border shadow-sm">
                       <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Platform</p>
-                      <p className="text-sm font-bold">{Capacitor.isNativePlatform() ? 'Android APK (Native)' : 'Web Browser (PWA)'}</p>
+                      <p className="text-sm font-bold">Web Browser (PWA)</p>
                   </div>
                   <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border shadow-sm">
                       <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">FCM Status</p>
@@ -1102,16 +1072,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                   </div>
               </div>
 
-              {Capacitor.isNativePlatform() && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full text-[10px] font-black uppercase tracking-widest h-10 rounded-xl"
-                    onClick={subscribeToPush}
-                  >
-                    {lang === 'kk' ? 'Токенді қайта тіркеу (Refresh)' : 'Перерегистрировать токен'}
-                  </Button>
-              )}
+              {/* Native Push Debug Options removed to avoid sync Capacitor call */}
           </div>
         </section>
 

@@ -1,19 +1,22 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
 import { createClient } from '@/lib/supabase/client';
 import { playImmediateBeep, resumeAudioContext } from '@/lib/sound-utils';
 import { toast } from 'sonner';
 
 export function NativePushHandler() {
   useEffect(() => {
-    const isNative = Capacitor.isNativePlatform();
-    if (!isNative) return;
-
     const registerNativePush = async () => {
       try {
+        let Capacitor: any;
+        try {
+          Capacitor = (await import('@capacitor/core')).Capacitor;
+        } catch (e) {}
+
+        if (!Capacitor || !Capacitor.isNativePlatform()) return;
+
+        const { PushNotifications } = await import('@capacitor/push-notifications');
         console.log('[Native Push] Checking permissions...');
         let permStatus = await PushNotifications.checkPermissions();
 
@@ -27,7 +30,7 @@ export function NativePushHandler() {
         }
 
         // --- ANDROID CHANNEL CREATION ---
-        if (Capacitor.getPlatform() === 'android') {
+        if (Capacitor && Capacitor.getPlatform() === 'android') {
           await PushNotifications.createChannel({
             id: 'fcm_default_channel',
             name: 'Orders',

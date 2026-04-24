@@ -46,8 +46,6 @@ export const viewport: Viewport = {
   themeColor: '#ffffff',
 }
 
-import { InstallPrompt } from '@/components/pwa/install-prompt'
-import { PushPrompt } from '@/components/pwa/push-prompt'
 import { CartBar } from '@/components/restaurant/cart-bar'
 
 export default function RootLayout({
@@ -68,8 +66,6 @@ export default function RootLayout({
             <I18nProvider>
               <AppProvider>
                 {children}
-                <InstallPrompt />
-                <PushPrompt />
                 <CartBar />
                 <BottomNav />
                 <OrderStatusListener />
