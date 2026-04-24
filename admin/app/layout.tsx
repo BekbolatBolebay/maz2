@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AppProvider } from '@/lib/app-context'
 import { Toaster } from 'sonner'
-import { SWRegistration } from '@/components/pwa/sw-registration'
 import { NativePushHandler } from '@/components/native-push-handler'
 import './globals.css'
 
@@ -64,10 +63,22 @@ export default function RootLayout({
       <body className={`${inter.className} font-sans antialiased bg-background text-foreground`}>
         <AppProvider>
           {children}
-          <SWRegistration />
           <NativePushHandler />
           <Toaster position="top-center" />
         </AppProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                  }
+                });
+              }
+            `,
+          }}
+        />
         <Analytics />
       </body>
     </html>
