@@ -191,9 +191,10 @@ export function MenuItemCard({
       </motion.div>
 
       {/* ── Modal (bottom sheet) ── */}
-      <AnimatePresence>
-        {open && mounted && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-end justify-center">
+      {mounted && createPortal(
+        <AnimatePresence>
+          {open && (
+            <div className="fixed inset-0 z-[100] flex items-end justify-center">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -310,10 +311,11 @@ export function MenuItemCard({
                 </div>
               </div>
             </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+          </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* ── Mismatch Dialog ── */}
       {mismatchOpen && mounted && createPortal(
