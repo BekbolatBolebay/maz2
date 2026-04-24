@@ -1066,9 +1066,9 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                       <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">FCM Status</p>
                       <p className={cn(
                           "text-sm font-bold",
-                          profile?.fcm_token ? "text-green-600" : "text-red-500"
+                          userProfile?.fcm_token ? "text-green-600" : "text-red-500"
                       )}>
-                          {profile?.fcm_token ? 'Registered ✅' : 'Not Found ❌'}
+                          {userProfile?.fcm_token ? 'Registered ✅' : 'Not Found ❌'}
                       </p>
                   </div>
               </div>
