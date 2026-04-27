@@ -197,6 +197,8 @@ export function MenuItemCard({
               unoptimized
             />
           ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                <ChefHat className="w-8 h-8 text-muted-foreground/20" />
             </div>
           )}
           {/* Happy Hour Badge */}

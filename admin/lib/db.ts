@@ -241,6 +241,19 @@ export type Promotion = {
   updated_at: string
 }
 
+export type GiftCertificate = {
+    id: string
+    code: string
+    cafe_id: string | null
+    initial_amount: number
+    current_balance: number
+    status: 'active' | 'fully_used' | 'expired'
+    buyer_id: string | null
+    expiry_date: string | null
+    created_at: string
+    updated_at: string
+}
+
 export type Banner = {
   id: string
   cafe_id: string
@@ -522,6 +535,20 @@ export async function getBanners(): Promise<Banner[]> {
     .order('sort_order')
   return data || []
 }
+
+export const getCertificates = cache(async () => {
+    const restaurantId = await getCurrentRestaurantId()
+    if (!restaurantId) return []
+
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('gift_certificates')
+        .select('*')
+        .or(`cafe_id.eq.${restaurantId},cafe_id.is.null`)
+        .order('created_at', { ascending: false })
+
+    return (data || []) as GiftCertificate[]
+})
 
 export async function getReviews(): Promise<Review[]> {
   const restaurantId = await getCurrentRestaurantId()

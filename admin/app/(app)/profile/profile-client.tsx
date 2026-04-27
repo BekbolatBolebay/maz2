@@ -962,8 +962,6 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
           </div>
         </section>
 
-        </section>
-
         {/* Loyalty Program */}
         <section className="space-y-4">
           <h3 className="text-lg font-medium">{lang === 'kk' ? 'Бонустық жүйе' : 'Бонусная система'}</h3>

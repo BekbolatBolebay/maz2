@@ -6,16 +6,18 @@ import Link from 'next/link'
 import { useApp } from '@/lib/app-context'
 import { t } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
-import type { Promotion, Banner } from '@/lib/db'
+import type { Promotion, Banner, GiftCertificate } from '@/lib/db'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { Gift } from 'lucide-react'
 
 interface Props {
     initialPromoCodes: Promotion[]
     initialBanners: Banner[]
+    initialCertificates: GiftCertificate[]
 }
 
-type Tab = 'promo' | 'banners'
+type Tab = 'promo' | 'banners' | 'certificates'
 type EditingPromo = Partial<Promotion> & { isNew?: boolean; temp_discount_type?: 'percent' | 'fixed'; temp_discount_value?: number }
 type EditingBanner = Partial<Banner> & { isNew?: boolean }
 
@@ -39,11 +41,12 @@ const EMPTY_BANNER: EditingBanner = {
     isNew: true,
 }
 
-export default function MarketingClient({ initialPromoCodes, initialBanners }: Props) {
+export default function MarketingClient({ initialPromoCodes, initialBanners, initialCertificates }: Props) {
     const { lang } = useApp()
     const [activeTab, setActiveTab] = useState<Tab>('promo')
     const [promoCodes, setPromoCodes] = useState<Promotion[]>(initialPromoCodes)
     const [banners, setBanners] = useState<Banner[]>(initialBanners)
+    const [certificates, setCertificates] = useState<GiftCertificate[]>(initialCertificates)
     const [editingPromo, setEditingPromo] = useState<EditingPromo | null>(null)
     const [editingBanner, setEditingBanner] = useState<EditingBanner | null>(null)
 
@@ -154,6 +157,15 @@ export default function MarketingClient({ initialPromoCodes, initialBanners }: P
                         )}
                     >
                         {t(lang, 'banners')}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('certificates')}
+                        className={cn(
+                            'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all',
+                            activeTab === 'certificates' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                        )}
+                    >
+                        {lang === 'kk' ? 'Сертификаттар' : 'Сертификаты'}
                     </button>
                 </div>
             </div>
@@ -379,6 +391,53 @@ export default function MarketingClient({ initialPromoCodes, initialBanners }: P
                             <Check className="w-4 h-4" /> {t(lang, 'save')}
                         </button>
                     </div>
+                </div>
+            )}
+
+            {activeTab === 'certificates' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {certificates.length === 0 ? (
+                        <div className="md:col-span-2 text-center py-12 bg-muted/20 rounded-3xl border-2 border-dashed border-muted">
+                            <Gift className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
+                            <p className="text-sm font-bold text-muted-foreground">
+                                {lang === 'kk' ? 'Сатылған сертификаттар жоқ' : 'Проданных сертификатов пока нет'}
+                            </p>
+                        </div>
+                    ) : (
+                        certificates.map((cert) => (
+                            <div key={cert.id} className="bg-card border-2 border-muted/50 rounded-3xl p-5 space-y-4 hover:border-primary/20 transition-all">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                                            <Gift className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black font-mono">{cert.code}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                {new Date(cert.created_at).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className={cn(
+                                        "px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider",
+                                        cert.status === 'active' ? "bg-green-100 text-green-700" : (cert.status === 'fully_used' ? "bg-muted text-muted-foreground" : "bg-red-100 text-red-700")
+                                    )}>
+                                        {cert.status === 'active' ? (lang === 'kk' ? 'Белсенді' : 'Активен') : (cert.status === 'fully_used' ? (lang === 'kk' ? 'Қолданылды' : 'Использован') : (lang === 'kk' ? 'Мерзімі бітті' : 'Истек'))}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-muted/50">
+                                    <div>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'kk' ? 'Сомма' : 'Сумма'}</p>
+                                        <p className="text-lg font-black text-primary">{Number(cert.initial_amount).toLocaleString()} ₸</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{lang === 'kk' ? 'Қалдық' : 'Остаток'}</p>
+                                        <p className="text-lg font-black">{Number(cert.current_balance).toLocaleString()} ₸</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
         </div>
