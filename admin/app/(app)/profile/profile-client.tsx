@@ -101,6 +101,9 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const [freedomTestMode, setFreedomTestMode] = useState(settings?.freedom_test_mode ?? false)
   const [cashbackPercentage, setCashbackPercentage] = useState<string | number>(settings?.cashback_percentage || 5)
   
+  const [telegramBotToken, setTelegramBotToken] = useState(settings?.telegram_bot_token || '')
+  const [telegramChatId, setTelegramChatId] = useState(settings?.telegram_chat_id || '')
+  
   // Happy Hour settings
   const [happyHourStart, setHappyHourStart] = useState(settings?.happy_hour_start || '')
   const [happyHourEnd, setHappyHourEnd] = useState(settings?.happy_hour_end || '')
@@ -118,6 +121,8 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       setAcceptFreedom(settings.accept_freedom ?? false);
       setAcceptKaspi(settings.accept_kaspi ?? true);
       setCashbackPercentage(settings.cashback_percentage || 5);
+      setTelegramBotToken(settings.telegram_bot_token || '');
+      setTelegramChatId(settings.telegram_chat_id || '');
       setHappyHourStart(settings.happy_hour_start || '');
       setHappyHourEnd(settings.happy_hour_end || '');
       setHappyHourDiscount(settings.happy_hour_discount_percent || 0);
@@ -173,6 +178,8 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       setImageUrl(settings.image_url || '')
       setBannerUrl(settings.banner_url || '')
       setCashbackPercentage(settings.cashback_percentage || 5)
+      setTelegramBotToken(settings.telegram_bot_token || '')
+      setTelegramChatId(settings.telegram_chat_id || '')
       setHappyHourStart(settings.happy_hour_start || '')
       setHappyHourEnd(settings.happy_hour_end || '')
       setHappyHourDiscount(settings.happy_hour_discount_percent || 0)
@@ -303,6 +310,8 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
         freedom_receipt_secret_key: freedomReceiptSecretKey,
         freedom_test_mode: freedomTestMode,
         kaspi_link: kaspiLink,
+        telegram_bot_token: telegramBotToken,
+        telegram_chat_id: telegramChatId,
         cashback_percentage: Number(cashbackPercentage) || 0,
         happy_hour_start: happyHourStart || null,
         happy_hour_end: happyHourEnd || null,
@@ -989,6 +998,42 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
           </div>
         </section>
         
+        {/* Telegram Notifications */}
+        <section className="space-y-4">
+          <h3 className="text-lg font-medium">{t(lang, 'telegramNotifications')}</h3>
+          <div className="grid gap-6 p-6 rounded-lg border bg-card">
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  {t(lang, 'telegramBotToken')}
+                </label>
+                <input 
+                  value={telegramBotToken}
+                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="8787137858:AAGOad9s8..."
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">
+                  {t(lang, 'telegramChatId')}
+                </label>
+                <input 
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="5328427875"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                {lang === 'kk' 
+                  ? 'Токенді алу үшін @BotFather-ға, ал чат ID-ді алу үшін @userinfobot-қа жазыңыз.' 
+                  : 'Для получения токена напишите @BotFather, а для ID чата — @userinfobot.'}
+              </p>
+            </div>
+          </div>
+        </section>
+        
         {/* Happy Hours Section */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
@@ -1084,6 +1129,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
                </div>
             </CardContent>
           </Card>
+        </section>
 
         {/* App Settings */}
         <section className="space-y-4">

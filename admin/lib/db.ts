@@ -144,7 +144,7 @@ export type Order = {
   customer_phone: string
   customer_avatar: string
   type: 'delivery' | 'pickup'
-  status: 'pending' | 'awaiting_payment' | 'accepted' | 'preparing' | 'ready' | 'on_the_way' | 'completed' | 'cancelled' | 'new' | 'delivered'
+  status: 'pending' | 'awaiting_payment' | 'accepted' | 'preparing' | 'ready' | 'on_the_way' | 'completed' | 'cancelled' | 'new' | 'delivered' | 'pending_payment'
   total_amount: number
   items_count: number
   delivery_fee: number
@@ -247,7 +247,7 @@ export type GiftCertificate = {
     cafe_id: string | null
     initial_amount: number
     current_balance: number
-    status: 'active' | 'fully_used' | 'expired'
+    status: 'active' | 'fully_used' | 'expired' | 'pending_payment'
     buyer_id: string | null
     expiry_date: string | null
     created_at: string

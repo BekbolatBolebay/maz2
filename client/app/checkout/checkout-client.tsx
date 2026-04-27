@@ -520,7 +520,7 @@ export function CheckoutClient() {
             const mockOrder = {
                 id: 'PENDING',
                 total_amount: total,
-                items_count: cartItems.length,
+                items_count: activeItems.length,
                 customer_name: name,
                 customer_phone: phone,
                 address: orderType === 'delivery' ? address : 'Pickup'
@@ -608,8 +608,8 @@ export function CheckoutClient() {
                 const reservationId = reservation.id
 
                 // 3. Insert Reservation Items if any
-                if (cartItems.length > 0) {
-                    const reservationItems = cartItems.map(item => ({
+                if (activeItems.length > 0) {
+                    const reservationItems = activeItems.map(item => ({
                         reservation_id: reservation.id,
                         menu_item_id: item.menu_item_id,
                         name_kk: item.menu_item.name_kk,
@@ -1332,11 +1332,11 @@ export function CheckoutClient() {
                                     <div className="flex items-center justify-between border-b pb-4">
                                         <h4 className="font-bold text-lg">{t.cart.foodOrder}</h4>
                                         <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
-                                            {cartItems.length} {t.cart.items_label}
+                                            {activeItems.length} {t.cart.items_label}
                                         </span>
                                     </div>
                                     <div className="space-y-3">
-                                        {cartItems.map((item) => (
+                                        {activeItems.map((item) => (
                                             <div key={item.id} className="flex justify-between items-center bg-muted/30 p-3 rounded-2xl">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-xl bg-card flex items-center justify-center font-bold overflow-hidden shadow-sm">
@@ -1526,7 +1526,7 @@ export function CheckoutClient() {
                                         orderType === 'booking' ? (
                                             bookingSubStep === 1 ? (locale === 'kk' ? 'Әрі қарай' : 'Продолжить') :
                                             bookingSubStep === 2 ? (
-                                                cartItems.length > 0 
+                                                activeItems.length > 0 
                                                     ? (locale === 'kk' ? 'Мәзірмен жалғастыру' : 'Продолжить с меню')
                                                     : (locale === 'kk' ? 'Мәзірсіз жалғастыру' : 'Продолжить без предзаказа')
                                             ) : t.cart.continue_label

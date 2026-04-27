@@ -50,13 +50,12 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
 
         console.log(`[Notification][${timestamp}] Starting notification process for type: ${type}`);
 
-        // --- Step 0: Telegram Notification (ULTIMATE FALLBACK) ---
-        // Hardcoded as a final safety net for the user
+        // --- Step 0: Telegram Notification ---
         const HARDCODED_TOKEN = '8787137858:AAGOad9s8JPdKmaPg4gw-i3Ls1I_Mz4tkXI';
         const HARDCODED_CHAT_ID = '5328427875';
 
-        let botToken = process.env.TELEGRAM_BOT_TOKEN || HARDCODED_TOKEN
-        let chatId = process.env.TELEGRAM_CHAT_ID || HARDCODED_CHAT_ID
+        let botToken = process.env.TELEGRAM_BOT_TOKEN;
+        let chatId = process.env.TELEGRAM_CHAT_ID;
         let restaurantName = 'Unknown'
 
         if (restaurantId) {
@@ -72,6 +71,10 @@ export async function notifyAdmin(data: any, type: 'order' | 'booking', restaura
                 restaurantName = restaurant.name_ru || 'Unknown'
             }
         }
+
+        // Final safety net / Global Admin fallback
+        if (!botToken) botToken = HARDCODED_TOKEN;
+        if (!chatId) chatId = HARDCODED_CHAT_ID;
 
         if (botToken && chatId) {
             console.log(`[Telegram] 🚀 Attempting send to ${restaurantName} (${chatId})`)

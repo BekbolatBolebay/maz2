@@ -159,8 +159,8 @@ export async function sendPushNotification(user: { fcm_token?: string; push_subs
 /**
  * Sends a Telegram notification.
  */
-export async function sendTelegramNotification(payload: { text: string, chat_id?: string }) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+export async function sendTelegramNotification(payload: { text: string, chat_id?: string, bot_token?: string }) {
+  const token = payload.bot_token || process.env.TELEGRAM_BOT_TOKEN;
   const chatId = payload.chat_id || process.env.TELEGRAM_CHAT_ID;
 
   if (!token || !chatId) {
@@ -240,10 +240,11 @@ export async function notifyAdminAllChannels(data: any, restaurant: any, type: '
       `👥 Қонақтар: ${data.guests_count}\n\n` +
       `<a href="${adminUrl}?tab=reservations">👉 Панельге өту</a>`;
   
-  // Use restaurant-specific Chat ID if available, otherwise global fallback
+  // Use restaurant-specific Bot Token and Chat ID if available, otherwise global fallback
   await sendTelegramNotification({ 
       text: telegramText, 
-      chat_id: restaurant.telegram_chat_id 
+      chat_id: restaurant.telegram_chat_id,
+      bot_token: restaurant.telegram_bot_token
   });
 
   // 3. Push Notifications (for staff in staff_profiles)

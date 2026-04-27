@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
         // 1. Get restaurant credentials to validate signature
         // We first check if it's an order, then if it's a reservation
-        let targetTable: 'orders' | 'reservations' = 'orders'
+        let targetTable: 'orders' | 'reservations' | 'gift_certificates' = 'orders'
         let entity: any = null
 
         const { data: order, error: orderError } = await supabase
@@ -43,6 +43,17 @@ export async function POST(req: Request) {
             if (res && !resError) {
                 entity = res
                 targetTable = 'reservations'
+            } else {
+                const { data: cert, error: certError } = await supabase
+                    .from('gift_certificates')
+                    .select('*, restaurants:cafe_id(*)')
+                    .eq('id', orderId)
+                    .single()
+
+                if (cert && !certError) {
+                    entity = cert
+                    targetTable = 'gift_certificates'
+                }
             }
         }
 
@@ -52,9 +63,9 @@ export async function POST(req: Request) {
         }
 
         // 1b. Fetch Secure Merchant Config from VPS
-        const vpsConfig = await getMerchantConfig(entity.restaurants.id);
+        const vpsConfig = entity.restaurants ? await getMerchantConfig(entity.restaurants.id) : null;
 
-        const secretKey = vpsConfig?.freedom_payment_secret_key || entity.restaurants.freedom_payment_secret_key || entity.restaurants.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
+        const secretKey = vpsConfig?.freedom_payment_secret_key || entity.restaurants?.freedom_payment_secret_key || entity.restaurants?.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY
         if (!secretKey) {
             console.error('Payment Webhook - Merchant secret not found for entity:', orderId)
             return NextResponse.json({ error: 'Merchant secret not found' }, { status: 500 })
@@ -90,9 +101,22 @@ export async function POST(req: Request) {
 
         if (isPaid) {
             if (targetTable === 'orders') {
-                updates.status = 'preparing'
-            } else {
+                if (entity.type === 'certificate') {
+                    updates.status = 'completed'
+                    // Activate the associated certificate
+                    if (entity.order_number) {
+                        await supabase
+                            .from('gift_certificates')
+                            .update({ status: 'active', payment_status: 'paid' })
+                            .eq('code', entity.order_number)
+                    }
+                } else {
+                    updates.status = 'preparing'
+                }
+            } else if (targetTable === 'reservations') {
                 updates.status = 'confirmed'
+            } else if (targetTable === 'gift_certificates') {
+                updates.status = 'active'
             }
         }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { savePII, updateRestaurantStatus } from '@/lib/vps'
+import { updateRestaurantStatus } from '@/lib/vps'
 
 export async function POST(request: Request) {
     const headers = { 'X-API-Version': '1.0.1-REINFORCED' };
@@ -48,28 +48,11 @@ export async function POST(request: Request) {
             await supabaseAdmin.auth.admin.deleteUser(userId);
         };
 
-        console.log('[RegisterAPI] 2. Saving PII to VPS for UserId:', userId);
-        let vpsProfileId;
-        try {
-            vpsProfileId = await savePII('profiles', {
-                full_name: cafeName,
-                phone: whatsapp,
-                email: email,
-                supabase_id: userId
-            });
-        } catch (vpsError: any) {
-            console.error('Registration Error (VPS savePII):', vpsError.message || vpsError);
-            await rollbackUser();
-            return NextResponse.json({ 
-                error: 'VPS Error: Could not save profile information. ' + (vpsError.message || '')
-            }, { status: 500 });
-        }
-
         console.log('[RegisterAPI] 3. Creating Staff Profile in Supabase');
         const { error: profileError } = await supabaseAdmin.from('staff_profiles').insert({
             id: userId,
             email: email,
-            full_name: vpsProfileId, // Store VPS ID instead of real name
+            full_name: cafeName, // Store real name instead of VPS ID
             role: 'admin'
         })
 

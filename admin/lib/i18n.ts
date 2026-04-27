@@ -223,6 +223,9 @@ export const translations = {
     installApp: 'Орнату',
     downloadApp: 'Қолданбаны жүктеу',
     installAppDesc: 'Тапсырыстарды жылдам басқару және хабарламаларды нақты уақытта алу үшін Məzir Admin мобильді қосымшасын орнатыңыз.',
+    telegramNotifications: 'Telegram хабарламалары',
+    telegramBotToken: 'Telegram бот токені',
+    telegramChatId: 'Telegram чат ID',
   },
 
   ru: {
@@ -447,6 +450,9 @@ export const translations = {
     installApp: 'Установить',
     downloadApp: 'Скачать приложение',
     installAppDesc: 'Установите мобильное приложение Məzir Admin для быстрого управления заказами и получения уведомлений в реальном времени.',
+    telegramNotifications: 'Telegram уведомления',
+    telegramBotToken: 'Токен Telegram бота',
+    telegramChatId: 'ID чата Telegram',
   },
 
 }

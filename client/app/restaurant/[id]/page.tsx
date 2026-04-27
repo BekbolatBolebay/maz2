@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import Image from 'next/image'
-import { ArrowLeft, Heart, Star, Clock, MapPin, Phone, Image as ImageIcon, CalendarCheck } from 'lucide-react'
+import { ArrowLeft, Heart, Star, Clock, MapPin, Phone, Image as ImageIcon, CalendarCheck, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
@@ -239,8 +239,7 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
             ))}
           </Tabs>
         </div>
-      </main>
-
-    </div>
+      </div>
+    </Suspense>
   )
 }

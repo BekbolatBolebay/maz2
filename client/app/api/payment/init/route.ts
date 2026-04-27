@@ -6,9 +6,9 @@ import { getMerchantConfig } from '@/lib/vps'
 
 export async function POST(req: Request) {
     try {
-        const { orderId, reservationId, amount, description, customerEmail, customerPhone } = await req.json()
+        const { orderId, reservationId, certificateId, amount, description, customerEmail, customerPhone } = await req.json()
 
-        if ((!orderId && !reservationId) || !amount) {
+        if ((!orderId && !reservationId && !certificateId) || !amount) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
         }
 
@@ -22,9 +22,10 @@ export async function POST(req: Request) {
         let restaurant: any = null
         let record: any = null
         const isReservation = !!reservationId
-        let finalId = orderId || reservationId
+        const isCertificate = !!certificateId
+        let finalId = orderId || reservationId || certificateId
 
-        // 1. Get order/reservation and restaurant details
+        // 1. Get order/reservation/certificate and restaurant details
         if (orderId) {
             const { data: order, error: orderError } = await supabase
                 .from('orders')
@@ -53,14 +54,30 @@ export async function POST(req: Request) {
             record = res
             restaurant = res.restaurants
             restaurant.items = res.reservation_items
+        } else if (certificateId) {
+            const { data: cert, error: certError } = await supabase
+                .from('gift_certificates')
+                .select('*, restaurants:cafe_id(*)')
+                .eq('id', certificateId)
+                .single()
+
+            if (certError) {
+                console.error('Payment Init - Certificate Query Error:', certError)
+                return NextResponse.json({ error: 'Certificate not found', certificateId }, { status: 404 })
+            }
+            record = cert
+            restaurant = cert.restaurants
+            // Certificates don't have items for receipt, but we can pass the certificate itself
+            restaurant.items = [{ name: 'Подарочный сертификат', quantity: 1, price: cert.initial_amount }]
         }
 
-        if (!restaurant) {
+        if (!restaurant && !isCertificate) {
             return NextResponse.json({ error: 'Restaurant details not found' }, { status: 500 })
         }
 
         // 1b. Fetch Secure Merchant Config from VPS
-        const vpsConfig = await getMerchantConfig(restaurant.id);
+        // If it's a global certificate (no cafe_id), we might need global credentials
+        const vpsConfig = restaurant ? await getMerchantConfig(restaurant.id) : null;
         
         const merchantId = vpsConfig?.freedom_merchant_id || restaurant.freedom_merchant_id || process.env.FREEDOM_MERCHANT_ID || process.env.NEXT_PUBLIC_FREEDOM_MERCHANT_ID;
         const secretKey = vpsConfig?.freedom_payment_secret_key || restaurant.freedom_payment_secret_key || restaurant.freedom_secret_key || process.env.FREEDOM_PAYMENT_SECRET_KEY || process.env.FREEDOM_SECRET_KEY;
@@ -108,8 +125,8 @@ export async function POST(req: Request) {
             pg_testing_mode: isTestMode ? 1 : 0, 
             // Webhook and redirect URLs
             pg_result_url: `${appUrl}/api/payment/webhook`,
-            pg_success_url: `${appUrl}/${isReservation ? 'reservations' : 'orders'}/${finalId}?status=success`,
-            pg_failure_url: `${appUrl}/${isReservation ? 'reservations' : 'orders'}/${finalId}?status=failure`,
+            pg_success_url: `${appUrl}/${isReservation ? 'reservations' : (isCertificate ? 'certificates' : 'orders')}/${isCertificate ? '' : finalId}${isCertificate ? `?id=${finalId}&status=success` : '?status=success'}`,
+            pg_failure_url: `${appUrl}/${isReservation ? 'reservations' : (isCertificate ? 'certificates' : 'orders')}/${isCertificate ? '' : finalId}${isCertificate ? `?id=${finalId}&status=failure` : '?status=failure'}`,
         }
 
         // Add Fiscalization Data if items and receipt key are available
@@ -190,6 +207,11 @@ export async function POST(req: Request) {
                     .from('reservations')
                     .update({ payment_url: redirectUrl })
                     .eq('id', reservationId)
+            } else if (certificateId) {
+                await supabase
+                    .from('gift_certificates')
+                    .update({ payment_url: redirectUrl })
+                    .eq('id', certificateId)
             }
 
             return NextResponse.json({ redirectUrl })

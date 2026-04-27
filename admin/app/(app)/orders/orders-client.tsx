@@ -12,7 +12,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
-import { notifyCustomerAction } from '@/lib/actions'
+import { notifyCustomerAction, activateCertificateAction } from '@/lib/actions'
 import { getStatusNotificationDraft, getReservationNotificationDraft } from '@/lib/notification-utils'
 import { playImmediateBeep, resumeAudioContext } from '@/lib/sound-utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -42,6 +42,7 @@ const statusColors: Record<string, string> = {
 const typeColors: Record<string, string> = {
   delivery: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
   pickup: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+  certificate: 'bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800',
 }
 
 const nextStatus: Record<string, string> = {
@@ -56,7 +57,7 @@ const nextStatus: Record<string, string> = {
 }
 
 const RESERVATION_STATUS_TABS = ['all', 'pending', 'awaiting_payment', 'confirmed', 'cancelled', 'completed'] as const
-const MAIN_TABS = ['orders', 'reservations'] as const
+const MAIN_TABS = ['orders', 'reservations', 'certificates'] as const
 
 const resStatusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -99,6 +100,7 @@ function getStatusLabel(status: string, lang: 'kk' | 'ru'): string {
     on_the_way: lang === 'kk' ? 'Тапсырыс жолда' : 'В пути',
     completed: lang === 'kk' ? 'Аяқталды' : 'Завершен',
     cancelled: lang === 'kk' ? 'Бас тартылды' : 'Отменен',
+    pending_payment: lang === 'kk' ? 'Төлем күтілуде' : 'Ожидает оплаты',
   }
   return t(lang, keys[status] as any)
 }
@@ -524,17 +526,27 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
   const tabCounts: Record<string, number> = {}
   STATUS_TABS.forEach((s) => {
     const visibleItems = items.filter(o => {
+      // Filter by main tab type first
+      if (activeMainTab === 'orders' && o.type === 'certificate') return false
+      if (activeMainTab === 'certificates' && o.type !== 'certificate') return false
+      
       // Hide unpaid Freedom Pay orders ONLY from the 'new' tab to prevent clutter, but show them everywhere else
       if (s === 'new' && o.payment_method === 'freedom' && o.payment_status !== 'paid' && o.status !== 'cancelled') {
         return false
       }
       return true
     })
-    tabCounts[s] = s === 'all' ? items.length : items.filter((o) => o.status === s).length
+    tabCounts[s] = s === 'all' ? visibleItems.length : visibleItems.filter((o) => o.status === s).length
   })
 
-  // Filter items based on active tab
-  const filtered = (activeTab === 'all' ? items : items.filter((o) => o.status === activeTab)).filter(o => {
+  // Filter items based on active tab AND main tab (type)
+  const filteredByMainTab = items.filter(o => {
+    if (activeMainTab === 'orders') return o.type !== 'certificate'
+    if (activeMainTab === 'certificates') return o.type === 'certificate'
+    return true
+  })
+
+  const filtered = (activeTab === 'all' ? filteredByMainTab : filteredByMainTab.filter((o) => o.status === activeTab)).filter(o => {
     // For 'new' tab, hide unpaid freedom orders
     if (activeTab === 'new' && o.payment_method === 'freedom' && o.payment_status !== 'paid' && o.status !== 'cancelled') {
       return false
@@ -869,12 +881,28 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                             : 'border-transparent text-muted-foreground'
                     )}
                 >
-                    {tab === 'orders' ? (lang === 'kk' ? 'Тапсырыстар' : 'Заказы') : (lang === 'kk' ? 'Брондаулар' : 'Бронирования')}
+                    {tab === 'orders' 
+                        ? (lang === 'kk' ? 'Тапсырыстар' : 'Заказы') 
+                        : tab === 'reservations'
+                            ? (lang === 'kk' ? 'Брондаулар' : 'Бронирования')
+                            : (lang === 'kk' ? 'Сертификаттар' : 'Сертификаты')}
+                    
+                    {(() => {
+                        let count = 0;
+                        if (tab === 'orders') count = items.filter(i => i.type !== 'certificate' && i.status === 'new').length;
+                        if (tab === 'reservations') count = reservations.filter(r => r.status === 'pending').length;
+                        if (tab === 'certificates') count = items.filter(i => i.type === 'certificate' && i.status === 'new').length;
+                        
+                        if (count > 0) {
+                            return <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{count}</span>
+                        }
+                        return null;
+                    })()}
                 </button>
             ))}
         </div>
 
-        {activeMainTab === 'orders' ? (
+        {activeMainTab === 'orders' || activeMainTab === 'certificates' ? (
             <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
             {STATUS_TABS.map((s) => (
                 <button
@@ -947,7 +975,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                     <p className="text-[10px] font-black tracking-widest text-muted-foreground/60 uppercase">
                       #{item.activity_type === 'delivery' ? (lang === 'kk' ? 'Жеткізу' : 'Доставка') : (lang === 'kk' ? 'Өзі алып кету' : 'Самовывоз')}
                     </p>
-                    <h3 className="text-lg font-black tracking-tight">#{item.order_num}</h3>
+                    <h3 className="text-lg font-black tracking-tight">#{item.type === 'certificate' ? (item.certificate_code || item.order_num) : item.order_num}</h3>
                   </div>
                   <button
                     onClick={() => setSelected(item)}
@@ -977,8 +1005,20 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                    )}>
                       <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                       {getStatusLabel(item.status, lang)}
-                   </div>
-                </div>
+                    </div>
+
+                    {/* Payment Status Badge */}
+                    <div className={cn(
+                      "inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest shadow-sm ml-2",
+                      item.payment_status === 'paid' 
+                         ? "bg-green-50 text-green-700 border-green-200" 
+                         : "bg-amber-50 text-amber-700 border-amber-200"
+                    )}>
+                       {item.payment_status === 'paid' 
+                         ? (lang === 'kk' ? 'Төленді' : 'Оплачено') 
+                         : (lang === 'kk' ? 'Төленбеді' : 'Не оплачено')}
+                    </div>
+                 </div>
 
                 {/* Items Container */}
                 <div className="bg-secondary/40 rounded-[2rem] p-5 mb-6 border border-secondary">
@@ -1029,6 +1069,27 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                     >
                       <CreditCard className="w-4 h-4" />
                       {lang === 'kk' ? 'Сілтеме жіберу' : 'Отправить ссылку'}
+                    </button>
+                  )}
+
+                  {item.type === 'certificate' && (item.status === 'new' || item.status === 'awaiting_payment' || item.status === 'pending') && (
+                    <button
+                      onClick={async () => {
+                        setUpdating(item.id);
+                        const res = await activateCertificateAction(item.id);
+                        if (res.success) {
+                            toast.success(lang === 'kk' ? 'Сертификат белсендірілді және код жіберілді!' : 'Сертификат активирован и код отправлен!');
+                            setItems(prev => prev.map(o => o.id === item.id ? { ...o, status: 'completed', payment_status: 'paid' } : o));
+                        } else {
+                            toast.error(res.error || 'Ошибка');
+                        }
+                        setUpdating(null);
+                      }}
+                      disabled={updating === item.id}
+                      className="w-full bg-pink-600 text-white rounded-2xl py-4 text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mb-2"
+                    >
+                      {updating === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <PartyPopper className="w-4 h-4" />}
+                      {lang === 'kk' ? 'Белсендіру және Кодты жіберу' : 'Активировать и отправить код'}
                     </button>
                   )}
 

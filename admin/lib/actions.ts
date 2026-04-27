@@ -338,6 +338,72 @@ export async function notifyCustomerAction(userId: string, payload: { title: str
     return await notifyCustomer(userId, payload);
 }
 
+export async function activateCertificateAction(orderId: string) {
+    const supabase = await createClient();
+    
+    // 1. Fetch order details to get certificate code and email
+    const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('*, restaurants!cafe_id(*)')
+        .eq('id', orderId)
+        .single();
+    
+    if (orderError || !order) return { success: false, error: 'Order not found' };
+    
+    const requestId = order.certificate_code || order.order_number;
+    const email = order.notes; // We stored email in notes
+    const amount = order.total_amount;
+    const restaurantName = order.restaurants?.name_ru || 'Mazir App';
+
+    // 2. Generate Real Gift Code
+    const realCode = 'GIFT-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Math.random().toString(36).substring(2, 4).toUpperCase();
+
+    // 3. Activate Certificate with new code
+    const { error: certError } = await supabase
+        .from('gift_certificates')
+        .update({ 
+            status: 'active',
+            code: realCode 
+        })
+        .eq('code', requestId);
+    
+    if (certError) return { success: false, error: 'Failed to activate certificate' };
+
+    // 4. Update Order Status and store the real code
+    await supabase
+        .from('orders')
+        .update({ 
+            status: 'completed', 
+            payment_status: 'paid',
+            certificate_code: realCode // Store final code here
+        })
+        .eq('id', orderId);
+
+    // 5. Send Email
+    if (email && email.includes('@')) {
+        await sendEmail({
+            to: email,
+            subject: `Сіздің сыйлық сертификатыңыз - ${restaurantName}`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h1 style="color: #f97316;">Құттықтаймыз!</h1>
+                    <p>Сіздің <b>${restaurantName}</b> мейрамханасына арналған сыйлық сертификатыңыз белсендірілді.</p>
+                    <div style="background: #fdf2f8; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                        <span style="font-size: 12px; color: #666; text-transform: uppercase;">Сертификат коды:</span><br/>
+                        <b style="font-size: 24px; color: #be185d; letter-spacing: 2px;">${realCode}</b>
+                    </div>
+                    <p>Сертификат сомасы: <b>${amount} ₸</b></p>
+                    <p style="font-size: 14px; color: #666;">Бұл кодты тапсырыс берген кезде "Сертификат коды" бөліміне енгізіңіз немесе даяшыға көрсетіңіз.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;"/>
+                    <p style="font-size: 12px; color: #999;">Mazir App арқылы сатып алынды</p>
+                </div>
+            `
+        });
+    }
+
+    return { success: true };
+}
+
 export async function signOutAction() {
     const supabase = await createClient()
     const { error } = await supabase.auth.signOut()

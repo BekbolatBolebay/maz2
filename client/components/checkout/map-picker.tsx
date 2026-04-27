@@ -46,7 +46,7 @@ function ChangeView({ center }: { center: L.LatLngExpression }) {
 export function MapPicker({ open, onOpenChange, onSelect, initialCoords }: MapPickerProps) {
     const { t } = useI18n()
     const [position, setPosition] = useState<L.LatLng>(
-        new L.LatLng(initialCoords?.lat || 43.2389, initialCoords?.lng || 76.8897) // Default to Almaty
+        new L.LatLng(initialCoords?.lat || 44.8427, initialCoords?.lng || 65.5026) // Default to Kyzylorda
     )
     const [address, setAddress] = useState('')
     const [loading, setLoading] = useState(false)
