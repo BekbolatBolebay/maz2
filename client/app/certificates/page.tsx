@@ -68,19 +68,21 @@ export default function CertificatesPage() {
         let { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
-            try {
-                await supabase.auth.signInAnonymously()
-                user = (await supabase.auth.getUser()).data.user
-            } catch (err) {
-                console.error('[Certificates] Guest login failed:', err)
+            const { data, error: anonError } = await supabase.auth.signInAnonymously()
+            if (anonError) {
+                console.error('[Certificates] Anon sign-in error:', anonError)
+                toast.error(lang === 'kk' ? 'Жүйеге кіру мүмкін болмады' : 'Не удалось войти в систему')
+                setLoading(false)
+                return
             }
+            user = data.user
         }
 
         // Generate a temporary request ID (not the final code)
         const requestId = 'REQ-' + Math.random().toString(36).substring(2, 8).toUpperCase()
 
         // 1. Create Certificate (pending status — not yet paid)
-        const { data: cert, error: certError } = await supabase
+        const { error: certError } = await supabase
             .from('gift_certificates')
             .insert({
                 code: requestId,
@@ -91,11 +93,14 @@ export default function CertificatesPage() {
                 expiry_date: null,
                 status: 'pending_payment'
             })
-            .select()
-            .single()
 
         if (certError) {
-            console.error('[Certificates] Cert error:', certError)
+            console.error('[Certificates] Cert error details:', {
+                message: certError.message,
+                code: certError.code,
+                details: certError.details,
+                hint: certError.hint
+            })
             toast.error(lang === 'kk' ? `Қате: ${certError.message}` : `Ошибка: ${certError.message}`)
             setLoading(false)
             return
@@ -103,27 +108,32 @@ export default function CertificatesPage() {
 
         // 2. Create Order if restaurantId is available
         if (restaurantId && user?.id) {
-            const { data: order, error: orderError } = await supabase.from('orders').insert({
+            const { error: orderError } = await supabase.from('orders').insert({
                 user_id: user.id,
                 cafe_id: restaurantId,
-                status: 'new',
+                status: 'pending',
                 total_amount: finalAmount,
                 delivery_fee: 0,
                 delivery_address: `Сертификат: ${buyerName}`,
+                address: `Сертификат: ${buyerName}`,
                 customer_name: buyerName,
                 customer_phone: buyerPhone,
-                customer_avatar: '',
-                notes: buyerEmail, // Store email here
+                notes: buyerEmail,
                 payment_method: 'pending',
                 payment_status: 'pending',
                 phone: buyerPhone,
                 type: 'certificate',
                 items_count: 1,
                 certificate_code: requestId
-            }).select().single()
+            })
 
             if (orderError) {
-                console.error('[Certificates] Order error:', orderError)
+                console.error('[Certificates] Order error details:', {
+                    message: orderError.message,
+                    code: orderError.code,
+                    details: orderError.details,
+                    hint: orderError.hint
+                })
             }
         }
 
@@ -134,7 +144,7 @@ export default function CertificatesPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     data: {
-                        id: cert.id,
+                        id: requestId,
                         total_amount: finalAmount,
                         customer_name: buyerName,
                         customer_phone: buyerPhone,

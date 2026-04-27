@@ -536,7 +536,12 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
       }
       return true
     })
-    tabCounts[s] = s === 'all' ? visibleItems.length : visibleItems.filter((o) => o.status === s).length
+    tabCounts[s] = s === 'all' 
+      ? visibleItems.length 
+      : visibleItems.filter((o) => {
+          if (s === 'new' && o.type === 'certificate' && o.status === 'pending') return true
+          return o.status === s
+        }).length
   })
 
   // Filter items based on active tab AND main tab (type)
@@ -546,7 +551,10 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
     return true
   })
 
-  const filtered = (activeTab === 'all' ? filteredByMainTab : filteredByMainTab.filter((o) => o.status === activeTab)).filter(o => {
+  const filtered = (activeTab === 'all' ? filteredByMainTab : filteredByMainTab.filter((o) => {
+    if (activeTab === 'new' && o.type === 'certificate' && o.status === 'pending') return true
+    return o.status === activeTab
+  })).filter(o => {
     // For 'new' tab, hide unpaid freedom orders
     if (activeTab === 'new' && o.payment_method === 'freedom' && o.payment_status !== 'paid' && o.status !== 'cancelled') {
       return false
@@ -891,7 +899,7 @@ export default function OrdersClient({ initialOrders, initialReservations, resta
                         let count = 0;
                         if (tab === 'orders') count = items.filter(i => i.type !== 'certificate' && i.status === 'new').length;
                         if (tab === 'reservations') count = reservations.filter(r => r.status === 'pending').length;
-                        if (tab === 'certificates') count = items.filter(i => i.type === 'certificate' && i.status === 'new').length;
+                        if (tab === 'certificates') count = items.filter(i => i.type === 'certificate' && (i.status === 'new' || i.status === 'pending')).length;
                         
                         if (count > 0) {
                             return <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{count}</span>
