@@ -53,6 +53,9 @@ export function CheckoutClient() {
     const [workingHours, setWorkingHours] = useState<any[]>([])
     const [step, setStep] = useState<'auth' | 'form' | 'summary'>('auth')
     const [groupItems, setGroupItems] = useState<any[]>([])
+    const [certCode, setCertCode] = useState('')
+    const [certData, setCertData] = useState<any>(null)
+    const [isVerifyingCert, setIsVerifyingCert] = useState(false)
 
     // Redirect to form/summary if already logged in or after login
     useEffect(() => {
@@ -147,7 +150,9 @@ export function CheckoutClient() {
     const restaurantId = activeItems.length > 0 ? activeItems[0].cafe_id : searchParams.get('restaurant')
     const subtotal = activeItems.reduce((sum, item) => sum + item.menu_item.price * item.quantity, 0)
     const pointsToUse = usePoints ? Math.min(pointsAvailable, subtotal) : 0
-    const total = subtotal + calculatedFee - pointsToUse
+    
+    const certDiscount = certData ? Math.min(certData.current_balance, subtotal + calculatedFee - pointsToUse) : 0
+    const total = subtotal + calculatedFee - pointsToUse - certDiscount
 
     // Calculate delivery fee and booking fee
     useEffect(() => {
@@ -455,6 +460,29 @@ export function CheckoutClient() {
         window.scrollTo(0, 0)
     }
 
+    const verifyCertificate = async () => {
+        if (!certCode.trim()) return
+        setIsVerifyingCert(true)
+        const supabase = createClient()
+        const { data, error } = await supabase
+            .from('gift_certificates')
+            .select('*')
+            .eq('code', certCode.trim().toUpperCase())
+            .single()
+        
+        if (error || !data) {
+            toast.error(locale === 'kk' ? 'Сертификат табылмады' : 'Сертификат не найден')
+            setCertData(null)
+        } else if (data.status !== 'active' || data.current_balance <= 0) {
+            toast.error(locale === 'kk' ? 'Бұл сертификат жарамсыз' : 'Этот сертификат недействителен')
+            setCertData(null)
+        } else {
+            setCertData(data)
+            toast.success(locale === 'kk' ? 'Сертификат қабылданды!' : 'Сертификат принят!')
+        }
+        setIsVerifyingCert(false)
+    }
+
     const handleCheckout = async () => {
         setCheckoutLoading(true)
         const supabase = createClient()
@@ -655,7 +683,9 @@ export function CheckoutClient() {
                     type: orderType,
                     items_count: activeItems.length,
                     points_spent: pointsToUse,
-                    group_order_id: groupOrderId // Link to group order
+                    group_order_id: groupOrderId, // Link to group order
+                    certificate_code: certData?.code || null,
+                    certificate_amount_spent: certDiscount
                 })
                 .select()
                 .single()
@@ -714,6 +744,18 @@ export function CheckoutClient() {
                 if (isGroupMode) {
                     await supabase.from('group_orders').update({ status: 'completed' }).eq('id', groupOrderId)
                 }
+
+                // Deduct from certificate
+                if (certData) {
+                    await supabase
+                        .from('gift_certificates')
+                        .update({ 
+                            current_balance: certData.current_balance - certDiscount,
+                            status: (certData.current_balance - certDiscount) <= 0 ? 'fully_used' : 'active'
+                        })
+                        .eq('id', certData.id)
+                }
+
                 toast.success(t.cart.order_confirmed)
                 router.push(`/orders/${order.id}`)
             }
@@ -1101,6 +1143,51 @@ export function CheckoutClient() {
                                     </Card>
                                 </section>
 
+                                {/* Gift Certificate */}
+                                <section className="space-y-3">
+                                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">
+                                        {locale === 'kk' ? 'Сыйлық сертификаты' : 'Подарочный сертификат'}
+                                    </h3>
+                                    <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+                                        <CardContent className="p-4 space-y-3">
+                                            <div className="flex gap-2">
+                                                <Input 
+                                                    placeholder={locale === 'kk' ? 'Кодты енгізіңіз' : 'Введите код'}
+                                                    className="rounded-xl h-12 bg-muted/50 border-none px-4 font-mono uppercase"
+                                                    value={certCode}
+                                                    onChange={e => setCertCode(e.target.value)}
+                                                    disabled={!!certData}
+                                                />
+                                                {certData ? (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        className="h-12 rounded-xl text-destructive font-bold"
+                                                        onClick={() => { setCertData(null); setCertCode(''); }}
+                                                    >
+                                                        {locale === 'kk' ? 'Өшіру' : 'Удалить'}
+                                                    </Button>
+                                                ) : (
+                                                    <Button 
+                                                        className="h-12 rounded-xl font-bold px-6"
+                                                        onClick={verifyCertificate}
+                                                        disabled={isVerifyingCert || !certCode}
+                                                    >
+                                                        {isVerifyingCert ? <Loader2 className="w-4 h-4 animate-spin" /> : (locale === 'kk' ? 'Қолдану' : 'Применить')}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            {certData && (
+                                                <div className="flex items-center gap-2 px-1 text-green-600">
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    <span className="text-xs font-bold">
+                                                        {locale === 'kk' ? `Баланс: ${certData.current_balance}₸. Жеңілдік: ${certDiscount}₸` : `Баланс: ${certData.current_balance}₸. Скидка: ${certDiscount}₸`}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </section>
+
                                 {/* Payment Methods */}
                                 <section className="space-y-3">
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">{t.cart.payment_method}</h3>
@@ -1360,6 +1447,15 @@ export function CheckoutClient() {
                                                 {locale === 'kk' ? 'Бонустар' : 'Бонусы'}
                                             </span>
                                             <span className="font-bold">-{pointsToUse.toLocaleString()} ₸</span>
+                                        </div>
+                                    )}
+                                    {certDiscount > 0 && (
+                                        <div className="flex justify-between items-center text-sm text-green-600">
+                                            <span className="font-medium flex items-center gap-1">
+                                                <Gift className="w-3 h-3" />
+                                                {locale === 'kk' ? 'Сертификат' : 'Сертификат'}
+                                            </span>
+                                            <span className="font-bold">-{certDiscount.toLocaleString()} ₸</span>
                                         </div>
                                     )}
                                     <Separator className="bg-primary/10 my-1" />

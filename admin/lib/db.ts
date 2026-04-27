@@ -160,6 +160,8 @@ export type Order = {
   one_time_courier_phone?: string
   courier_tracking_token?: string
   group_order_id?: string
+  certificate_code?: string
+  certificate_amount_spent?: number
   phone: string | null
   latitude?: number
   longitude?: number

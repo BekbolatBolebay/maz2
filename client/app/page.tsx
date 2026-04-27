@@ -6,6 +6,7 @@ import { PromotionBanner } from '@/components/home/promotion-banner'
 import { CategoryGrid } from '@/components/home/category-grid'
 import { RestaurantSection } from '@/components/home/restaurant-section'
 import { FoodSection } from '@/components/home/food-section'
+import { GiftBanner } from '@/components/home/gift-banner'
 import { createClient } from '@/lib/supabase/server'
 import { getGlobalCategories } from '@/lib/supabase/categories'
 import { fetchRestaurantsWithRatings } from '@/lib/restaurant-utils-rating'
@@ -49,6 +50,8 @@ export default async function HomePage() {
           )}
 
           <CategoryGrid initialCategories={categories} />
+
+          <GiftBanner />
 
           {restaurants && restaurants.length > 0 && (
             <RestaurantSection restaurants={restaurants} />
