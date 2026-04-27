@@ -51,7 +51,7 @@ export default function CertificatesPage() {
                 initial_amount: selectedAmount,
                 current_balance: selectedAmount,
                 buyer_id: user?.id || null,
-                expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
+                expiry_date: null, // Unlimited duration
                 status: 'active'
             })
             .select()
@@ -155,7 +155,7 @@ export default function CertificatesPage() {
                                     {lang === 'kk' ? 'Сатып алу' : 'Купить сейчас'}
                                 </Button>
                                 <p className="text-center text-[10px] text-muted-foreground mt-4 font-bold uppercase tracking-widest">
-                                    {lang === 'kk' ? 'Сертификат 1 жыл бойы жарамды' : 'Сертификат действителен в течение 1 года'}
+                                    {lang === 'kk' ? 'Сертификаттың мерзімі шектеусіз' : 'Срок действия сертификата не ограничен'}
                                 </p>
                             </div>
                         </motion.div>
