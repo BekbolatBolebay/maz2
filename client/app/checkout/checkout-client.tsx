@@ -54,7 +54,7 @@ export function CheckoutClient() {
     const [workingHours, setWorkingHours] = useState<any[]>([])
     const [step, setStep] = useState<'auth' | 'form' | 'summary'>('auth')
     const [groupItems, setGroupItems] = useState<any[]>([])
-    const [certCode, setCertCode] = useState(searchParams.get('gift') || '')
+    const [certCode, setCertCode] = useState('')
     const [certData, setCertData] = useState<any>(null)
     const [isVerifyingCert, setIsVerifyingCert] = useState(false)
 
@@ -65,11 +65,15 @@ export function CheckoutClient() {
         }
     }, [authUser, step])
 
-    // Auto-verify gift code from URL
+    // Auto-verify gift code from URL or sessionStorage
     useEffect(() => {
-        const giftCode = searchParams.get('gift')
-        if (giftCode && !certData) {
-            verifyCertificate(giftCode)
+        const urlGift = searchParams.get('gift')
+        const sessionGift = typeof window !== 'undefined' ? sessionStorage.getItem('active_gift_code') : null
+        const giftToUse = urlGift || sessionGift
+        
+        if (giftToUse && !certData) {
+            setCertCode(giftToUse)
+            verifyCertificate(giftToUse)
         }
     }, [searchParams])
 

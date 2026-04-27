@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import Image from 'next/image'
 import { ArrowLeft, Heart, Star, Clock, MapPin, Phone, Image as ImageIcon, CalendarCheck } from 'lucide-react'
 import Link from 'next/link'
@@ -64,7 +65,9 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col min-h-screen pb-16">
-      <GiftParamHandler />
+      <Suspense fallback={null}>
+        <GiftParamHandler />
+      </Suspense>
       <div className="relative h-48 bg-muted overflow-hidden">
         {restaurant.banner_url ? (
           <Image
