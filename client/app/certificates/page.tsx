@@ -11,15 +11,29 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
 
 const AMOUNTS = [5000, 10000, 20000, 50000]
 
 export default function CertificatesPage() {
     const { lang, locale } = useI18n()
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const restaurantId = searchParams.get('restaurant')
+    const [restaurant, setRestaurant] = useState<any>(null)
     const [selectedAmount, setSelectedAmount] = useState(10000)
     const [loading, setLoading] = useState(false)
     const [purchasedCode, setPurchasedCode] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (restaurantId) {
+            const supabase = createClient()
+            supabase.from('restaurants').select('*').eq('id', restaurantId).single().then(({ data }) => {
+                if (data) setRestaurant(data)
+            })
+        }
+    }, [restaurantId])
 
     const handlePurchase = async () => {
         setLoading(true)
@@ -33,6 +47,7 @@ export default function CertificatesPage() {
             .from('gift_certificates')
             .insert({
                 code,
+                cafe_id: restaurantId || null,
                 initial_amount: selectedAmount,
                 current_balance: selectedAmount,
                 buyer_id: user?.id || null,
@@ -54,9 +69,14 @@ export default function CertificatesPage() {
     }
 
     const shareViaWhatsApp = () => {
+        const baseUrl = window.location.origin
+        const shareLink = restaurantId 
+            ? `${baseUrl}/restaurant/${restaurantId}?gift=${purchasedCode}`
+            : `${baseUrl}/?gift=${purchasedCode}`
+
         const text = lang === 'kk' 
-            ? `Сәлем! Саған MazirApp-тан сыйлық сертификатын жібердім! Коды: ${purchasedCode}. Оны тапсырыс беру кезінде пайдалана аласың.`
-            : `Привет! Я отправил тебе подарочный сертификат MazirApp! Код: ${purchasedCode}. Ты можешь использовать его при оформлении заказа.`
+            ? `Сәлем! Саған MazirApp-тан сыйлық сертификатын жібердім! Коды: ${purchasedCode}. Оны мына сілтеме арқылы бірден пайдалана аласың: ${shareLink}`
+            : `Привет! Я отправил тебе подарочный сертификат MazirApp! Код: ${purchasedCode}. Ты можешь использовать его сразу по этой ссылке: ${shareLink}`
         
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
     }
@@ -86,10 +106,14 @@ export default function CertificatesPage() {
                                         <Gift className="w-6 h-6" />
                                     </div>
                                     <h1 className="text-3xl font-black leading-tight">
-                                        {lang === 'kk' ? 'Ең жақсы сыйлық - дәмді тағам!' : 'Лучший подарок — вкусная еда!'}
+                                        {restaurant 
+                                            ? (locale === 'ru' ? `Подарок в ${restaurant.name_ru}` : `Сыйлық: ${restaurant.name_kk || restaurant.name_ru}`)
+                                            : (lang === 'kk' ? 'Ең жақсы сыйлық - дәмді тағам!' : 'Лучший подарок — вкусная еда!')}
                                     </h1>
                                     <p className="text-white/80 text-sm font-medium">
-                                        {lang === 'kk' ? 'Жақындарыңызға қуаныш сыйлаңыз' : 'Подарите радость своим близким'}
+                                        {restaurant 
+                                            ? (locale === 'ru' ? 'Сертификат только для этого заведения' : 'Сертификат тек осы мекеме үшін жарамды')
+                                            : (lang === 'kk' ? 'Жақындарыңызға қуаныш сыйлаңыз' : 'Подарите радость своим близким')}
                                     </p>
                                 </div>
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-12 -mt-12 blur-3xl" />

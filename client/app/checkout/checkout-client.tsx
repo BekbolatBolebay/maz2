@@ -53,7 +53,7 @@ export function CheckoutClient() {
     const [workingHours, setWorkingHours] = useState<any[]>([])
     const [step, setStep] = useState<'auth' | 'form' | 'summary'>('auth')
     const [groupItems, setGroupItems] = useState<any[]>([])
-    const [certCode, setCertCode] = useState('')
+    const [certCode, setCertCode] = useState(searchParams.get('gift') || '')
     const [certData, setCertData] = useState<any>(null)
     const [isVerifyingCert, setIsVerifyingCert] = useState(false)
 
@@ -63,6 +63,14 @@ export function CheckoutClient() {
             setStep('form')
         }
     }, [authUser, step])
+
+    // Auto-verify gift code from URL
+    useEffect(() => {
+        const giftCode = searchParams.get('gift')
+        if (giftCode && !certData) {
+            verifyCertificate(giftCode)
+        }
+    }, [searchParams])
 
     // Form state
     const [name, setName] = useState('')
@@ -152,7 +160,7 @@ export function CheckoutClient() {
     const pointsToUse = usePoints ? Math.min(pointsAvailable, subtotal) : 0
     
     const certDiscount = certData ? Math.min(certData.current_balance, subtotal + calculatedFee - pointsToUse) : 0
-    const total = subtotal + calculatedFee - pointsToUse - certDiscount
+    const total = Math.max(0, subtotal + calculatedFee - pointsToUse - certDiscount)
 
     // Calculate delivery fee and booking fee
     useEffect(() => {
@@ -460,14 +468,15 @@ export function CheckoutClient() {
         window.scrollTo(0, 0)
     }
 
-    const verifyCertificate = async () => {
-        if (!certCode.trim()) return
+    const verifyCertificate = async (codeOverride?: string) => {
+        const codeToVerify = codeOverride || certCode
+        if (!codeToVerify.trim()) return
         setIsVerifyingCert(true)
         const supabase = createClient()
         const { data, error } = await supabase
             .from('gift_certificates')
             .select('*')
-            .eq('code', certCode.trim().toUpperCase())
+            .eq('code', codeToVerify.trim().toUpperCase())
             .single()
         
         if (error || !data) {
@@ -475,6 +484,9 @@ export function CheckoutClient() {
             setCertData(null)
         } else if (data.status !== 'active' || data.current_balance <= 0) {
             toast.error(locale === 'kk' ? 'Бұл сертификат жарамсыз' : 'Этот сертификат недействителен')
+            setCertData(null)
+        } else if (data.cafe_id && data.cafe_id !== restaurantId) {
+            toast.error(locale === 'kk' ? 'Бұл сертификат басқа ресторанға арналған' : 'Этот сертификат предназначен для другого ресторана')
             setCertData(null)
         } else {
             setCertData(data)
@@ -745,13 +757,13 @@ export function CheckoutClient() {
                     await supabase.from('group_orders').update({ status: 'completed' }).eq('id', groupOrderId)
                 }
 
-                // Deduct from certificate
+                // Burn certificate (one-time use)
                 if (certData) {
                     await supabase
                         .from('gift_certificates')
                         .update({ 
-                            current_balance: certData.current_balance - certDiscount,
-                            status: (certData.current_balance - certDiscount) <= 0 ? 'fully_used' : 'active'
+                            current_balance: 0,
+                            status: 'fully_used'
                         })
                         .eq('id', certData.id)
                 }

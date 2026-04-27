@@ -10,10 +10,12 @@ import { MenuItemCard } from '@/components/restaurant/menu-item-card'
 import { FavoriteButton } from '@/components/restaurant/favorite-button'
 import { ShareButton } from '@/components/restaurant/share-button'
 import { GroupOrderButton } from '@/components/restaurant/group-order-button'
+import { RestaurantCertificateButton } from '@/components/restaurant/certificate-button'
 import { Metadata } from 'next'
 import RestaurantMap from '@/components/restaurant/restaurant-map'
 import { isRestaurantOpen } from '@/lib/restaurant-utils'
 import { fetchRestaurantWithRating } from '@/lib/restaurant-utils-rating'
+import { GiftParamHandler } from '@/components/restaurant/gift-param-handler'
 
 export default async function RestaurantPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -62,6 +64,7 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col min-h-screen pb-16">
+      <GiftParamHandler />
       <div className="relative h-48 bg-muted overflow-hidden">
         {restaurant.banner_url ? (
           <Image
@@ -184,6 +187,7 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
                 <Link href="/cart">Тапсырыс беру (Жеткізу / Өзі алып кету)</Link>
               </Button>
               <GroupOrderButton restaurantId={restaurant.id} />
+              <RestaurantCertificateButton restaurantId={restaurant.id} />
             </div>
 
 
