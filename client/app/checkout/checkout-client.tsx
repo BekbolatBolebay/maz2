@@ -45,6 +45,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export function CheckoutClient() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const cartItems = useLocalCart()
     const { t, locale } = useI18n()
     const { user: authUser, profile, loading: authLoading, signInAnonymous } = useAuth()
@@ -105,7 +106,6 @@ export function CheckoutClient() {
         setPaymentMethod(method)
         localStorage.setItem('last_payment_method', method)
     }
-    const searchParams = useSearchParams()
     const initialType = (searchParams.get('type') as 'delivery' | 'pickup' | 'booking') || 'delivery'
     const [orderType, setOrderType] = useState<'delivery' | 'pickup' | 'booking'>(initialType)
     const lang = locale // Alias for convenience or consistent naming
