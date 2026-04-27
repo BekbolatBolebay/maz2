@@ -64,89 +64,77 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
     : ''
 
   return (
-    <div className="flex flex-col min-h-screen pb-16">
-      <Suspense fallback={null}>
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <div className="flex flex-col min-h-screen pb-16">
         <GiftParamHandler />
-      </Suspense>
-      <div className="relative h-48 bg-muted overflow-hidden">
-        {restaurant.banner_url ? (
-          <Image
-            src={restaurant.banner_url}
-            alt={restaurant.name_ru || restaurant.name_en}
-            fill
-            className="object-cover transition-transform hover:scale-105 duration-700"
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
-            <div className="relative">
-              <ImageIcon className="w-12 h-12 text-primary/20" />
-              <div className="absolute inset-0 blur-2xl bg-primary/20 -z-10" />
+        <div className="relative h-48 bg-muted overflow-hidden">
+          {restaurant.banner_url ? (
+            <Image
+              src={restaurant.banner_url}
+              alt={restaurant.name_ru || restaurant.name_en}
+              fill
+              className="object-cover transition-transform hover:scale-105 duration-700"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+              <div className="relative">
+                <ImageIcon className="w-12 h-12 text-primary/20" />
+                <div className="absolute inset-0 blur-2xl bg-primary/20 -z-10" />
+              </div>
+              <span className="mt-2 text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Məzir APP</span>
             </div>
-            <span className="mt-2 text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">Məzir APP</span>
-          </div>
-        )}
+          )}
 
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4">
-          <Link href="/">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full bg-background/80 backdrop-blur hover:bg-background/90"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4">
+            <Link href="/">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-full bg-background/80 backdrop-blur hover:bg-background/90"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
 
-          <div className="flex items-center gap-2">
-            <ShareButton id={id} name={restaurant.name_ru || restaurant.name_kk} />
-            <FavoriteButton restaurantId={id} />
+            <div className="flex items-center gap-2">
+              <ShareButton id={id} name={restaurant.name_ru || restaurant.name_kk} />
+              <FavoriteButton restaurantId={id} />
+            </div>
           </div>
         </div>
 
-        {status.isOpen ? (
-          <Badge className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white text-primary border-0">
-            {displayStatus} {workingHoursText && `• ${workingHoursText}`}
-          </Badge>
-        ) : (
-          <Badge className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground border-0">
-            {displayStatus} {status.message.includes('Opens at') && `• ${status.message.split('at ')[1]}`}
-          </Badge>
-        )}
-      </div>
-
-      <main className="flex-1 overflow-auto bg-background">
-        <div className="max-w-screen-xl mx-auto px-4 py-4">
-          <div className="mb-4">
-            <div className="flex items-start justify-between mb-2">
-              <h1 className="text-2xl font-bold">{restaurant.name_ru || restaurant.name_en}</h1>
-              <div className="flex items-center gap-1 ml-2">
-                <Star className="w-5 h-5 fill-accent text-accent" />
-                <div className="flex flex-col items-end">
-                  <span className="text-lg font-bold">{restaurant.rating.toFixed(1)}</span>
-                  {(restaurant as any).review_count > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      ({(restaurant as any).review_count} {(restaurant as any).review_count === 1 ? 'пікір' : 'пікір'})
-                    </span>
-                  )}
+        <div className="flex-1 -mt-8 relative z-10 bg-background rounded-t-[32px] px-4 pt-6 pb-20">
+          <div className="mb-6">
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <div className="flex-1">
+                <h1 className="text-2xl font-black text-foreground mb-1">
+                  {restaurant.name_ru || restaurant.name_en}
+                </h1>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-1 text-yellow-500 font-bold">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span>{restaurant.rating?.toFixed(1) || 5.0}</span>
+                  </div>
+                  <span className="text-muted-foreground">•</span>
+                  <div className="flex items-center gap-1 text-muted-foreground font-medium">
+                    <Clock className="w-4 h-4" />
+                    <span>{restaurant.delivery_time_min}-{restaurant.delivery_time_max} мин</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {(restaurant.description_ru || restaurant.description_en) && (
-              <p className="text-muted-foreground mb-3">{restaurant.description_ru || restaurant.description_en}</p>
-            )}
-
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>
-                  {restaurant.delivery_time_min}-{restaurant.delivery_time_max} мин
-                </span>
-              </div>
-              {restaurant.delivery_fee === 0 ? (
-                <span className="text-accent font-medium">Тегін жеткізу</span>
+              
+              {status.isOpen ? (
+                <Badge className="bg-green-500 hover:bg-green-600 text-white border-none font-bold px-3 py-1 rounded-full shadow-lg shadow-green-500/20">
+                  Ашық
+                </Badge>
               ) : (
-                <span>Жеткізу: {restaurant.delivery_fee}₸</span>
+                <Badge variant="destructive" className="font-bold px-3 py-1 rounded-full shadow-lg shadow-destructive/20">
+                  Жабық
+                </Badge>
               )}
             </div>
 
@@ -158,11 +146,7 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
             )}
 
             {restaurant.phone && (
-              <Button
-                variant="outline"
-                className="w-full justify-center gap-2"
-                asChild
-              >
+              <Button variant="outline" className="w-full justify-center gap-2 rounded-xl mb-4" asChild>
                 <a href={`tel:${restaurant.phone}`}>
                   <Phone className="w-4 h-4 text-primary" />
                   <span className="text-primary font-medium">Кафемен байланысу</span>
@@ -170,52 +154,34 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
               </Button>
             )}
 
-            <div className="flex flex-col gap-3 mt-4">
+            <div className="flex flex-col gap-3">
               {restaurant.is_booking_enabled && (
-                <Button
-                  asChild
-                  className="rounded-2xl h-14 font-black shadow-xl shadow-primary/20 text-lg"
-                >
+                <Button asChild className="rounded-2xl h-14 font-black shadow-xl shadow-primary/20 text-lg">
                   <Link href={`/checkout?type=booking&restaurant=${restaurant.id}`}>
                     <CalendarCheck className="w-5 h-5 mr-2" />
                     Орын брондау
                   </Link>
                 </Button>
               )}
-              <Button
-                asChild
-                variant="outline"
-                className="rounded-2xl h-12 font-bold border-2"
-              >
+              <Button asChild variant="outline" className="rounded-2xl h-12 font-bold border-2">
                 <Link href="/cart">Тапсырыс беру (Жеткізу / Өзі алып кету)</Link>
               </Button>
               <GroupOrderButton restaurantId={restaurant.id} />
               <RestaurantCertificateButton restaurantId={restaurant.id} />
             </div>
 
-
-            {/* Карта (Restaurant Location) */}
             {restaurant.latitude && restaurant.longitude && (
-              <RestaurantMap
-                latitude={restaurant.latitude}
-                longitude={restaurant.longitude}
-                restaurantName={restaurant.name_kk || restaurant.name_ru}
-                address={restaurant.address}
-              />
+              <div className="mt-6">
+                <RestaurantMap
+                  latitude={restaurant.latitude}
+                  longitude={restaurant.longitude}
+                  restaurantName={restaurant.name_kk || restaurant.name_ru}
+                  address={restaurant.address}
+                />
+              </div>
             )}
           </div>
 
-          {restaurant.cuisine_types && restaurant.cuisine_types.length > 0 && (
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {restaurant.cuisine_types.map((category: string, index: number) => (
-                <Badge key={index} variant="secondary">
-                  {category}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Sticky Categories Navigation */}
           <Tabs defaultValue="all" className="w-full">
             <div className="sticky top-0 z-40 -mx-4 px-4 py-3 bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-b border-border/10 shadow-sm transition-all duration-300">
               <TabsList className="w-full justify-start gap-2 h-auto p-1.5 bg-muted/40 rounded-2xl overflow-x-auto scrollbar-hide no-scrollbar">
