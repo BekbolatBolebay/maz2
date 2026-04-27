@@ -132,7 +132,6 @@ export function CheckoutClient() {
     const [usePoints, setUsePoints] = useState(false)
     const pointsAvailable = profile?.loyalty_points || 0
 
-    const searchParams = useSearchParams()
     const groupOrderId = searchParams.get('group_order')
     const isGroupMode = !!groupOrderId
 
