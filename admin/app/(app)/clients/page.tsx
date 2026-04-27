@@ -7,7 +7,7 @@ export default async function ClientsPage() {
     // Aggregate clients from orders table
     const { data: orders } = await supabase
         .from('orders')
-        .select('id, user_id, customer_name, customer_phone, total_amount, address')
+        .select('id, user_id, customer_name, customer_phone, total_amount, address, clients!user_id(loyalty_points)')
         .order('created_at', { ascending: false })
 
     const clientsMap: Record<string, any> = {}
@@ -21,7 +21,8 @@ export default async function ClientsPage() {
                 customer_phone: o.customer_phone,
                 total_orders: 0,
                 total_spent: 0,
-                last_address: o.address
+                last_address: o.address,
+                loyalty_points: (o.clients as any)?.loyalty_points || 0
             }
         }
         clientsMap[o.customer_phone].total_orders += 1

@@ -51,10 +51,43 @@ export function CourierDashboard({ initialCourier, onLogout }: CourierDashboardP
             })
             .subscribe()
 
+        // --- Location Tracking ---
+        let watchId: number | null = null
+
+        const hasActiveOrder = orders.some(o => o.status === 'on_the_way')
+        
+        if ("geolocation" in navigator) {
+            watchId = navigator.geolocation.watchPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords
+                    
+                    const { error } = await supabase
+                        .from('courier_locations')
+                        .upsert({
+                            courier_id: initialCourier.id,
+                            latitude,
+                            longitude,
+                            updated_at: new Date().toISOString()
+                        })
+                    
+                    if (error) console.error('Location update error:', error)
+                },
+                (error) => {
+                    console.error('Geolocation error:', error)
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            )
+        }
+
         return () => {
             supabase.removeChannel(channel)
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId)
         }
-    }, [initialCourier.id])
+    }, [initialCourier.id, orders.some(o => o.status === 'on_the_way')])
 
     const updateStatus = async (orderId: string, nextStatus: string) => {
         if (updatingId) return

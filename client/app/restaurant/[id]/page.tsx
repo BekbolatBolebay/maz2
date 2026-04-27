@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MenuItemCard } from '@/components/restaurant/menu-item-card'
 import { FavoriteButton } from '@/components/restaurant/favorite-button'
 import { ShareButton } from '@/components/restaurant/share-button'
+import { GroupOrderButton } from '@/components/restaurant/group-order-button'
 import { Metadata } from 'next'
 import RestaurantMap from '@/components/restaurant/restaurant-map'
 import { isRestaurantOpen } from '@/lib/restaurant-utils'
@@ -182,6 +183,7 @@ export default async function RestaurantPage({ params }: { params: Promise<{ id:
               >
                 <Link href="/cart">Тапсырыс беру (Жеткізу / Өзі алып кету)</Link>
               </Button>
+              <GroupOrderButton restaurantId={restaurant.id} />
             </div>
 
 

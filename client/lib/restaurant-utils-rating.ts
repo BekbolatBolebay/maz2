@@ -27,6 +27,10 @@ export interface RestaurantWithRating {
   longitude?: number
   cuisine_types?: string[]
   is_booking_enabled?: boolean
+  happy_hour_start?: string | null
+  happy_hour_end?: string | null
+  happy_hour_discount_percent?: number
+  happy_hour_days?: number[]
   [key: string]: any
 }
 
@@ -71,6 +75,10 @@ export async function fetchRestaurantsWithRatings(options?: {
       updated_at,
       owner_id,
       city,
+      happy_hour_start,
+      happy_hour_end,
+      happy_hour_discount_percent,
+      happy_hour_days,
       rating,
       reviews(rating)
       `
@@ -190,6 +198,10 @@ export async function fetchRestaurantsByCuisine(
       delivery_time_max,
       delivery_fee,
       cuisine_types,
+      happy_hour_start,
+      happy_hour_end,
+      happy_hour_discount_percent,
+      happy_hour_days,
       reviews(rating)
       `
     )

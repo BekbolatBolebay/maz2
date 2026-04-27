@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
-import { Plus, Minus, X, ShoppingCart, MapPin, Utensils, Star, Clock, Info, ChevronRight, Share2, Plus as PlusIcon } from 'lucide-react'
+import { Plus, Minus, X, ShoppingCart, MapPin, Utensils, Star, Clock, Info, ChevronRight, Share2, Plus as PlusIcon, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { addToLocalCart, LocalCartItem } from '@/lib/storage/local-storage'
@@ -11,7 +11,9 @@ import { Database } from '@/lib/supabase/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { cn, isHappyHourActive, getHappyHourDiscountedPrice } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { AuthModal } from '@/components/auth/auth-modal'
 
@@ -20,6 +22,10 @@ type MenuItem = Database['public']['Tables']['menu_items']['Row'] & {
     name_ru: string
     name_en: string
     id?: string
+    happy_hour_start?: string | null
+    happy_hour_end?: string | null
+    happy_hour_discount_percent?: number
+    happy_hour_days?: number[]
   }
   is_combo?: boolean
 }
@@ -42,6 +48,10 @@ export function MenuItemCard({
   const [mismatchOpen, setMismatchOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [pendingAddToCart, setPendingAddToCart] = useState<{ quantity: number, force: boolean } | null>(null)
+  
+  const searchParams = useSearchParams()
+  const groupOrderId = searchParams.get('group_order')
+  const isGroupMode = !!groupOrderId
 
   const isHorizontal = layout === 'horizontal'
 
@@ -69,10 +79,18 @@ export function MenuItemCard({
     ? (item.restaurant?.name_ru || '')
     : (item.restaurant?.name_en || item.restaurant?.name_ru || '')
 
+  const isHappyHour = isHappyHourActive(item.restaurant)
+  const currentPrice = getHappyHourDiscountedPrice(item.price, item.restaurant)
+
   function addToCart(quantity = 1, force = false) {
     console.log('addToCart called', { quantity, force, user: !!user });
     if (!isOpen) {
       toast.error(locale === 'ru' ? 'Кафе сейчас закрыто' : 'Кафе қазір жабық')
+      return
+    }
+
+    if (isGroupMode) {
+      handleGroupAddToCart(quantity)
       return
     }
 
@@ -93,7 +111,8 @@ export function MenuItemCard({
         name_kk: item.name_kk || item.name_ru,
         name_ru: item.name_ru,
         name_en: item.name_en,
-        price: item.price,
+        price: currentPrice,
+        original_price: isHappyHour ? item.price : item.original_price,
         image_url: item.image_url || '',
         restaurant: {
           name_kk: item.restaurant?.name_ru || '',
@@ -113,6 +132,42 @@ export function MenuItemCard({
     setOpen(false)
     setQty(1)
     setMismatchOpen(false)
+  }
+
+  async function handleGroupAddToCart(quantity: number) {
+    const supabase = createClient()
+    const userName = localStorage.getItem('group_order_user_name') || 'Guest'
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // 1. Check if item already exists in group order for THIS user
+    const { data: existing } = await supabase
+      .from('group_order_items')
+      .select('id, quantity')
+      .eq('group_order_id', groupOrderId)
+      .eq('menu_item_id', item.id)
+      .eq('user_name', userName) // We identify by name for guests
+      .maybeSingle()
+    
+    if (existing) {
+      await supabase
+        .from('group_order_items')
+        .update({ quantity: existing.quantity + quantity })
+        .eq('id', existing.id)
+    } else {
+      await supabase
+        .from('group_order_items')
+        .insert({
+          group_order_id: groupOrderId,
+          menu_item_id: item.id,
+          user_id: user?.id || null,
+          user_name: userName,
+          quantity
+        })
+    }
+
+    toast.success(locale === 'ru' ? 'Добавлено в группу' : 'Топқа қосылды')
+    setOpen(false)
+    setQty(1)
   }
 
   return (
@@ -142,8 +197,15 @@ export function MenuItemCard({
               unoptimized
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/10 select-none">
-              <Utensils className="w-12 h-12" />
+            </div>
+          )}
+          {/* Happy Hour Badge */}
+          {isHappyHour && (
+            <div className="absolute top-3 left-3 z-10">
+              <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-none text-[10px] font-black uppercase tracking-widest px-2 py-1 shadow-lg shadow-orange-500/30 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                HH -{item.restaurant?.happy_hour_discount_percent}%
+              </Badge>
             </div>
           )}
           {/* Quick add button for grid */}
@@ -174,9 +236,16 @@ export function MenuItemCard({
             )}
           </div>
           <div className="flex items-center justify-between mt-2">
-            <p className="text-base font-black text-primary tracking-tight">
-              {item.price.toFixed(0)}<span className="text-xs ml-0.5">₸</span>
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-base font-black text-primary tracking-tight">
+                {currentPrice.toFixed(0)}<span className="text-xs ml-0.5">₸</span>
+              </p>
+              {isHappyHour && (
+                <span className="text-[10px] text-muted-foreground line-through font-bold opacity-60">
+                  {item.price.toFixed(0)}₸
+                </span>
+              )}
+            </div>
             {isHorizontal && (
                <button
                  onClick={e => { e.stopPropagation(); addToCart(1) }}
@@ -259,12 +328,12 @@ export function MenuItemCard({
                 <div className="flex items-end justify-between mb-8 p-4 bg-muted/30 rounded-3xl border border-muted/50">
                   <div>
                     <p className="text-3xl font-black text-primary flex items-baseline gap-1">
-                      {item.original_price && (
+                      {isHappyHour && (
                         <span className="text-base text-muted-foreground line-through font-bold opacity-50 mr-1">
-                          {(item.original_price * qty).toFixed(0)}₸
+                          {(item.price * qty).toFixed(0)}₸
                         </span>
                       )}
-                      {(item.price * qty).toFixed(0)}<span className="text-sm font-black uppercase ml-0.5">₸</span>
+                      {(currentPrice * qty).toFixed(0)}<span className="text-sm font-black uppercase ml-0.5">₸</span>
                     </p>
                     {item.type === 'rental' && (
                       <p className="text-[10px] text-muted-foreground font-black uppercase tracking-tighter">
@@ -306,7 +375,10 @@ export function MenuItemCard({
                     onClick={() => addToCart(qty)}
                   >
                     <ShoppingCart className="w-6 h-6" />
-                    {isOpen ? (locale === 'ru' ? 'В корзину' : 'Себетке қосу') : (locale === 'ru' ? 'Закрыто' : 'Жабық')}
+                    {isGroupMode 
+                        ? (locale === 'ru' ? 'Добавить всем' : 'Топқа қосу')
+                        : (isOpen ? (locale === 'ru' ? 'В корзину' : 'Себетке қосу') : (locale === 'ru' ? 'Закрыто' : 'Жабық'))
+                    }
                   </Button>
                 </div>
               </div>

@@ -110,6 +110,12 @@ export default function ClientsClient({ initialClients }: { initialClients: any[
                                     <Phone className="w-3 h-3 text-muted-foreground" />
                                     <p className="text-xs text-muted-foreground">{formatCustomerValue(c.customer_phone, 'phone')}</p>
                                 </div>
+                                {c.loyalty_points > 0 && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                        <p className="text-[10px] font-bold text-amber-600">{c.loyalty_points.toLocaleString()} бонус</p>
+                                    </div>
+                                )}
                             </div>
                             <div className="text-right">
                                 <p className="text-xs font-bold text-primary">{c.total_orders} тапсырыс</p>
@@ -151,6 +157,12 @@ export default function ClientsClient({ initialClients }: { initialClients: any[
                             <div className="bg-secondary/40 rounded-2xl p-4">
                                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">Жалпы сома</p>
                                 <p className="text-xl font-bold text-primary">{selectedClient.total_spent.toLocaleString()} ₸</p>
+                            </div>
+                            <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4 col-span-2">
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-2">
+                                    <Star className="w-3 h-3 fill-amber-500" /> Бонус балансы
+                                </p>
+                                <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{selectedClient.loyalty_points.toLocaleString()} ₸</p>
                             </div>
                         </div>
 

@@ -10,6 +10,7 @@ import { getBookingCart, clearBookingCart, updateBookingCartQuantity, BookingCar
 import { Minus, Plus, Trash2, CalendarCheck, Utensils, Store, ShoppingCart } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { AIRecommendations } from '@/components/cart/ai-recommendations'
 
 import { useI18n } from '@/lib/i18n/i18n-context'
 
@@ -194,6 +195,12 @@ export default function CartPage() {
               {cartItems.length > 0 ? (
                 <>
                   <CartList items={cartItems} />
+                  
+                  <AIRecommendations 
+                    cartItemIds={cartItems.map(i => i.menu_item_id)}
+                    restaurantId={cartItems[0].cafe_id}
+                  />
+
                   <CartSummary
                     subtotal={subtotal}
                     deliveryFee={actualDeliveryFee}

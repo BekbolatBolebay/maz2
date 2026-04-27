@@ -52,6 +52,7 @@ export function CheckoutClient() {
     const [restaurantSettings, setRestaurantSettings] = useState<any>(null)
     const [workingHours, setWorkingHours] = useState<any[]>([])
     const [step, setStep] = useState<'auth' | 'form' | 'summary'>('auth')
+    const [groupItems, setGroupItems] = useState<any[]>([])
 
     // Redirect to form/summary if already logged in or after login
     useEffect(() => {
@@ -117,9 +118,36 @@ export function CheckoutClient() {
     const [selectedTableId, setSelectedTableId] = useState<string | null>(null)
     const [allReservations, setAllReservations] = useState<any[]>([])
     const [isKaspiModalOpen, setIsKaspiModalOpen] = useState(false)
+    const [usePoints, setUsePoints] = useState(false)
+    const pointsAvailable = profile?.loyalty_points || 0
 
-    const restaurantId = cartItems.length > 0 ? cartItems[0].cafe_id : searchParams.get('restaurant')
-    const subtotal = cartItems.reduce((sum, item) => sum + item.menu_item.price * item.quantity, 0)
+    const searchParams = useSearchParams()
+    const groupOrderId = searchParams.get('group_order')
+    const isGroupMode = !!groupOrderId
+
+    useEffect(() => {
+        if (!isGroupMode) return
+        const supabase = createClient()
+        supabase
+            .from('group_order_items')
+            .select('*, menu_items(*)')
+            .eq('group_order_id', groupOrderId)
+            .then(({ data }) => {
+                if (data) {
+                    setGroupItems(data.map(i => ({
+                        ...i,
+                        menu_item: i.menu_items,
+                        quantity: i.quantity
+                    })))
+                }
+            })
+    }, [isGroupMode, groupOrderId])
+
+    const activeItems = isGroupMode ? groupItems : cartItems
+    const restaurantId = activeItems.length > 0 ? activeItems[0].cafe_id : searchParams.get('restaurant')
+    const subtotal = activeItems.reduce((sum, item) => sum + item.menu_item.price * item.quantity, 0)
+    const pointsToUse = usePoints ? Math.min(pointsAvailable, subtotal) : 0
+    const total = subtotal + calculatedFee - pointsToUse
 
     // Calculate delivery fee and booking fee
     useEffect(() => {
@@ -173,8 +201,6 @@ export function CheckoutClient() {
             return null
         })
     }, [orderType, restaurantSettings, authUser])
-
-    const total = subtotal + calculatedFee
 
     // Fetch restaurant settings and tables
     useEffect(() => {
@@ -527,6 +553,7 @@ export function CheckoutClient() {
                         customer_id: user.id,
                         total_amount: total,
                         booking_fee: calculatedFee,
+                        points_spent: pointsToUse,
                         status: paymentMethod === 'freedom' ? 'awaiting_payment' : 'pending',
                         payment_status: 'pending'
                     })
@@ -626,14 +653,16 @@ export function CheckoutClient() {
                     phone: vpsId, // Storing VPS ID
                     notes: notes || '',
                     type: orderType,
-                    items_count: cartItems.length
+                    items_count: activeItems.length,
+                    points_spent: pointsToUse,
+                    group_order_id: groupOrderId // Link to group order
                 })
                 .select()
                 .single()
 
             if (orderError) throw orderError
 
-            const orderItems = cartItems.map((item) => ({
+            const orderItems = activeItems.map((item) => ({
                 order_id: order.id,
                 menu_item_id: item.menu_item_id,
                 name_kk: item.menu_item.name_kk || '',
@@ -681,6 +710,10 @@ export function CheckoutClient() {
                     localStorage.setItem('customer_phone', phone)
                 }
                 clearLocalCart()
+                // Mark group order as completed
+                if (isGroupMode) {
+                    await supabase.from('group_orders').update({ status: 'completed' }).eq('id', groupOrderId)
+                }
                 toast.success(t.cart.order_confirmed)
                 router.push(`/orders/${order.id}`)
             }
@@ -693,7 +726,7 @@ export function CheckoutClient() {
         }
     }
 
-    if (cartItems.length === 0 && !checkoutLoading && orderType !== 'booking') {
+    if (activeItems.length === 0 && !checkoutLoading && orderType !== 'booking') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
                 <div className="text-muted-foreground/20 mb-6">
@@ -1122,6 +1155,57 @@ export function CheckoutClient() {
                                         )}
                                     </div>
                                 </section>
+
+                                {/* Loyalty Points */}
+                                {pointsAvailable > 0 && (
+                                    <section className="space-y-3">
+                                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">
+                                            {locale === 'kk' ? 'Бонустар' : 'Бонусы'}
+                                        </h3>
+                                        <Card 
+                                            className={cn(
+                                                "border-none shadow-sm cursor-pointer transition-all",
+                                                usePoints ? "bg-amber-500/10 ring-1 ring-amber-500/50" : "bg-card hover:bg-muted/50"
+                                            )}
+                                            onClick={() => setUsePoints(!usePoints)}
+                                        >
+                                            <CardContent className="p-4 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                                        usePoints ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-600"
+                                                    )}>
+                                                        <Star className="w-5 h-5 fill-current" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold">
+                                                            {locale === 'kk' ? 'Бонустарды қолдану' : 'Использовать бонусы'}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            {locale === 'kk' ? `Сізде ${pointsAvailable} бонус бар` : `У вас есть ${pointsAvailable} бонусов`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className={cn(
+                                                    "w-10 h-6 rounded-full relative transition-colors",
+                                                    usePoints ? "bg-amber-500" : "bg-muted"
+                                                )}>
+                                                    <div className={cn(
+                                                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+                                                        usePoints ? "left-5" : "left-1"
+                                                    )} />
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                        {usePoints && (
+                                            <p className="text-[10px] text-amber-600 font-bold px-1 animate-in fade-in slide-in-from-top-1">
+                                                {locale === 'kk' 
+                                                    ? `-${pointsToUse.toLocaleString()} ₸ шегерім қолданылды` 
+                                                    : `Применена скидка -${pointsToUse.toLocaleString()} ₸`}
+                                            </p>
+                                        )}
+                                    </section>
+                                )}
                             </div>
                         )}
                         </motion.div>
@@ -1267,6 +1351,15 @@ export function CheckoutClient() {
                                                     `${calculatedFee.toLocaleString()} ₸`
                                                 )}
                                             </span>
+                                        </div>
+                                    )}
+                                    {usePoints && (
+                                        <div className="flex justify-between items-center text-sm text-amber-600">
+                                            <span className="font-medium flex items-center gap-1">
+                                                <Star className="w-3 h-3 fill-current" />
+                                                {locale === 'kk' ? 'Бонустар' : 'Бонусы'}
+                                            </span>
+                                            <span className="font-bold">-{pointsToUse.toLocaleString()} ₸</span>
                                         </div>
                                     )}
                                     <Separator className="bg-primary/10 my-1" />

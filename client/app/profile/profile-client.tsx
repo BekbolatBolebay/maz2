@@ -20,7 +20,8 @@ import {
     Smartphone,
     MoreVertical,
     PlusSquare,
-    Share
+    Share,
+    Star
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -333,12 +334,12 @@ export default function ProfileClient({ user, profile, restaurant }: Props) {
                                     </div>
                                     <p className="text-3xl font-black tracking-tighter">12</p>
                                 </div>
-                                <div className="bg-white/5 backdrop-blur-sm rounded-[2rem] p-6 border border-white/5 transition-transform hover:scale-[1.02]">
+                                <div className="bg-amber-500/10 backdrop-blur-sm rounded-[2rem] p-6 border border-amber-500/20 transition-transform hover:scale-[1.02]">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <VerifiedIcon className="w-3 h-3 text-emerald-500" />
-                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{locale === 'kk' ? 'Үнем' : 'Эконом'}</p>
+                                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500">{locale === 'kk' ? 'Бонустар' : 'Бонусы'}</p>
                                     </div>
-                                    <p className="text-3xl font-black tracking-tighter text-emerald-400">1.2к <span className="text-xs font-bold text-slate-500 uppercase">₸</span></p>
+                                    <p className="text-3xl font-black tracking-tighter text-amber-500">{(profile?.loyalty_points || 0).toLocaleString()} <span className="text-xs font-bold text-amber-500/60 uppercase">₸</span></p>
                                 </div>
                             </div>
 

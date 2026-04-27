@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Phone, MapPin, Clock, CheckCircle2, XCircle, MessageCircle, CreditCard, PartyPopper, Bike, AlertTriangle, Lock, Loader2, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Phone, MapPin, Clock, CheckCircle2, XCircle, MessageCircle, CreditCard, PartyPopper, Bike, AlertTriangle, Lock, Loader2, ChevronRight, Star } from 'lucide-react'
 import { format } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { getPII } from '@/lib/vps'
@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator'
 import { formatCustomerValue } from '@/lib/utils'
 import { OrderRating } from '@/components/orders/order-rating'
 import { OrderTracker } from '@/components/orders/order-tracker'
+import { CourierTrackingMap } from '@/components/orders/courier-tracking-map'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { toast } from 'sonner'
 
@@ -222,6 +223,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 />
               </div>
 
+              {/* Live Tracking Map */}
+              {order.status === 'on_the_way' && order.courier_id && order.latitude && order.longitude && (
+                <div className="mb-10 animate-in zoom-in-95 duration-700">
+                  <CourierTrackingMap 
+                    courierId={order.courier_id}
+                    customerLat={order.latitude}
+                    customerLng={order.longitude}
+                    orderId={order.id}
+                  />
+                </div>
+              )}
+
               {/* Order Info Grid */}
               <div className="grid grid-cols-2 gap-8 mb-10 pb-8 border-b border-dashed border-white/10">
                 <div className="space-y-1.5">
@@ -279,8 +292,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
                 <div className="flex justify-between items-center px-2">
                   <p className="text-xs font-bold text-muted-foreground/60">{locale === 'ru' ? 'Стоимость блюд' : 'Тамақ бағалары'}</p>
-                  <p className="text-sm font-bold">{(order.total_amount - (order.delivery_fee || 0)).toFixed(0)}₸</p>
+                  <p className="text-sm font-bold">{(order.total_amount - (order.delivery_fee || 0) + (order.points_spent || 0)).toFixed(0)}₸</p>
                 </div>
+                {order.points_spent > 0 && (
+                  <div className="flex justify-between items-center px-2 text-amber-500">
+                    <p className="text-xs font-bold flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-current" />
+                      {locale === 'ru' ? 'Списано бонусов' : 'Бонустар шегерілді'}
+                    </p>
+                    <p className="text-sm font-bold">-{order.points_spent.toFixed(0)}₸</p>
+                  </div>
+                )}
+                {order.points_earned > 0 && (
+                  <div className="flex justify-between items-center px-2 text-emerald-500">
+                    <p className="text-xs font-bold flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-current" />
+                      {locale === 'ru' ? 'Начислено бонусов' : 'Бонустар жиналды'}
+                    </p>
+                    <p className="text-sm font-bold">+{order.points_earned.toFixed(0)}₸</p>
+                  </div>
+                )}
                 <div className="pt-6 border-t border-dashed border-white/10 flex justify-between items-end px-2">
                   <div>
                     <p className="text-xs font-black uppercase tracking-widest text-primary/80 mb-1">

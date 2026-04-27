@@ -68,6 +68,11 @@ export type Restaurant = {
   created_at: string
   updated_at: string
   freedom_test_mode?: boolean
+  cashback_percentage?: number
+  happy_hour_start?: string | null
+  happy_hour_end?: string | null
+  happy_hour_discount_percent?: number
+  happy_hour_days?: number[]
 }
 
 export type RestaurantTable = {
@@ -154,6 +159,7 @@ export type Order = {
   one_time_courier_name?: string
   one_time_courier_phone?: string
   courier_tracking_token?: string
+  group_order_id?: string
   phone: string | null
   latitude?: number
   longitude?: number

@@ -99,6 +99,13 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
   const [freedomSecretKey, setFreedomSecretKey] = useState(settings?.freedom_payment_secret_key || '')
   const [freedomReceiptSecretKey, setFreedomReceiptSecretKey] = useState(settings?.freedom_receipt_secret_key || '')
   const [freedomTestMode, setFreedomTestMode] = useState(settings?.freedom_test_mode ?? false)
+  const [cashbackPercentage, setCashbackPercentage] = useState<string | number>(settings?.cashback_percentage || 5)
+  
+  // Happy Hour settings
+  const [happyHourStart, setHappyHourStart] = useState(settings?.happy_hour_start || '')
+  const [happyHourEnd, setHappyHourEnd] = useState(settings?.happy_hour_end || '')
+  const [happyHourDiscount, setHappyHourDiscount] = useState<string | number>(settings?.happy_hour_discount_percent || 0)
+  const [happyHourDays, setHappyHourDays] = useState<number[]>(settings?.happy_hour_days || [1,2,3,4,5])
   
   // Sync state when navigating back to the page and receiving fresh props
   useEffect(() => {
@@ -110,6 +117,11 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       setFreedomTestMode(settings.freedom_test_mode ?? false);
       setAcceptFreedom(settings.accept_freedom ?? false);
       setAcceptKaspi(settings.accept_kaspi ?? true);
+      setCashbackPercentage(settings.cashback_percentage || 5);
+      setHappyHourStart(settings.happy_hour_start || '');
+      setHappyHourEnd(settings.happy_hour_end || '');
+      setHappyHourDiscount(settings.happy_hour_discount_percent || 0);
+      setHappyHourDays(settings.happy_hour_days || [1,2,3,4,5]);
     }
   }, [settings]);
 
@@ -160,6 +172,11 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
       }
       setImageUrl(settings.image_url || '')
       setBannerUrl(settings.banner_url || '')
+      setCashbackPercentage(settings.cashback_percentage || 5)
+      setHappyHourStart(settings.happy_hour_start || '')
+      setHappyHourEnd(settings.happy_hour_end || '')
+      setHappyHourDiscount(settings.happy_hour_discount_percent || 0)
+      setHappyHourDays(settings.happy_hour_days || [1,2,3,4,5])
     }
   }, [settings])
   
@@ -182,6 +199,11 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
           base_delivery_fee: Number(baseDeliveryFee) || 0,
           delivery_fee_per_km: Number(deliveryFeePerKm) || 0,
           booking_fee: Number(bookingFee) || 0,
+          cashback_percentage: Number(cashbackPercentage) || 0,
+          happy_hour_start: happyHourStart || null,
+          happy_hour_end: happyHourEnd || null,
+          happy_hour_discount_percent: Number(happyHourDiscount) || 0,
+          happy_hour_days: happyHourDays,
         }, settings?.id)
         toast.success(lang === 'kk' ? 'Сақталды' : 'Сохранено', { duration: 1000 })
       } catch (err: any) {
@@ -192,7 +214,7 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     }
-  }, [baseDeliveryFee, deliveryFeePerKm, bookingFee])
+  }, [baseDeliveryFee, deliveryFeePerKm, bookingFee, cashbackPercentage, happyHourStart, happyHourEnd, happyHourDiscount, happyHourDays])
 
   // Helper for numeric inputs to avoid persistent '0'
   const handleNumericChange = (value: string, setter: (v: string | number) => void) => {
@@ -281,6 +303,11 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
         freedom_receipt_secret_key: freedomReceiptSecretKey,
         freedom_test_mode: freedomTestMode,
         kaspi_link: kaspiLink,
+        cashback_percentage: Number(cashbackPercentage) || 0,
+        happy_hour_start: happyHourStart || null,
+        happy_hour_end: happyHourEnd || null,
+        happy_hour_discount_percent: Number(happyHourDiscount) || 0,
+        happy_hour_days: happyHourDays,
       }, settings?.id)
       if (settingsError) throw settingsError
 
@@ -934,6 +961,131 @@ export default function ProfileClient({ settings, workingHours, userProfile }: P
             </div>
           </div>
         </section>
+
+        </section>
+
+        {/* Loyalty Program */}
+        <section className="space-y-4">
+          <h3 className="text-lg font-medium">{lang === 'kk' ? 'Бонустық жүйе' : 'Бонусная система'}</h3>
+          <div className="grid gap-6 p-6 rounded-lg border bg-card">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-bold">{lang === 'kk' ? 'Кэшбэк пайызы' : 'Процент кэшбэка'}</p>
+                <p className="text-sm text-muted-foreground">
+                  {lang === 'kk' 
+                    ? 'Клиент әр тапсырыстан алатын бонустар мөлшері' 
+                    : 'Сколько бонусов получит клиент с каждого заказа'}
+                </p>
+              </div>
+              <div className="relative w-full md:w-32">
+                <input 
+                  type="number"
+                  value={cashbackPercentage}
+                  onChange={(e) => handleNumericChange(e.target.value, setCashbackPercentage)}
+                  className="flex h-12 w-full rounded-xl border border-input bg-background px-4 py-2 text-lg font-bold ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="5"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-muted-foreground">%</div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Happy Hours Section */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
+               <Clock className="w-4 h-4 text-orange-500" />
+               {lang === 'kk' ? 'Happy Hours (Жеңілдік уақыты)' : 'Happy Hours (Часы скидок)'}
+            </h3>
+          </div>
+          
+          <Card className="border-none shadow-xl shadow-orange-500/5 bg-gradient-to-br from-orange-500/[0.03] to-transparent">
+            <CardContent className="p-6 space-y-6">
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-orange-500/10 pb-6">
+                  <div className="space-y-1">
+                    <p className="font-bold text-lg">{lang === 'kk' ? 'Автоматты жеңілдік' : 'Автоматическая скидка'}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {lang === 'kk' 
+                        ? 'Белгіленген уақытта барлық мәзірге автоматты түрде жеңілдік қолданылады' 
+                        : 'Скидка будет автоматически применяться ко всему меню в указанное время'}
+                    </p>
+                  </div>
+                  <div className="relative w-full md:w-40">
+                    <input 
+                      type="number"
+                      value={happyHourDiscount}
+                      onChange={(e) => handleNumericChange(e.target.value, setHappyHourDiscount)}
+                      className="flex h-14 w-full rounded-2xl border-2 border-orange-500/20 bg-background px-4 py-2 text-xl font-black ring-offset-background focus:border-orange-500 focus:ring-0 transition-all text-orange-600"
+                      placeholder="20"
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xl font-black text-orange-500">%</div>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                       <Clock className="w-3 h-3" />
+                       {lang === 'kk' ? 'Уақыт аралығы' : 'Интервал времени'}
+                    </p>
+                    <div className="flex items-center gap-3">
+                       <div className="flex-1 space-y-2">
+                          <label className="text-[10px] font-bold text-muted-foreground/60 uppercase ml-1">Басталуы</label>
+                          <input 
+                            type="time" 
+                            value={happyHourStart || ''} 
+                            onChange={(e) => setHappyHourStart(e.target.value)}
+                            className="flex h-12 w-full rounded-xl border border-input bg-muted/20 px-4 py-2 text-sm font-bold shadow-sm transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                          />
+                       </div>
+                       <div className="pt-6 text-muted-foreground font-black">—</div>
+                       <div className="flex-1 space-y-2">
+                          <label className="text-[10px] font-bold text-muted-foreground/60 uppercase ml-1">Аяқталуы</label>
+                          <input 
+                            type="time" 
+                            value={happyHourEnd || ''} 
+                            onChange={(e) => setHappyHourEnd(e.target.value)}
+                            className="flex h-12 w-full rounded-xl border border-input bg-muted/20 px-4 py-2 text-sm font-bold shadow-sm transition-all focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                          />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                       <CalendarDays className="w-3 h-3" />
+                       {lang === 'kk' ? 'Жұмыс күндері' : 'Рабочие дни'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                       {[1, 2, 3, 4, 5, 6, 0].map((day) => {
+                          const isActive = happyHourDays.includes(day)
+                          return (
+                            <button
+                              key={day}
+                              onClick={() => {
+                                if (isActive) {
+                                  setHappyHourDays(happyHourDays.filter(d => d !== day))
+                                } else {
+                                  setHappyHourDays([...happyHourDays, day])
+                                }
+                              }}
+                              className={cn(
+                                "w-10 h-10 rounded-xl text-[10px] font-black transition-all border shrink-0",
+                                isActive 
+                                  ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20" 
+                                  : "bg-muted/20 border-input text-muted-foreground hover:bg-muted/40"
+                              )}
+                            >
+                              {lang === 'kk' ? DAYS_KK[day === 0 ? 6 : day - 1].slice(0, 2) : DAYS_RU[day === 0 ? 6 : day - 1].slice(0, 3)}
+                            </button>
+                          )
+                       })}
+                    </div>
+                  </div>
+               </div>
+            </CardContent>
+          </Card>
 
         {/* App Settings */}
         <section className="space-y-4">
