@@ -39,7 +39,7 @@ export default function CertificatesPage() {
         }
     }, [restaurantId])
 
-    const finalAmount = parseInt(customAmount.replace(/\D/g, ''), 10) || 0
+    const finalAmount = parseInt(String(customAmount).replace(/\D/g, ''), 10) || 0
 
     const handleNextStep = () => {
         if (finalAmount < MIN_AMOUNT) {
@@ -134,6 +134,9 @@ export default function CertificatesPage() {
                     details: orderError.details,
                     hint: orderError.hint
                 })
+                toast.error(lang === 'kk' ? 'Тапсырыс сақталмады' : 'Ошибка при сохранении заказа')
+                setLoading(false)
+                return
             }
         }
 
@@ -161,6 +164,7 @@ export default function CertificatesPage() {
         setPurchasedCode(requestId)
         setStep(3)
         setLoading(false)
+        window.scrollTo(0, 0)
     }
 
     const shareViaWhatsApp = () => {
@@ -253,9 +257,9 @@ export default function CertificatesPage() {
                                         placeholder="10 000"
                                         className={cn(
                                             "w-full h-20 rounded-3xl border-2 bg-white pl-12 pr-6 text-3xl font-black text-foreground outline-none transition-all",
-                                            finalAmount >= MIN_AMOUNT
+                                            finalAmount >= MIN_AMOUNT || finalAmount === 0
                                                 ? "border-primary/40 focus:border-primary"
-                                                : "border-zinc-100 focus:border-primary/40"
+                                                : "border-destructive/40 focus:border-destructive"
                                         )}
                                     />
                                     {finalAmount > 0 && finalAmount < MIN_AMOUNT && (
